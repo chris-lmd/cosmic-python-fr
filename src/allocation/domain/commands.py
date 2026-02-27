@@ -17,27 +17,27 @@ class Command:
 
 
 @dataclass(frozen=True)
-class CreateBatch(Command):
+class CréerLot(Command):
     """Demande de création d'un nouveau lot de stock."""
 
-    ref: str
+    réf: str
     sku: str
-    qty: int
+    quantité: int
     eta: Optional[date] = None
 
 
 @dataclass(frozen=True)
-class Allocate(Command):
+class Allouer(Command):
     """Demande d'allocation d'une ligne de commande."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
 
 @dataclass(frozen=True)
-class ChangeBatchQuantity(Command):
+class ModifierQuantitéLot(Command):
     """Demande de modification de la quantité d'un lot."""
 
-    ref: str
-    qty: int
+    réf: str
+    quantité: int

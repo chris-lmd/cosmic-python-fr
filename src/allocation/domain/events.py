@@ -14,26 +14,26 @@ class Event:
 
 
 @dataclass(frozen=True)
-class Allocated(Event):
-    """Un OrderLine a été alloué à un Batch."""
+class Alloué(Event):
+    """Une LigneDeCommande a été allouée à un Lot."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
-    batchref: str
+    quantité: int
+    réf_lot: str
 
 
 @dataclass(frozen=True)
-class Deallocated(Event):
-    """Un OrderLine a été désalloué d'un Batch."""
+class Désalloué(Event):
+    """Une LigneDeCommande a été désallouée d'un Lot."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
 
 @dataclass(frozen=True)
-class OutOfStock(Event):
+class RuptureDeStock(Event):
     """Le stock est épuisé pour un SKU donné."""
 
     sku: str

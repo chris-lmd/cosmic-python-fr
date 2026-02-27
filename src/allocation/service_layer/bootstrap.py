@@ -1,11 +1,12 @@
 """
-Bootstrap : assemblage de l'application.
+Bootstrap : assemblage de l'application (Composition Root).
 
 Ce module construit le message bus avec toutes ses dépendances.
 C'est ici que l'injection de dépendances est réalisée :
 on assemble les composants concrets (ou les fakes pour les tests).
 
-C'est la composition root de l'application.
+C'est le seul endroit de l'application qui connaît les
+implémentations concrètes de chaque abstraction.
 """
 
 from __future__ import annotations
@@ -26,11 +27,8 @@ def bootstrap(
     """
     Construit et retourne un MessageBus configuré.
 
-    Paramètres :
-    - start_orm : si True, initialise le mapping SQLAlchemy
-    - uow : Unit of Work à utiliser (défaut : SqlAlchemyUnitOfWork)
-    - notifications_adapter : adapter de notifications
-    - extra_dependencies : dépendances supplémentaires à injecter
+    En production, utilise les implémentations concrètes.
+    En test, on injecte des fakes via les paramètres.
     """
     if start_orm:
         orm.start_mappers()
@@ -54,16 +52,22 @@ def bootstrap(
     )
 
 
-# --- Configuration des handlers ---
+# --- Routage des messages vers les handlers ---
 
 EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Allocated: [handlers.publish_allocated_event],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Alloué: [
+        handlers.publier_événement_allocation,
+        handlers.ajouter_allocation_vue,
+    ],
+    events.Désalloué: [
+        handlers.réallouer,
+        handlers.supprimer_allocation_vue,
+    ],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 
 COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
-    commands.CreateBatch: handlers.add_batch,
-    commands.Allocate: handlers.allocate,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
+    commands.CréerLot: handlers.ajouter_lot,
+    commands.Allouer: handlers.allouer,
+    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }

@@ -2,7 +2,7 @@
 
 ## Le problème de la persistance
 
-Au chapitre précédent, nous avons construit un modèle de domaine riche : des `OrderLine`, des `Batch`, un agrégat `Product` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
+Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, un agrégat `Produit` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
 
 Mais une application réelle doit **sauvegarder ses données**. Les objets du domaine doivent être persistés dans une base de données, puis rechargées plus tard. Et c'est là que les ennuis commencent.
 
@@ -10,7 +10,7 @@ La tentation naturelle est d'ajouter des méthodes `save()` et `load()` directem
 
 ```python
 # Ce qu'on veut éviter
-class Product:
+class Produit:
     def save(self):
         db.execute("INSERT INTO products ...")
 
@@ -36,7 +36,7 @@ Le Repository est une abstraction qui donne **l'illusion d'une collection d'obje
 
 L'interface est volontairement minimale :
 
-- **`add(product)`** -- ajouter un nouvel agrégat
+- **`add(produit)`** -- ajouter un nouvel agrégat
 - **`get(sku)`** -- récupérer un agrégat existant par son identifiant
 
 C'est tout. Pas de `save()`, pas de `update()`, pas de `delete()`. Le repository cache toute la complexité de la persistance derrière cette interface élémentaire.
@@ -44,10 +44,10 @@ C'est tout. Pas de `save()`, pas de `update()`, pas de `delete()`. Le repository
 ```
 Code métier                    Repository                     BDD
 -----------                    ----------                     ---
-                  add(product)                  INSERT INTO ...
-product = repo ───────────────> repo ─────────────────────────> DB
+                  add(produit)                  INSERT INTO ...
+produit = repo ───────────────> repo ─────────────────────────> DB
                   get(sku)                     SELECT * FROM ...
-product = repo <─────────────── repo <───────────────────────── DB
+produit = repo <─────────────── repo <───────────────────────── DB
 ```
 
 Le domaine ne sait pas **comment** les objets sont stockés. PostgreSQL ? SQLite ? Un fichier JSON ? Un service distant ? Peu importe. Le contrat est le même.
@@ -74,40 +74,40 @@ class AbstractRepository(abc.ABC):
     - get : récupérer un agrégat existant
     """
 
-    seen: set[model.Product]
+    seen: set[model.Produit]
 
     def __init__(self) -> None:
-        self.seen: set[model.Product] = set()
+        self.seen: set[model.Produit] = set()
 
-    def add(self, product: model.Product) -> None:
+    def add(self, produit: model.Produit) -> None:
         """Ajoute un produit au repository et le marque comme vu."""
-        self._add(product)
-        self.seen.add(product)
+        self._add(produit)
+        self.seen.add(produit)
 
-    def get(self, sku: str) -> model.Product | None:
+    def get(self, sku: str) -> model.Produit | None:
         """Récupère un produit par son SKU et le marque comme vu."""
-        product = self._get(sku)
-        if product:
-            self.seen.add(product)
-        return product
+        produit = self._get(sku)
+        if produit:
+            self.seen.add(produit)
+        return produit
 
-    def get_by_batchref(self, batchref: str) -> model.Product | None:
-        """Récupère un produit contenant le batch de référence donnée."""
-        product = self._get_by_batchref(batchref)
-        if product:
-            self.seen.add(product)
-        return product
+    def get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
+        """Récupère le produit contenant le lot de référence donnée."""
+        produit = self._get_par_réf_lot(réf_lot)
+        if produit:
+            self.seen.add(produit)
+        return produit
 
     @abc.abstractmethod
-    def _add(self, product: model.Product) -> None:
+    def _add(self, produit: model.Produit) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get(self, sku: str) -> model.Product | None:
+    def _get(self, sku: str) -> model.Produit | None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get_by_batchref(self, batchref: str) -> model.Product | None:
+    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
         raise NotImplementedError
 ```
 
@@ -115,7 +115,7 @@ Analysons les choix de conception :
 
 ### Méthodes publiques et méthodes abstraites protégées
 
-Les méthodes publiques (`add`, `get`, `get_by_batchref`) ne sont **pas** abstraites. Elles contiennent la logique commune à toutes les implémentations -- en l'occurrence, le suivi des objets dans `self.seen`. Les méthodes abstraites préfixées d'un underscore (`_add`, `_get`, `_get_by_batchref`) sont les points d'extension que chaque implémentation concrète doit fournir.
+Les méthodes publiques (`add`, `get`, `get_par_réf_lot`) ne sont **pas** abstraites. Elles contiennent la logique commune à toutes les implémentations -- en l'occurrence, le suivi des objets dans `self.seen`. Les méthodes abstraites préfixées d'un underscore (`_add`, `_get`, `_get_par_réf_lot`) sont les points d'extension que chaque implémentation concrète doit fournir.
 
 Ce pattern (parfois appelé **Template Method**) garantit que le comportement de suivi est appliqué uniformément, quelle que soit l'implémentation.
 
@@ -124,8 +124,8 @@ Ce pattern (parfois appelé **Template Method**) garantit que le comportement de
 L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au chapitre 6) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels events doivent être collectés et traités.
 
 ```python
-repo.add(product)          # product est ajouté à seen
-product = repo.get("SKU")  # product est ajouté à seen
+repo.add(produit)          # produit est ajouté à seen
+produit = repo.get("SKU")  # produit est ajouté à seen
 # -> self.seen contient tous les agrégats touchés
 ```
 
@@ -134,7 +134,7 @@ product = repo.get("SKU")  # product est ajouté à seen
 Dans l'architecture **Ports and Adapters** (aussi appelée architecture hexagonale), un **port** est une interface que le domaine définit pour communiquer avec le monde extérieur. `AbstractRepository` est un port : il exprime ce que le domaine **attend** de la couche de persistance, sans dicter comment l'implémenter.
 
 !!! info "Port = interface définie par le domaine"
-    Le port appartient au domaine. C'est le domaine qui dicte le contrat : "Je veux pouvoir ajouter un `Product` et en récupérer un par son SKU." La couche infrastructure doit s'y conformer.
+    Le port appartient au domaine. C'est le domaine qui dicte le contrat : "Je veux pouvoir ajouter un `Produit` et en récupérer un par son SKU." La couche infrastructure doit s'y conformer.
 
 
 ## L'adapter concret : SQLAlchemy
@@ -151,28 +151,28 @@ class SqlAlchemyRepository(AbstractRepository):
     Implémentation concrète du repository avec SQLAlchemy.
 
     Utilise une session SQLAlchemy pour persister et récupérer
-    les agrégats Product.
+    les agrégats Produit.
     """
 
     def __init__(self, session: Session):
         super().__init__()
         self.session = session
 
-    def _add(self, product: model.Product) -> None:
-        self.session.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self.session.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
+    def _get(self, sku: str) -> model.Produit | None:
         return (
-            self.session.query(model.Product)
+            self.session.query(model.Produit)
             .filter_by(sku=sku)
             .first()
         )
 
-    def _get_by_batchref(self, batchref: str) -> model.Product | None:
+    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
         return (
-            self.session.query(model.Product)
-            .join(model.Batch)
-            .filter(model.Batch.reference == batchref)
+            self.session.query(model.Produit)
+            .join(model.Lot)
+            .filter(model.Lot.référence == réf_lot)
             .first()
         )
 ```
@@ -182,36 +182,36 @@ Quelques observations :
 1. **L'appel à `super().__init__()`** initialise le `set` `seen` dans la classe parente.
 2. **`_add`** délègue simplement à `session.add()` de SQLAlchemy. La session se charge du tracking et de l'insertion.
 3. **`_get`** utilise l'API de requêtage de SQLAlchemy pour filtrer par SKU.
-4. **`_get_by_batchref`** fait une jointure pour trouver le `Product` à partir d'une référence de batch.
+4. **`_get_par_réf_lot`** fait une jointure pour trouver le `Produit` à partir d'une référence de lot.
 
 !!! note "Adapter = implémentation concrète du port"
-    L'adapter traduit les opérations abstraites du port en appels concrets à une technologie. Si demain on migre vers MongoDB, on écrit un `MongoRepository` qui implémente les mêmes méthodes `_add`, `_get`, `_get_by_batchref`. Le reste du code ne change pas.
+    L'adapter traduit les opérations abstraites du port en appels concrets à une technologie. Si demain on migre vers MongoDB, on écrit un `MongoRepository` qui implémente les mêmes méthodes `_add`, `_get`, `_get_par_réf_lot`. Le reste du code ne change pas.
 
 
 ## Persistence Ignorance
 
 Un principe fondamental de cette architecture est la **Persistence Ignorance** : le modèle de domaine ne sait absolument rien de la base de données. Il n'importe pas SQLAlchemy, ne connaît pas les tables, n'a pas de méthodes `save()`.
 
-Regardez la classe `Product` dans `src/allocation/domain/model.py` :
+Regardez la classe `Produit` dans `src/allocation/domain/model.py` :
 
 ```python
-class Product:
+class Produit:
     """
     Agrégat racine pour la gestion des produits.
     """
 
-    def __init__(self, sku: str, batches: list[Batch] | None = None,
-                 version_number: int = 0):
+    def __init__(self, sku: str, lots: list[Lot] | None = None,
+                 numéro_version: int = 0):
         self.sku = sku
-        self.batches = batches or []
-        self.version_number = version_number
-        self.events: list[events.Event] = []
+        self.lots = lots or []
+        self.numéro_version = numéro_version
+        self.événements: list[events.Event] = []
 
-    def allocate(self, line: OrderLine) -> str:
+    def allouer(self, ligne: LigneDeCommande) -> str:
         # ... logique métier pure ...
 ```
 
-Aucune référence à la BDD. Aucun import de SQLAlchemy. La classe `Product` est un objet Python ordinaire, testable en isolation totale.
+Aucune référence à la BDD. Aucun import de SQLAlchemy. La classe `Produit` est un objet Python ordinaire, testable en isolation totale.
 
 ### Comment ça marche alors ?
 
@@ -229,16 +229,16 @@ mapper_registry = registry(metadata=metadata)
 order_lines = Table(
     "order_lines", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("orderid", String(255)),
+    Column("id_commande", String(255)),
     Column("sku", String(255)),
-    Column("qty", Integer),
+    Column("quantite", Integer),
 )
 
 products = Table(
     "products", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("sku", String(255)),
-    Column("version_number", Integer, nullable=False, server_default="0"),
+    Column("numero_version", Integer, nullable=False, server_default="0"),
 )
 
 batches = Table(
@@ -246,7 +246,7 @@ batches = Table(
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("reference", String(255)),
     Column("sku", String(255)),
-    Column("_purchased_quantity", Integer),
+    Column("quantite_achetee", Integer),
     Column("eta", Date, nullable=True),
     Column("product_sku", String(255), ForeignKey("products.sku")),
 )
@@ -264,20 +264,27 @@ def start_mappers() -> None:
     Configure le mapping entre les classes du domaine et les tables SQL.
     """
     lines_mapper = mapper_registry.map_imperatively(
-        model.OrderLine, order_lines
+        model.LigneDeCommande, order_lines,
+        properties={
+            "id_commande": order_lines.c.id_commande,
+            "quantité": order_lines.c.quantite,
+        },
     )
     batches_mapper = mapper_registry.map_imperatively(
-        model.Batch, batches,
+        model.Lot, batches,
         properties={
+            "référence": batches.c.reference,
+            "_quantité_achetée": batches.c.quantite_achetee,
             "_allocations": relationship(
                 lines_mapper, secondary=allocations, collection_class=set
             ),
         },
     )
     mapper_registry.map_imperatively(
-        model.Product, products,
+        model.Produit, products,
         properties={
-            "batches": relationship(
+            "numéro_version": products.c.numero_version,
+            "lots": relationship(
                 batches_mapper,
                 primaryjoin=(products.c.sku == batches.c.product_sku),
             ),
@@ -286,7 +293,7 @@ def start_mappers() -> None:
 ```
 
 !!! tip "Classical mapping vs. declarative"
-    L'approche classique de SQLAlchemy (utilisée ici via `map_imperatively`) est plus verbeuse que l'approche déclarative (où les classes héritent de `Base`), mais elle a un avantage crucial : **le modèle de domaine reste totalement indépendant de l'ORM**. Les classes `Product`, `Batch` et `OrderLine` n'héritent d'aucune classe SQLAlchemy.
+    L'approche classique de SQLAlchemy (utilisée ici via `map_imperatively`) est plus verbeuse que l'approche déclarative (où les classes héritent de `Base`), mais elle a un avantage crucial : **le modèle de domaine reste totalement indépendant de l'ORM**. Les classes `Produit`, `Lot` et `LigneDeCommande` n'héritent d'aucune classe SQLAlchemy.
 
 La fonction `start_mappers()` est appelée une seule fois au démarrage de l'application. À partir de ce moment, SQLAlchemy sait comment convertir les objets du domaine en lignes de table, et inversement.
 
@@ -335,23 +342,23 @@ class FakeRepository(AbstractRepository):
     Utilisé pour les tests unitaires.
     """
 
-    def __init__(self, products: list[model.Product] | None = None):
+    def __init__(self, produits: list[model.Produit] | None = None):
         super().__init__()
-        self._products = set(products or [])
+        self._produits = set(produits or [])
 
-    def _add(self, product: model.Product) -> None:
-        self._products.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self._produits.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
-        return next((p for p in self._products if p.sku == sku), None)
+    def _get(self, sku: str) -> model.Produit | None:
+        return next((p for p in self._produits if p.sku == sku), None)
 
-    def _get_by_batchref(self, batchref: str) -> model.Product | None:
+    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
         return next(
             (
                 p
-                for p in self._products
-                for b in p.batches
-                if b.reference == batchref
+                for p in self._produits
+                for l in p.lots
+                if l.référence == réf_lot
             ),
             None,
         )
@@ -371,21 +378,21 @@ Les tests qui utilisent le `FakeRepository` sont :
 Voici un exemple de test concret utilisant le fake :
 
 ```python
-class TestAddBatch:
-    def test_add_batch_for_new_product(self):
+class TestAjouterLot:
+    def test_ajouter_un_lot(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "COUSSIN-CARRE", 100, None))
+        bus.handle(commands.CréerLot("b1", "COUSSIN-CARRE", 100, None))
 
-        assert bus.uow.products.get("COUSSIN-CARRE") is not None
+        assert bus.uow.produits.get("COUSSIN-CARRE") is not None
         assert bus.uow.committed
 
-    def test_add_batch_for_existing_product(self):
+    def test_ajouter_lot_produit_existant(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "LAMPE-RONDE", 100, None))
-        bus.handle(commands.CreateBatch("b2", "LAMPE-RONDE", 99, None))
+        bus.handle(commands.CréerLot("b1", "LAMPE-RONDE", 100, None))
+        bus.handle(commands.CréerLot("b2", "LAMPE-RONDE", 99, None))
 
-        product = bus.uow.products.get("LAMPE-RONDE")
-        assert len(product.batches) == 2
+        produit = bus.uow.produits.get("LAMPE-RONDE")
+        assert len(produit.lots) == 2
 ```
 
 Le `FakeRepository` est imbriqué dans un `FakeUnitOfWork` (que nous détaillerons au chapitre 6), mais le principe est le même : on remplace l'adapter concret par un fake, et le code métier ne voit pas la différence.
@@ -401,7 +408,7 @@ Récapitulons comment les pièces s'assemblent :
 ```
 src/allocation/
     domain/
-        model.py              <-- Modèle de domaine (Product, Batch, OrderLine)
+        model.py              <-- Modèle de domaine (Produit, Lot, LigneDeCommande)
                                    Ne connaît PAS la BDD
     adapters/
         repository.py         <-- AbstractRepository (port)

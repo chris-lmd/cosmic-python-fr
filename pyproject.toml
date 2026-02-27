@@ -6,11 +6,6 @@ requires-python = ">=3.12"
 dependencies = [
     "flask>=3.0",
     "sqlalchemy>=2.0",
-    "redis>=5.0",
-    "pydantic>=2.0",
-    "tenacity>=8.0",
-    "mkdocs>=1.6.1",
-    "mkdocs-material>=9.7.3",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +18,7 @@ dev = [
 docs = [
     "mkdocs>=1.5",
     "mkdocs-material>=9.0",
+    "pymdown-extensions>=10.0",
 ]
 
 [build-system]
@@ -34,6 +30,7 @@ packages = ["src/allocation"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
     "unit: tests unitaires (rapides, sans I/O)",
     "integration: tests d'intégration (base de données)",
@@ -43,3 +40,8 @@ markers = [
 [tool.ruff]
 line-length = 88
 target-version = "py312"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

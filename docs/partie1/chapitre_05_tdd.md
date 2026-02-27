@@ -2,7 +2,7 @@
 
 ## Où en sommes-nous ?
 
-Dans les chapitres précédents, nous avons construit un modèle de domaine (`Batch`, `OrderLine`, `Product`), un Repository pour le persister, et une Service Layer pour orchestrer les cas d'utilisation. Nous avons également écrit des tests à différents niveaux.
+Dans les chapitres précédents, nous avons construit un modèle de domaine (`Lot`, `LigneDeCommande`, `Produit`), un Repository pour le persister, et une Service Layer pour orchestrer les cas d'utilisation. Nous avons également écrit des tests à différents niveaux.
 
 Mais une question reste ouverte : **à quel niveau faut-il écrire nos tests ?** Faut-il tester chaque méthode du domaine ? Passer systématiquement par la service layer ? Écrire des tests end-to-end pour tout ?
 
@@ -51,15 +51,15 @@ C'est notre fichier `tests/unit/test_handlers.py` :
 class FakeRepository(AbstractRepository):
     """Fake repository qui stocke les produits en mémoire."""
 
-    def __init__(self, products: list[model.Product] | None = None):
+    def __init__(self, produits: list[model.Produit] | None = None):
         super().__init__()
-        self._products = set(products or [])
+        self._produits = set(produits or [])
 
-    def _add(self, product: model.Product) -> None:
-        self._products.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self._produits.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
-        return next((p for p in self._products if p.sku == sku), None)
+    def _get(self, sku: str) -> model.Produit | None:
+        return next((p for p in self._produits if p.sku == sku), None)
 ```
 
 ```python
@@ -67,7 +67,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """Fake Unit of Work utilisant le FakeRepository."""
 
     def __init__(self):
-        self.products = FakeRepository([])
+        self.produits = FakeRepository([])
         self.committed = False
 
     def _commit(self):
@@ -84,55 +84,55 @@ Ces fakes remplacent la base de données par de simples structures en mémoire. 
 Regardons les tests d'allocation :
 
 ```python
-class TestAllocate:
-    def test_allocate_returns_batch_ref(self):
+class TestAllouer:
+    def test_allouer_retourne_la_référence_du_lot(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "CHAISE-COMFY", 100, None))
-        results = bus.handle(commands.Allocate("o1", "CHAISE-COMFY", 10))
+        bus.handle(commands.CréerLot("b1", "CHAISE-COMFY", 100, None))
+        results = bus.handle(commands.Allouer("o1", "CHAISE-COMFY", 10))
 
         assert results.pop(0) == "b1"
 
-    def test_allocate_errors_for_invalid_sku(self):
+    def test_allouer_lève_sku_inconnu(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "VRAI-SKU", 100, None))
+        bus.handle(commands.CréerLot("b1", "VRAI-SKU", 100, None))
 
-        with pytest.raises(handlers.InvalidSku, match="SKU-INEXISTANT"):
-            bus.handle(commands.Allocate("o1", "SKU-INEXISTANT", 10))
+        with pytest.raises(handlers.SkuInconnu, match="SKU-INEXISTANT"):
+            bus.handle(commands.Allouer("o1", "SKU-INEXISTANT", 10))
 ```
 
-Ces tests ne savent pas **comment** l'allocation fonctionne en interne. Ils ne connaissent ni `Batch`, ni `OrderLine`, ni la stratégie de tri. Ils envoient une command `Allocate` et vérifient le résultat.
+Ces tests ne savent pas **comment** l'allocation fonctionne en interne. Ils ne connaissent ni `Lot`, ni `LigneDeCommande`, ni la stratégie de tri. Ils envoient une command `Allouer` et vérifient le résultat.
 
-C'est le **"quoi"** : *quand j'alloue la commande o1 pour le SKU CHAISE-COMFY, j'obtiens le batch b1*.
+C'est le **"quoi"** : *quand j'alloue la commande o1 pour le SKU CHAISE-COMFY, j'obtiens le lot b1*.
 
 ### Tests de changement de quantité
 
 Le même principe s'applique aux scénarios plus complexes :
 
 ```python
-class TestChangeBatchQuantity:
-    def test_changes_available_quantity(self):
+class TestModifierQuantitéLot:
+    def test_changes_quantité_disponible(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "TAPIS-ADORABLE", 100, None))
-        [batch] = bus.uow.products.get("TAPIS-ADORABLE").batches
-        assert batch.available_quantity == 100
+        bus.handle(commands.CréerLot("b1", "TAPIS-ADORABLE", 100, None))
+        [lot] = bus.uow.produits.get("TAPIS-ADORABLE").lots
+        assert lot.quantité_disponible == 100
 
-        bus.handle(commands.ChangeBatchQuantity("b1", 50))
-        assert batch.available_quantity == 50
+        bus.handle(commands.ModifierQuantitéLot("b1", 50))
+        assert lot.quantité_disponible == 50
 
-    def test_reallocates_if_necessary(self):
+    def test_réalloue_si_nécessaire(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "TASSE-INDIGO", 50, None))
-        bus.handle(commands.Allocate("o1", "TASSE-INDIGO", 20))
-        bus.handle(commands.Allocate("o2", "TASSE-INDIGO", 20))
+        bus.handle(commands.CréerLot("b1", "TASSE-INDIGO", 50, None))
+        bus.handle(commands.Allouer("o1", "TASSE-INDIGO", 20))
+        bus.handle(commands.Allouer("o2", "TASSE-INDIGO", 20))
 
-        bus.handle(commands.CreateBatch("b2", "TASSE-INDIGO", 100, None))
-        bus.handle(commands.ChangeBatchQuantity("b1", 25))
+        bus.handle(commands.CréerLot("b2", "TASSE-INDIGO", 100, None))
+        bus.handle(commands.ModifierQuantitéLot("b1", 25))
 
-        # L'une des lignes a été réallouée au nouveau batch
-        assert bus.uow.products.get("TASSE-INDIGO").batches[0].available_quantity == 5
+        # L'une des lignes a été réallouée au nouveau lot
+        assert bus.uow.produits.get("TASSE-INDIGO").lots[0].quantité_disponible == 5
 ```
 
-Le test `test_reallocates_if_necessary` vérifie un scénario métier complet : quand on réduit la quantité d'un batch en dessous de ses allocations, le système doit automatiquement réallouer les lignes en excès vers un autre batch. On ne teste pas le mécanisme interne de réallocation, on vérifie que **le résultat final est correct**.
+Le test `test_réalloue_si_nécessaire` vérifie un scénario métier complet : quand on réduit la quantité d'un lot en dessous de ses allocations, le système doit automatiquement réallouer les lignes en excès vers un autre lot. On ne teste pas le mécanisme interne de réallocation, on vérifie que **le résultat final est correct**.
 
 ### Avantages des tests high gear
 
@@ -143,87 +143,87 @@ Le test `test_reallocates_if_necessary` vérifie un scénario métier complet : 
 
 ## Tests "basse vitesse" (low gear)
 
-Les tests **low gear** sont les tests unitaires du modèle de domaine. Ils travaillent directement avec les objets `Batch`, `OrderLine`, et `Product`.
+Les tests **low gear** sont les tests unitaires du modèle de domaine. Ils travaillent directement avec les objets `Lot`, `LigneDeCommande`, et `Produit`.
 
 C'est notre fichier `tests/unit/test_model.py` :
 
 ```python
-def make_batch_and_line(
-    sku: str, batch_qty: int, line_qty: int
-) -> tuple[Batch, OrderLine]:
+def créer_lot_et_ligne(
+    sku: str, quantité_lot: int, quantité_ligne: int
+) -> tuple[Lot, LigneDeCommande]:
     return (
-        Batch("batch-001", sku, batch_qty, eta=date.today()),
-        OrderLine("order-ref", sku, line_qty),
+        Lot("lot-001", sku, quantité_lot, eta=date.today()),
+        LigneDeCommande("commande-ref", sku, quantité_ligne),
     )
 ```
 
-### Tests granulaires du Batch
+### Tests granulaires du Lot
 
 ```python
-class TestBatch:
-    def test_allocating_reduces_available_quantity(self):
-        batch, line = make_batch_and_line("PETITE-TABLE", 20, 2)
-        batch.allocate(line)
-        assert batch.available_quantity == 18
+class TestLot:
+    def test_allouer_réduit_la_quantité_disponible(self):
+        lot, ligne = créer_lot_et_ligne("PETITE-TABLE", 20, 2)
+        lot.allouer(ligne)
+        assert lot.quantité_disponible == 18
 
-    def test_can_allocate_if_available_greater_than_required(self):
-        batch, line = make_batch_and_line("ELEGANTE-LAMPE", 20, 2)
-        assert batch.can_allocate(line)
+    def test_peut_allouer_si_disponible_supérieur(self):
+        lot, ligne = créer_lot_et_ligne("ELEGANTE-LAMPE", 20, 2)
+        assert lot.peut_allouer(ligne)
 
-    def test_cannot_allocate_if_available_smaller_than_required(self):
-        batch, line = make_batch_and_line("ELEGANTE-LAMPE", 2, 20)
-        assert not batch.can_allocate(line)
+    def test_ne_peut_pas_allouer_si_disponible_insuffisant(self):
+        lot, ligne = créer_lot_et_ligne("ELEGANTE-LAMPE", 2, 20)
+        assert not lot.peut_allouer(ligne)
 
-    def test_allocation_is_idempotent(self):
-        batch, line = make_batch_and_line("ANGULAR-DESK", 20, 2)
-        batch.allocate(line)
-        batch.allocate(line)
-        assert batch.available_quantity == 18
+    def test_allocation_idempotente(self):
+        lot, ligne = créer_lot_et_ligne("ANGULAR-DESK", 20, 2)
+        lot.allouer(ligne)
+        lot.allouer(ligne)
+        assert lot.quantité_disponible == 18
 ```
 
-Ces tests sont **très proches de l'implémentation**. Ils vérifient directement les méthodes `allocate`, `can_allocate`, et `deallocate` de la classe `Batch`. Ils testent le **"comment"** de la logique d'allocation.
+Ces tests sont **très proches de l'implémentation**. Ils vérifient directement les méthodes `allouer()`, `peut_allouer()`, et `désallouer()` de la classe `Lot`. Ils testent le **"comment"** de la logique d'allocation.
 
-### Tests de la stratégie d'allocation dans Product
+### Tests de la stratégie d'allocation dans Produit
 
 ```python
-class TestProduct:
-    def test_prefers_warehouse_batches_to_shipments(self):
-        in_stock_batch = Batch("in-stock-batch", "HORLOGE-RETRO", 100, eta=None)
-        shipment_batch = Batch(
-            "shipment-batch", "HORLOGE-RETRO", 100,
+class TestProduit:
+    def test_préfère_les_lots_en_stock_aux_livraisons(self):
+        lot_en_stock = Lot("lot-stock", "HORLOGE-RETRO", 100, eta=None)
+        lot_en_transit = Lot(
+            "lot-transit", "HORLOGE-RETRO", 100,
             eta=date.today() + timedelta(days=1)
         )
-        product = Product(
+        produit = Produit(
             sku="HORLOGE-RETRO",
-            batches=[in_stock_batch, shipment_batch]
+            lots=[lot_en_stock, lot_en_transit]
         )
-        line = OrderLine("oref", "HORLOGE-RETRO", 10)
+        ligne = LigneDeCommande("oref", "HORLOGE-RETRO", 10)
 
-        product.allocate(line)
+        produit.allouer(ligne)
 
-        assert in_stock_batch.available_quantity == 90
-        assert shipment_batch.available_quantity == 100
+        assert lot_en_stock.quantité_disponible == 90
+        assert lot_en_transit.quantité_disponible == 100
 
-    def test_prefers_earlier_batches(self):
-        earliest = Batch("speedy-batch", "LAMPE-MINIMALE", 100, eta=date.today())
-        medium = Batch(
-            "normal-batch", "LAMPE-MINIMALE", 100,
+    def test_préfère_les_lots_avec_eta_la_plus_proche(self):
+        plus_tôt = Lot("lot-rapide", "LAMPE-MINIMALE", 100, eta=date.today())
+        moyen = Lot(
+            "lot-normal", "LAMPE-MINIMALE", 100,
             eta=date.today() + timedelta(days=5)
         )
-        latest = Batch(
-            "slow-batch", "LAMPE-MINIMALE", 100,
+        plus_tard = Lot(
+            "lot-lent", "LAMPE-MINIMALE", 100,
             eta=date.today() + timedelta(days=10)
         )
-        product = Product(
-            sku="LAMPE-MINIMALE", batches=[medium, earliest, latest]
+        produit = Produit(
+            sku="LAMPE-MINIMALE", lots=[moyen, plus_tôt, plus_tard]
         )
-        line = OrderLine("order1", "LAMPE-MINIMALE", 10)
+        ligne = LigneDeCommande("order1", "LAMPE-MINIMALE", 10)
 
-        product.allocate(line)
+        produit.allouer(ligne)
 
-        assert earliest.available_quantity == 90
-        assert medium.available_quantity == 100
-        assert latest.available_quantity == 100
+        assert plus_tôt.quantité_disponible == 90
+        assert moyen.quantité_disponible == 100
+        assert plus_tard.quantité_disponible == 100
 ```
 
 Ces tests vérifient la **règle métier précise** : les lots en stock sont préférés aux livraisons, et parmi les livraisons, la plus proche en date l'emporte. Ils sont indispensables pour **développer** cette logique, car ils donnent un feedback immédiat et précis.
@@ -246,11 +246,11 @@ La métaphore de la boîte de vitesses est éclairante. Quand on démarre un pro
 On commence par des **tests du domaine** pour construire la logique métier pas à pas.
 
 ```python
-# On développe la règle d'allocation batch par batch
-def test_allocating_reduces_available_quantity(self):
-    batch, line = make_batch_and_line("PETITE-TABLE", 20, 2)
-    batch.allocate(line)
-    assert batch.available_quantity == 18
+# On développe la règle d'allocation lot par lot
+def test_allouer_réduit_la_quantité_disponible(self):
+    lot, ligne = créer_lot_et_ligne("PETITE-TABLE", 20, 2)
+    lot.allouer(ligne)
+    assert lot.quantité_disponible == 18
 ```
 
 À ce stade, on avance lentement mais avec précision. Chaque test vérifie un aspect spécifique du modèle. C'est le moment de la **découverte** : on explore le domaine, on affine les règles, on ajuste les abstractions.
@@ -261,14 +261,14 @@ Une fois la logique en place, on **remonte** vers la service layer pour écrire 
 
 ```python
 # On vérifie le cas d'utilisation complet
-def test_allocate_returns_batch_ref(self):
+def test_allouer_retourne_la_référence_du_lot(self):
     bus = bootstrap_test_bus()
-    bus.handle(commands.CreateBatch("b1", "CHAISE-COMFY", 100, None))
-    results = bus.handle(commands.Allocate("o1", "CHAISE-COMFY", 10))
+    bus.handle(commands.CréerLot("b1", "CHAISE-COMFY", 100, None))
+    results = bus.handle(commands.Allouer("o1", "CHAISE-COMFY", 10))
     assert results.pop(0) == "b1"
 ```
 
-Ces tests sont plus stables dans le temps. Si on décide de refactorer le modèle de domaine (changer la structure interne de `Batch`, réorganiser `Product`), les tests high gear continuent de passer tant que le **comportement externe** reste le même.
+Ces tests sont plus stables dans le temps. Si on décide de refactorer le modèle de domaine (changer la structure interne de `Lot`, réorganiser `Produit`), les tests high gear continuent de passer tant que le **comportement externe** reste le même.
 
 ### Le bon ratio
 
@@ -292,13 +292,13 @@ Imaginons un test qui vérifie les détails internes :
 ```python
 # MAUVAIS : couplage à l'implémentation
 def test_allocation_adds_to_internal_set():
-    batch = Batch("b1", "SKU-001", 100)
-    line = OrderLine("o1", "SKU-001", 10)
-    batch.allocate(line)
+    lot = Lot("b1", "SKU-001", 100)
+    ligne = LigneDeCommande("o1", "SKU-001", 10)
+    lot.allouer(ligne)
 
     # On vérifie la structure interne !
-    assert line in batch._allocations
-    assert len(batch._allocations) == 1
+    assert ligne in lot._allocations
+    assert len(lot._allocations) == 1
 ```
 
 Ce test accède à `_allocations`, un attribut privé. Si on décide de remplacer le `set` par une `list`, ou de renommer l'attribut, le test casse -- alors que le comportement n'a pas changé.
@@ -307,10 +307,10 @@ Ce test accède à `_allocations`, un attribut privé. Si on décide de remplace
 
 ```python
 # BON : on teste le comportement observable
-def test_allocating_reduces_available_quantity():
-    batch, line = make_batch_and_line("PETITE-TABLE", 20, 2)
-    batch.allocate(line)
-    assert batch.available_quantity == 18
+def test_allouer_réduit_la_quantité_disponible():
+    lot, ligne = créer_lot_et_ligne("PETITE-TABLE", 20, 2)
+    lot.allouer(ligne)
+    assert lot.quantité_disponible == 18
 ```
 
 Ce test vérifie le **résultat observable** : après une allocation, la quantité disponible diminue. Peu importe comment c'est implémenté en interne.
@@ -319,7 +319,7 @@ Ce test vérifie le **résultat observable** : après une allocation, la quantit
 
 Voici les signes d'alerte :
 
-- Le test accède à des **attributs privés** (`_allocations`, `_purchased_quantity`)
+- Le test accède à des **attributs privés** (`_allocations`, `_quantité_achetée`)
 - Le test vérifie des **appels de méthodes** avec `mock.assert_called_with()`
 - Le test **casse quand on refactore** sans changer le comportement
 - Le test est **difficile à lire** car il reproduit la logique interne
@@ -330,7 +330,7 @@ Voici les signes d'alerte :
 
 Pour un test high gear, les inputs sont des **commands** et les outputs sont les **effets observables** (valeurs de retour, état du repository, events émis).
 
-Pour un test low gear, les inputs sont des **appels de méthodes** sur le domaine et les outputs sont les **propriétés publiques** (`available_quantity`, `reference`, etc.).
+Pour un test low gear, les inputs sont des **appels de méthodes** sur le domaine et les outputs sont les **propriétés publiques** (`quantité_disponible`, `référence`, etc.).
 
 ## Résumé
 

@@ -8,17 +8,16 @@ Fonctionnement :
 1. Un message (command ou event) entre dans le bus
 2. Le bus trouve le(s) handler(s) correspondant(s)
 3. Le handler est exécuté
-4. Les events émis pendant l'exécution sont collectés et traités à leur tour
+4. Les événements émis pendant l'exécution sont collectés et traités à leur tour
 
-Différences entre commands et events :
-- Une command a exactement UN handler (erreur si 0 ou >1)
-- Une command qui échoue fait remonter l'exception
-- Un event peut avoir 0, 1 ou N handlers
-- Un event qui échoue est loggé mais ne bloque pas les autres handlers
+Différences clés :
+- Une command a exactement UN handler ; l'erreur remonte à l'appelant
+- Un event peut avoir 0 à N handlers ; les erreurs sont loggées mais ne bloquent pas
 """
 
 from __future__ import annotations
 
+import inspect
 import logging
 from typing import Any, Callable, Union
 
@@ -35,7 +34,8 @@ class MessageBus:
     Message Bus avec injection de dépendances.
 
     Les dépendances (uow, notifications, etc.) sont injectées
-    à la construction et transmises automatiquement aux handlers.
+    à la construction et transmises automatiquement aux handlers
+    par introspection de leurs signatures.
     """
 
     def __init__(
@@ -54,7 +54,10 @@ class MessageBus:
     def handle(self, message: Message) -> list[Any]:
         """
         Point d'entrée principal : traite un message et tous
-        les events qui en découlent.
+        les événements qui en découlent (propagation en cascade).
+
+        La queue interne accumule les events émis par les handlers ;
+        le bus les traite un par un jusqu'à vider la queue.
         """
         self.queue = [message]
         results: list[Any] = []
@@ -70,7 +73,12 @@ class MessageBus:
         return results
 
     def _handle_event(self, event: events.Event) -> None:
-        """Dispatch un event vers tous ses handlers."""
+        """
+        Dispatch un event vers tous ses handlers.
+
+        Si un handler échoue, l'erreur est loggée mais les
+        autres handlers continuent (tolérance aux pannes).
+        """
         for handler in self.event_handlers.get(type(event), []):
             try:
                 logger.debug("Traitement de l'event %s avec %s", event, handler)
@@ -80,7 +88,12 @@ class MessageBus:
                 logger.exception("Erreur lors du traitement de l'event %s", event)
 
     def _handle_command(self, command: commands.Command) -> Any:
-        """Dispatch une command vers son unique handler."""
+        """
+        Dispatch une command vers son unique handler.
+
+        Contrairement aux events, une erreur de command remonte
+        directement à l'appelant (pas de tolérance).
+        """
         logger.debug("Traitement de la command %s", command)
         handler = self.command_handlers.get(type(command))
         if handler is None:
@@ -93,16 +106,16 @@ class MessageBus:
         """
         Appelle un handler en injectant les dépendances nécessaires.
 
-        Introspection des paramètres du handler pour déterminer
-        quelles dépendances injecter.
+        Introspection : on lit la signature du handler pour déterminer
+        quelles dépendances il attend. Le premier paramètre est toujours
+        le message lui-même ; les suivants sont résolus par nom
+        dans le dictionnaire de dépendances ou via self.uow.
         """
-        import inspect
-
         params = inspect.signature(handler).parameters
         kwargs: dict[str, Any] = {}
         for name, param in params.items():
             if name == list(params.keys())[0]:
-                # Premier paramètre = le message lui-même
+                # Premier paramètre = le message lui-même, on le passe en positional
                 continue
             if name == "uow":
                 kwargs[name] = self.uow

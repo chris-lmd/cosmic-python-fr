@@ -23,11 +23,11 @@ La différence tient en une phrase :
 
 Prenons un exemple concret dans notre domaine d'allocation de stock :
 
-- `Allocate` est une command : "je veux que cette ligne soit allouée". C'est une
+- `Allouer` est une command : "je veux que cette ligne soit allouée". C'est une
   demande adressée au système. Elle peut réussir ou échouer, et l'appelant veut
   savoir lequel des deux s'est produit.
 
-- `Allocated` est un event : "cette ligne a été allouée au lot batch-001". C'est
+- `Alloué` est un event : "cette ligne a été allouée au lot batch-001". C'est
   un fait accompli. On ne peut pas "refuser" un fait. On peut seulement y
   réagir.
 
@@ -64,30 +64,30 @@ class Command:
 
 
 @dataclass(frozen=True)
-class CreateBatch(Command):
+class CréerLot(Command):
     """Demande de création d'un nouveau lot de stock."""
 
-    ref: str
+    réf: str
     sku: str
-    qty: int
+    quantité: int
     eta: Optional[date] = None
 
 
 @dataclass(frozen=True)
-class Allocate(Command):
+class Allouer(Command):
     """Demande d'allocation d'une ligne de commande."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
 
 @dataclass(frozen=True)
-class ChangeBatchQuantity(Command):
+class ModifierQuantitéLot(Command):
     """Demande de modification de la quantité d'un lot."""
 
-    ref: str
-    qty: int
+    réf: str
+    quantité: int
 ```
 
 Et voici les events correspondants dans `events.py` :
@@ -109,26 +109,26 @@ class Event:
 
 
 @dataclass(frozen=True)
-class Allocated(Event):
-    """Un OrderLine a été alloué à un Batch."""
+class Alloué(Event):
+    """Une LigneDeCommande a été allouée à un Lot."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
-    batchref: str
+    quantité: int
+    réf_lot: str
 
 
 @dataclass(frozen=True)
-class Deallocated(Event):
-    """Un OrderLine a été désalloué d'un Batch."""
+class Désalloué(Event):
+    """Une LigneDeCommande a été désallouée d'un Lot."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
 
 @dataclass(frozen=True)
-class OutOfStock(Event):
+class RuptureDeStock(Event):
     """Le stock est épuisé pour un SKU donné."""
 
     sku: str
@@ -144,9 +144,9 @@ Trois raisons motivent cette séparation :
    domaine. Ce sont deux catalogues distincts.
 
 2. **Conventions de nommage différentes.** Les commands sont nommées à
-   l'**impératif** (`CreateBatch`, `Allocate`, `ChangeBatchQuantity`) : ce sont
-   des ordres. Les events sont nommés au **passé composé** (`Allocated`,
-   `Deallocated`, `OutOfStock`) : ce sont des constats.
+   l'**impératif** (`CréerLot`, `Allouer`, `ModifierQuantitéLot`) : ce sont
+   des ordres. Les events sont nommés au **passé composé** (`Alloué`,
+   `Désalloué`, `RuptureDeStock`) : ce sont des constats.
 
 3. **Cycle de vie différent.** Les commands viennent de l'extérieur du domaine
    (API, CLI, autre service). Les events sont émis par le domaine lui-même. Les
@@ -169,9 +169,9 @@ Le nom d'une command exprime ce que l'on veut que le système fasse :
 
 | Command                | Signification                         |
 |------------------------|---------------------------------------|
-| `CreateBatch`          | "Crée un nouveau lot"                 |
-| `Allocate`             | "Alloue cette ligne de commande"      |
-| `ChangeBatchQuantity`  | "Modifie la quantité de ce lot"       |
+| `CréerLot`             | "Crée un nouveau lot"                 |
+| `Allouer`              | "Alloue cette ligne de commande"      |
+| `ModifierQuantitéLot`  | "Modifie la quantité de ce lot"       |
 
 On parle au système comme on parlerait à un collègue : *"Fais ceci."*
 
@@ -183,9 +183,9 @@ exécuter cette demande, pas zéro, pas trois.
 
 ```python title="bootstrap.py -- enregistrement des command handlers"
 COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
-    commands.CreateBatch: handlers.add_batch,
-    commands.Allocate: handlers.allocate,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
+    commands.CréerLot: handlers.ajouter_lot,
+    commands.Allouer: handlers.allouer,
+    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }
 ```
 
@@ -208,18 +208,18 @@ C'est le comportement attendu : si vous demandez au système d'allouer une ligne
 et que le SKU n'existe pas, vous voulez le savoir immédiatement.
 
 ```python title="handlers.py -- un handler qui peut lever une exception"
-def allocate(
-    cmd: commands.Allocate,
+def allouer(
+    cmd: commands.Allouer,
     uow: AbstractUnitOfWork,
 ) -> str:
-    line = model.OrderLine(orderid=cmd.orderid, sku=cmd.sku, qty=cmd.qty)
+    ligne = model.LigneDeCommande(id_commande=cmd.id_commande, sku=cmd.sku, quantité=cmd.quantité)
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        if product is None:
-            raise InvalidSku(f"SKU inconnu : {cmd.sku}")
-        batchref = product.allocate(line)
+        produit = uow.produits.get(sku=cmd.sku)
+        if produit is None:
+            raise SkuInconnu(f"SKU inconnu : {cmd.sku}")
+        réf_lot = produit.allouer(ligne)
         uow.commit()
-    return batchref
+    return réf_lot
 ```
 
 L'API Flask peut alors attraper cette exception et retourner un code HTTP
@@ -227,21 +227,21 @@ adapté :
 
 ```python title="flask_app.py -- l'API traduit l'erreur en réponse HTTP"
 try:
-    cmd = commands.Allocate(
-        orderid=data["orderid"],
+    cmd = commands.Allouer(
+        id_commande=data["id_commande"],
         sku=data["sku"],
-        qty=data["qty"],
+        quantité=data["quantité"],
     )
     results = bus.handle(cmd)
-    batchref = results.pop(0)
-except handlers.InvalidSku as e:
+    réf_lot = results.pop(0)
+except handlers.SkuInconnu as e:
     return jsonify({"message": str(e)}), 400
 ```
 
 ### 4. Dirigées vers un destinataire précis
 
-Une command a un **destinataire clair**. `Allocate` est destinée au handler
-`allocate`. Il n'y a pas d'ambiguité, pas de broadcast. C'est une communication
+Une command a un **destinataire clair**. `Allouer` est destinée au handler
+`allouer`. Il n'y a pas d'ambiguité, pas de broadcast. C'est une communication
 point-à-point.
 
 ---
@@ -254,11 +254,11 @@ Les events présentent des propriétés symétriquement opposées :
 
 Un event décrit quelque chose qui s'est *déjà* produit :
 
-| Event          | Signification                            |
-|----------------|------------------------------------------|
-| `Allocated`    | "Une ligne a été allouée"                |
-| `Deallocated`  | "Une ligne a été désallouée"             |
-| `OutOfStock`   | "Le stock est épuisé"                    |
+| Event              | Signification                            |
+|--------------------|------------------------------------------|
+| `Alloué`           | "Une ligne a été allouée"                |
+| `Désalloué`        | "Une ligne a été désallouée"             |
+| `RuptureDeStock`   | "Le stock est épuisé"                    |
 
 On ne dit pas *"Désalloue"* (ce serait une command), on dit *"Ça a été
 désalloué"*.
@@ -270,24 +270,30 @@ broadcast : l'émetteur ne sait pas (et ne devrait pas savoir) qui écoute.
 
 ```python title="bootstrap.py -- enregistrement des event handlers"
 EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Allocated: [handlers.publish_allocated_event],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Alloué: [
+        handlers.publier_événement_allocation,
+        handlers.ajouter_allocation_vue,
+    ],
+    events.Désalloué: [
+        handlers.réallouer,
+        handlers.supprimer_allocation_vue,
+    ],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 ```
 
 Remarquez le type : `dict[type[events.Event], list[Callable]]` -- une **liste**
 de handlers par event. Demain, si l'on veut aussi envoyer un SMS en cas de
-rupture de stock, il suffit d'ajouter un handler à la liste de `OutOfStock` :
+rupture de stock, il suffit d'ajouter un handler à la liste de `RuptureDeStock` :
 
 ```python
-events.OutOfStock: [
-    handlers.send_out_of_stock_notification,
-    handlers.send_sms_to_warehouse_manager,  # nouveau handler
+events.RuptureDeStock: [
+    handlers.envoyer_notification_rupture_stock,
+    handlers.envoyer_sms_responsable_entrepôt,  # nouveau handler
 ],
 ```
 
-L'émetteur de l'event `OutOfStock` n'a pas besoin d'être modifié. C'est
+L'émetteur de l'event `RuptureDeStock` n'a pas besoin d'être modifié. C'est
 l'**Open/Closed Principle** en action.
 
 ### 3. Les erreurs sont capturées
@@ -355,8 +361,8 @@ Points clés :
 - Si le handler est absent, une `ValueError` est levée.
 - Les exceptions du handler **ne sont pas attrapées** : elles remontent
   naturellement à l'appelant.
-- Le résultat du handler est **retourné** (utile pour `allocate` qui retourne
-  le `batchref`).
+- Le résultat du handler est **retourné** (utile pour `allouer` qui retourne
+  le `réf_lot`).
 
 ### `_handle_event` : tolérant et exhaustif
 
@@ -405,7 +411,7 @@ parcours d'un changement de quantité de lot.
 **Étape 1 -- L'API reçoit une requête HTTP et crée une command.**
 
 ```python
-cmd = commands.ChangeBatchQuantity(ref="batch-001", qty=5)
+cmd = commands.ModifierQuantitéLot(réf="batch-001", quantité=5)
 bus.handle(cmd)
 ```
 
@@ -415,50 +421,50 @@ Si le lot n'existe pas, on veut une erreur.
 **Étape 2 -- Le command handler s'exécute.**
 
 ```python
-def change_batch_quantity(cmd, uow):
+def modifier_quantité_lot(cmd, uow):
     with uow:
-        product = uow.products.get_by_batchref(batchref=cmd.ref)
-        product.change_batch_quantity(ref=cmd.ref, qty=cmd.qty)
+        produit = uow.produits.get_par_réf_lot(réf_lot=cmd.réf)
+        produit.modifier_quantité_lot(réf=cmd.réf, quantité=cmd.quantité)
         uow.commit()
 ```
 
 Le modèle de domaine ajuste la quantité. Si des lignes doivent être désallouées,
-il émet un event `Deallocated` sur l'agrégat.
+il émet un event `Désalloué` sur l'agrégat.
 
 **Étape 3 -- Le message bus collecte les events et les traite.**
 
-L'event `Deallocated(orderid="o1", sku="SMALL-TABLE", qty=10)` est ajouté à la
+L'event `Désalloué(id_commande="o1", sku="SMALL-TABLE", quantité=10)` est ajouté à la
 queue. Le bus le dispatche vers son handler :
 
 ```python
-def reallocate(event: events.Deallocated, uow):
-    allocate(
-        commands.Allocate(
-            orderid=event.orderid,
+def réallouer(event: events.Désalloué, uow):
+    allouer(
+        commands.Allouer(
+            id_commande=event.id_commande,
             sku=event.sku,
-            qty=event.qty,
+            quantité=event.quantité,
         ),
         uow=uow,
     )
 ```
 
-Notez que le handler d'event **crée une command** (`Allocate`) pour réallouer.
+Notez que le handler d'event **crée une command** (`Allouer`) pour réallouer.
 C'est un pattern courant : un event déclenche une action, et cette action est
 formulée comme une command.
 
-**Étape 4 -- L'allocation réussit ou émet un `OutOfStock`.**
+**Étape 4 -- L'allocation réussit ou émet un `RuptureDeStock`.**
 
-Si le stock est insuffisant, le domaine émet `OutOfStock(sku="SMALL-TABLE")`,
+Si le stock est insuffisant, le domaine émet `RuptureDeStock(sku="SMALL-TABLE")`,
 ce qui déclenche l'envoi d'une notification. Si un handler de notification
 échoue, l'erreur est logguée mais ne fait pas échouer la chaîne.
 
 ```
-ChangeBatchQuantity (command)
-    └── change_batch_quantity handler
-            └── Deallocated (event)
-                    └── reallocate handler
-                            └── Allocated (event) ... ou OutOfStock (event)
-                                                          └── send_notification
+ModifierQuantitéLot (command)
+    └── modifier_quantité_lot handler
+            └── Désalloué (event)
+                    └── réallouer handler
+                            └── Alloué (event) ... ou RuptureDeStock (event)
+                                                          └── envoyer_notification
 ```
 
 ---
@@ -488,11 +494,11 @@ Quelques exemples pour illustrer :
 ### Cas particulier : les réactions en chaîne
 
 Comme on l'a vu dans le parcours ci-dessus, un event handler peut lui-même
-émettre des commands ou des events. Le handler `reallocate` réagit à un event
-`Deallocated` en créant une command `Allocate`. C'est parfaitement normal :
+émettre des commands ou des events. Le handler `réallouer` réagit à un event
+`Désalloué` en créant une command `Allouer`. C'est parfaitement normal :
 
-- L'event `Deallocated` est un **fait** : "cette ligne a été désallouée".
-- La command `Allocate` est une **intention** : "réalloue cette ligne".
+- L'event `Désalloué` est un **fait** : "cette ligne a été désallouée".
+- La command `Allouer` est une **intention** : "réalloue cette ligne".
 
 Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
 échoue dans un handler d'event, l'erreur est logguée.
@@ -506,7 +512,7 @@ Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
 | Aspect              | Command                          | Event                               |
 |---------------------|----------------------------------|--------------------------------------|
 | **Sémantique**      | Intention (quelque chose à faire) | Fait (quelque chose s'est produit)   |
-| **Nommage**         | Impératif : `Allocate`           | Passé : `Allocated`                  |
+| **Nommage**         | Impératif : `Allouer`            | Passé : `Alloué`                     |
 | **Nombre de handlers** | Exactement 1                  | 0, 1 ou N                           |
 | **Erreur du handler** | Propagée à l'appelant           | Logguée, les autres continuent       |
 | **Résultat**        | Peut retourner une valeur        | Pas de valeur de retour              |
@@ -539,8 +545,8 @@ Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
 ```
 src/allocation/
 ├── domain/
-│   ├── commands.py       # Les intentions : CreateBatch, Allocate, ...
-│   ├── events.py         # Les faits : Allocated, Deallocated, OutOfStock
+│   ├── commands.py       # Les intentions : CréerLot, Allouer, ...
+│   ├── events.py         # Les faits : Alloué, Désalloué, RuptureDeStock
 │   └── model.py          # Le modèle de domaine qui émet les events
 ├── service_layer/
 │   ├── bootstrap.py      # Enregistrement des handlers (command et event)

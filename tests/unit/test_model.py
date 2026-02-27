@@ -3,157 +3,168 @@ Tests unitaires du modèle de domaine.
 
 Ces tests vérifient le comportement du modèle de domaine
 en isolation complète, sans base de données ni I/O.
+C'est le "low gear" : on teste la logique métier au plus près.
 """
 
 from datetime import date, timedelta
 
 import pytest
 
-from allocation.domain.model import Batch, OrderLine, Product
+from allocation.domain.model import Lot, LigneDeCommande, Produit
 
 
 # --- Helpers ---
 
 
-def make_batch_and_line(
-    sku: str, batch_qty: int, line_qty: int
-) -> tuple[Batch, OrderLine]:
+def créer_lot_et_ligne(
+    sku: str, quantité_lot: int, quantité_ligne: int
+) -> tuple[Lot, LigneDeCommande]:
     return (
-        Batch("batch-001", sku, batch_qty, eta=date.today()),
-        OrderLine("order-ref", sku, line_qty),
+        Lot("lot-001", sku, quantité_lot, eta=date.today()),
+        LigneDeCommande("commande-ref", sku, quantité_ligne),
     )
 
 
-# --- Tests du Batch ---
+# --- Tests du Lot ---
 
 
-class TestBatch:
-    def test_allocating_reduces_available_quantity(self):
-        batch, line = make_batch_and_line("PETITE-TABLE", 20, 2)
-        batch.allocate(line)
-        assert batch.available_quantity == 18
+class TestLot:
+    def test_allouer_réduit_la_quantité_disponible(self):
+        lot, ligne = créer_lot_et_ligne("PETITE-TABLE", 20, 2)
+        lot.allouer(ligne)
+        assert lot.quantité_disponible == 18
 
-    def test_can_allocate_if_available_greater_than_required(self):
-        batch, line = make_batch_and_line("ELEGANTE-LAMPE", 20, 2)
-        assert batch.can_allocate(line)
+    def test_peut_allouer_si_disponible_supérieur(self):
+        lot, ligne = créer_lot_et_ligne("ÉLÉGANTE-LAMPE", 20, 2)
+        assert lot.peut_allouer(ligne)
 
-    def test_cannot_allocate_if_available_smaller_than_required(self):
-        batch, line = make_batch_and_line("ELEGANTE-LAMPE", 2, 20)
-        assert not batch.can_allocate(line)
+    def test_ne_peut_pas_allouer_si_disponible_insuffisant(self):
+        lot, ligne = créer_lot_et_ligne("ÉLÉGANTE-LAMPE", 2, 20)
+        assert not lot.peut_allouer(ligne)
 
-    def test_can_allocate_if_available_equal_to_required(self):
-        batch, line = make_batch_and_line("ELEGANTE-LAMPE", 2, 2)
-        assert batch.can_allocate(line)
+    def test_peut_allouer_si_disponible_égal(self):
+        lot, ligne = créer_lot_et_ligne("ÉLÉGANTE-LAMPE", 2, 2)
+        assert lot.peut_allouer(ligne)
 
-    def test_cannot_allocate_if_skus_do_not_match(self):
-        batch = Batch("batch-001", "CHAISE-INCOMFORTABLE", 100, eta=None)
-        line = OrderLine("order-ref", "COUSSIN-MOELLEUX", 10)
-        assert not batch.can_allocate(line)
+    def test_ne_peut_pas_allouer_si_sku_différent(self):
+        lot = Lot("lot-001", "CHAISE-INCONFORTABLE", 100, eta=None)
+        ligne = LigneDeCommande("commande-ref", "COUSSIN-MOELLEUX", 10)
+        assert not lot.peut_allouer(ligne)
 
-    def test_allocation_is_idempotent(self):
-        batch, line = make_batch_and_line("ANGULAR-DESK", 20, 2)
-        batch.allocate(line)
-        batch.allocate(line)
-        assert batch.available_quantity == 18
+    def test_allocation_idempotente(self):
+        """Allouer deux fois la même ligne n'a aucun effet (grâce au set)."""
+        lot, ligne = créer_lot_et_ligne("BUREAU-ANGULAIRE", 20, 2)
+        lot.allouer(ligne)
+        lot.allouer(ligne)
+        assert lot.quantité_disponible == 18
 
-    def test_deallocate(self):
-        batch, line = make_batch_and_line("ANGULAR-DESK", 20, 2)
-        batch.allocate(line)
-        batch.deallocate(line)
-        assert batch.available_quantity == 20
+    def test_désallouer(self):
+        lot, ligne = créer_lot_et_ligne("BUREAU-ANGULAIRE", 20, 2)
+        lot.allouer(ligne)
+        lot.désallouer(ligne)
+        assert lot.quantité_disponible == 20
 
-    def test_can_only_deallocate_allocated_lines(self):
-        batch, unallocated_line = make_batch_and_line("DECORATIVE-TRINKET", 20, 2)
-        batch.deallocate(unallocated_line)
-        assert batch.available_quantity == 20
-
-
-# --- Tests de l'allocation via Product ---
+    def test_ne_désalloue_que_les_lignes_allouées(self):
+        lot, ligne_non_allouée = créer_lot_et_ligne("BIBELOT-DÉCORATIF", 20, 2)
+        lot.désallouer(ligne_non_allouée)
+        assert lot.quantité_disponible == 20
 
 
-class TestProduct:
-    def test_prefers_warehouse_batches_to_shipments(self):
+# --- Tests de l'allocation via Produit ---
+
+
+class TestProduit:
+    def test_préfère_les_lots_en_stock_aux_livraisons(self):
         """Les lots en stock (sans ETA) sont préférés aux livraisons."""
-        in_stock_batch = Batch("in-stock-batch", "HORLOGE-RETRO", 100, eta=None)
-        shipment_batch = Batch(
-            "shipment-batch", "HORLOGE-RETRO", 100, eta=date.today() + timedelta(days=1)
+        lot_en_stock = Lot("lot-stock", "HORLOGE-RÉTRO", 100, eta=None)
+        lot_en_transit = Lot(
+            "lot-transit", "HORLOGE-RÉTRO", 100, eta=date.today() + timedelta(days=1)
         )
-        product = Product(sku="HORLOGE-RETRO", batches=[in_stock_batch, shipment_batch])
-        line = OrderLine("oref", "HORLOGE-RETRO", 10)
+        produit = Produit(sku="HORLOGE-RÉTRO", lots=[lot_en_stock, lot_en_transit])
+        ligne = LigneDeCommande("cmd1", "HORLOGE-RÉTRO", 10)
 
-        product.allocate(line)
+        produit.allouer(ligne)
 
-        assert in_stock_batch.available_quantity == 90
-        assert shipment_batch.available_quantity == 100
+        assert lot_en_stock.quantité_disponible == 90
+        assert lot_en_transit.quantité_disponible == 100
 
-    def test_prefers_earlier_batches(self):
+    def test_préfère_les_lots_avec_eta_la_plus_proche(self):
         """Parmi les livraisons, on préfère la plus proche."""
-        earliest = Batch("speedy-batch", "LAMPE-MINIMALE", 100, eta=date.today())
-        medium = Batch(
-            "normal-batch", "LAMPE-MINIMALE", 100, eta=date.today() + timedelta(days=5)
+        plus_tôt = Lot("lot-rapide", "LAMPE-MINIMALE", 100, eta=date.today())
+        moyen = Lot(
+            "lot-normal", "LAMPE-MINIMALE", 100, eta=date.today() + timedelta(days=5)
         )
-        latest = Batch(
-            "slow-batch", "LAMPE-MINIMALE", 100, eta=date.today() + timedelta(days=10)
+        plus_tard = Lot(
+            "lot-lent", "LAMPE-MINIMALE", 100, eta=date.today() + timedelta(days=10)
         )
-        product = Product(sku="LAMPE-MINIMALE", batches=[medium, earliest, latest])
-        line = OrderLine("order1", "LAMPE-MINIMALE", 10)
+        produit = Produit(sku="LAMPE-MINIMALE", lots=[moyen, plus_tôt, plus_tard])
+        ligne = LigneDeCommande("cmd1", "LAMPE-MINIMALE", 10)
 
-        product.allocate(line)
+        produit.allouer(ligne)
 
-        assert earliest.available_quantity == 90
-        assert medium.available_quantity == 100
-        assert latest.available_quantity == 100
+        assert plus_tôt.quantité_disponible == 90
+        assert moyen.quantité_disponible == 100
+        assert plus_tard.quantité_disponible == 100
 
-    def test_returns_allocated_batch_ref(self):
-        in_stock_batch = Batch("in-stock-batch-ref", "POSTER-VINTAGE", 100, eta=None)
-        shipment_batch = Batch(
-            "shipment-batch-ref",
-            "POSTER-VINTAGE",
-            100,
-            eta=date.today() + timedelta(days=1),
+    def test_retourne_la_référence_du_lot_alloué(self):
+        lot_en_stock = Lot("réf-stock", "POSTER-VINTAGE", 100, eta=None)
+        lot_en_transit = Lot(
+            "réf-transit", "POSTER-VINTAGE", 100, eta=date.today() + timedelta(days=1)
         )
-        product = Product(
-            sku="POSTER-VINTAGE", batches=[in_stock_batch, shipment_batch]
-        )
-        line = OrderLine("oref", "POSTER-VINTAGE", 10)
+        produit = Produit(sku="POSTER-VINTAGE", lots=[lot_en_stock, lot_en_transit])
+        ligne = LigneDeCommande("cmd1", "POSTER-VINTAGE", 10)
 
-        allocation = product.allocate(line)
+        allocation = produit.allouer(ligne)
 
-        assert allocation == in_stock_batch.reference
+        assert allocation == lot_en_stock.référence
 
-    def test_outputs_out_of_stock_event_if_cannot_allocate(self):
-        """Un event OutOfStock est émis quand le stock est épuisé."""
-        batch = Batch("batch1", "FOURCHETTE-PETITE", 10, eta=date.today())
-        product = Product(sku="FOURCHETTE-PETITE", batches=[batch])
+    def test_émet_rupture_de_stock_si_allocation_impossible(self):
+        """Un event RuptureDeStock est émis quand le stock est épuisé."""
+        lot = Lot("lot1", "PETITE-FOURCHETTE", 10, eta=date.today())
+        produit = Produit(sku="PETITE-FOURCHETTE", lots=[lot])
 
-        product.allocate(OrderLine("order1", "FOURCHETTE-PETITE", 10))
-        allocation = product.allocate(OrderLine("order2", "FOURCHETTE-PETITE", 1))
+        produit.allouer(LigneDeCommande("cmd1", "PETITE-FOURCHETTE", 10))
+        allocation = produit.allouer(LigneDeCommande("cmd2", "PETITE-FOURCHETTE", 1))
 
         from allocation.domain import events
 
         assert allocation == ""
-        assert product.events[-1] == events.OutOfStock(sku="FOURCHETTE-PETITE")
+        assert produit.événements[-1] == events.RuptureDeStock(sku="PETITE-FOURCHETTE")
 
-    def test_increments_version_number(self):
-        product = Product(sku="TABOURET", batches=[Batch("b1", "TABOURET", 100)])
-        line = OrderLine("oref", "TABOURET", 10)
+    def test_émet_alloué_en_cas_de_succès(self):
+        """Un event Alloué est émis après chaque allocation réussie."""
+        lot = Lot("lot1", "TABOURET", 100, eta=None)
+        produit = Produit(sku="TABOURET", lots=[lot])
+        ligne = LigneDeCommande("cmd1", "TABOURET", 10)
 
-        product.allocate(line)
+        produit.allouer(ligne)
 
-        assert product.version_number == 1
+        from allocation.domain import events
+
+        assert produit.événements[-1] == events.Alloué(
+            id_commande="cmd1", sku="TABOURET", quantité=10, réf_lot="lot1"
+        )
+
+    def test_incrémente_le_numéro_de_version(self):
+        produit = Produit(sku="TABOURET", lots=[Lot("l1", "TABOURET", 100)])
+        ligne = LigneDeCommande("cmd1", "TABOURET", 10)
+
+        produit.allouer(ligne)
+
+        assert produit.numéro_version == 1
 
 
 # --- Tests des Value Objects ---
 
 
-class TestOrderLineEquality:
-    def test_equality(self):
-        """Deux OrderLine avec les mêmes attributs sont égales (value object)."""
-        line1 = OrderLine("order1", "SKU-001", 10)
-        line2 = OrderLine("order1", "SKU-001", 10)
-        assert line1 == line2
+class TestÉgalitéLigneDeCommande:
+    def test_égalité(self):
+        """Deux LigneDeCommande avec les mêmes attributs sont égales (value object)."""
+        ligne1 = LigneDeCommande("cmd1", "SKU-001", 10)
+        ligne2 = LigneDeCommande("cmd1", "SKU-001", 10)
+        assert ligne1 == ligne2
 
-    def test_inequality(self):
-        line1 = OrderLine("order1", "SKU-001", 10)
-        line2 = OrderLine("order2", "SKU-001", 10)
-        assert line1 != line2
+    def test_inégalité(self):
+        ligne1 = LigneDeCommande("cmd1", "SKU-001", 10)
+        ligne2 = LigneDeCommande("cmd2", "SKU-001", 10)
+        assert ligne1 != ligne2

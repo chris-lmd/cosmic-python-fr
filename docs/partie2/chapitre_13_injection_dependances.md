@@ -2,9 +2,9 @@
 
 ## Le problème : qui crée les dépendances ?
 
-Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allocate`
+Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allouer`
 a besoin d'un Unit of Work pour accéder aux produits et persister les changements.
-Le handler `send_out_of_stock_notification` a besoin d'un adapter de notifications
+Le handler `envoyer_notification_rupture_stock` a besoin d'un adapter de notifications
 pour envoyer un email. D'autres handlers pourraient avoir besoin d'un client Redis,
 d'un logger spécifique, ou de n'importe quel autre service d'infrastructure.
 
@@ -16,22 +16,22 @@ Examinons nos handlers tels qu'ils sont écrits :
 ```python
 # src/allocation/service_layer/handlers.py
 
-def allocate(
-    cmd: commands.Allocate,
+def allouer(
+    cmd: commands.Allouer,
     uow: AbstractUnitOfWork,        # <-- besoin d'un UoW
 ) -> str:
-    line = model.OrderLine(orderid=cmd.orderid, sku=cmd.sku, qty=cmd.qty)
+    ligne = model.LigneDeCommande(id_commande=cmd.id_commande, sku=cmd.sku, quantité=cmd.quantité)
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        if product is None:
-            raise InvalidSku(f"SKU inconnu : {cmd.sku}")
-        batchref = product.allocate(line)
+        produit = uow.produits.get(sku=cmd.sku)
+        if produit is None:
+            raise SkuInconnu(f"SKU inconnu : {cmd.sku}")
+        réf_lot = produit.allouer(ligne)
         uow.commit()
-    return batchref
+    return réf_lot
 
 
-def send_out_of_stock_notification(
-    event: events.OutOfStock,
+def envoyer_notification_rupture_stock(
+    event: events.RuptureDeStock,
     notifications: AbstractNotifications,  # <-- besoin de notifications
 ) -> None:
     notifications.send(
@@ -41,9 +41,9 @@ def send_out_of_stock_notification(
 ```
 
 Chaque handler **déclare** ses dépendances via ses paramètres. Mais il ne les
-crée pas lui-même. C'est une décision délibérée : si `allocate` instanciait
+crée pas lui-même. C'est une décision délibérée : si `allouer` instanciait
 directement un `SqlAlchemyUnitOfWork`, on ne pourrait plus le tester avec un
-fake. Si `send_out_of_stock_notification` créait un `EmailNotifications`,
+fake. Si `envoyer_notification_rupture_stock` créait un `EmailNotifications`,
 impossible de vérifier les envois sans serveur SMTP.
 
 On pourrait être tenté de résoudre cela de manière ad hoc -- un import ici,
@@ -72,7 +72,7 @@ Il y a trois approches classiques :
    à sa construction.
 
 2. **Injection par paramètre** : les dépendances sont passées à chaque appel
-   de fonction. C'est le cas de nos handlers : `allocate(cmd, uow=...)`.
+   de fonction. C'est le cas de nos handlers : `allouer(cmd, uow=...)`.
 
 3. **Injection par framework** : un conteneur DI résout automatiquement le
    graphe de dépendances. On en parlera en fin de chapitre.
@@ -183,15 +183,15 @@ même module :
 # src/allocation/service_layer/bootstrap.py
 
 EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Allocated: [handlers.publish_allocated_event],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Alloué: [handlers.publier_événement_allocation],
+    events.Désalloué: [handlers.réallouer],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 
 COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
-    commands.CreateBatch: handlers.add_batch,
-    commands.Allocate: handlers.allocate,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
+    commands.CréerLot: handlers.ajouter_lot,
+    commands.Allouer: handlers.allouer,
+    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }
 ```
 
@@ -220,12 +220,12 @@ endpoint se contente de créer une command et de la confier au bus :
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
     data = request.json
-    cmd = commands.Allocate(
-        orderid=data["orderid"], sku=data["sku"], qty=data["qty"],
+    cmd = commands.Allouer(
+        id_commande=data["id_commande"], sku=data["sku"], quantité=data["quantité"],
     )
     results = bus.handle(cmd)
-    batchref = results.pop(0)
-    return jsonify({"batchref": batchref}), 201
+    réf_lot = results.pop(0)
+    return jsonify({"réf_lot": réf_lot}), 201
 ```
 
 L'endpoint ne sait pas quel UoW est utilisé, ni comment les notifications sont
@@ -284,11 +284,11 @@ Voici ce qui se passe, étape par étape :
 
 ### Exemple concret
 
-Prenons le handler `send_out_of_stock_notification` :
+Prenons le handler `envoyer_notification_rupture_stock` :
 
 ```python
-def send_out_of_stock_notification(
-    event: events.OutOfStock,
+def envoyer_notification_rupture_stock(
+    event: events.RuptureDeStock,
     notifications: AbstractNotifications,
 ) -> None:
     ...
@@ -302,11 +302,11 @@ Quand le bus doit appeler ce handler :
   le bootstrap a rempli `dependencies = {"notifications": notifications_adapter}`.
 - Le bus appelle : `handler(event, notifications=email_adapter)`.
 
-Pour le handler `allocate` :
+Pour le handler `allouer` :
 
 ```python
-def allocate(
-    cmd: commands.Allocate,
+def allouer(
+    cmd: commands.Allouer,
     uow: AbstractUnitOfWork,
 ) -> str:
     ...
@@ -341,7 +341,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """Fake Unit of Work utilisant le FakeRepository."""
 
     def __init__(self):
-        self.products = FakeRepository([])
+        self.produits = FakeRepository([])
         self.committed = False
 
     def __enter__(self):
@@ -361,10 +361,10 @@ class FakeNotifications(AbstractNotifications):
     """Fake pour capturer les notifications envoyées."""
 
     def __init__(self):
-        self.sent: list[tuple[str, str]] = []
+        self.envoyées: list[tuple[str, str]] = []
 
     def send(self, destination: str, message: str) -> None:
-        self.sent.append((destination, message))
+        self.envoyées.append((destination, message))
 
 
 def bootstrap_test_bus(uow: FakeUnitOfWork | None = None) -> messagebus.MessageBus:
@@ -388,7 +388,7 @@ Observez les points clés :
   passer un flag à `True`, ce qui permet de vérifier que le commit a eu lieu.
 
 - **`FakeNotifications`** remplace `EmailNotifications`. Au lieu d'envoyer un
-  email, chaque appel à `send` est enregistré dans une liste `self.sent`.
+  email, chaque appel à `send` est enregistré dans une liste `self.envoyées`.
   Les tests peuvent ensuite inspecter cette liste.
 
 - **`bootstrap_test_bus`** joue le rôle de Composition Root pour les tests.
@@ -400,11 +400,11 @@ Observez les points clés :
 Grâce à cette architecture, les tests sont simples et expressifs :
 
 ```python
-class TestAllocate:
-    def test_allocate_returns_batch_ref(self):
+class TestAllouer:
+    def test_allouer_retourne_réf_lot(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "CHAISE-COMFY", 100, None))
-        results = bus.handle(commands.Allocate("o1", "CHAISE-COMFY", 10))
+        bus.handle(commands.CréerLot("b1", "CHAISE-COMFY", 100, None))
+        results = bus.handle(commands.Allouer("o1", "CHAISE-COMFY", 10))
 
         assert results.pop(0) == "b1"
 ```
@@ -413,7 +413,7 @@ Ce test traverse toute la pile applicative -- du `MessageBus` au handler,
 du handler au domaine, du domaine au repository -- mais sans aucune
 infrastructure réelle. Il s'exécute en quelques millisecondes.
 
-La clé : **le handler `allocate` ne sait pas qu'il travaille avec un fake**.
+La clé : **le handler `allouer` ne sait pas qu'il travaille avec un fake**.
 Il reçoit un objet qui respecte le contrat `AbstractUnitOfWork`, et c'est
 tout ce qui compte. C'est le polymorphisme au service de la testabilité.
 
@@ -428,9 +428,9 @@ tout ce qui compte. C'est le polymorphisme au service de la testabilité.
      ├── EmailNotifications               ├── FakeNotifications
      └── MessageBus                       └── MessageBus
            │                                    │
-           ├── handlers.allocate                ├── handlers.allocate
-           ├── handlers.add_batch               ├── handlers.add_batch
-           └── handlers.send_out_of_...         └── handlers.send_out_of_...
+           ├── handlers.allouer                 ├── handlers.allouer
+           ├── handlers.ajouter_lot             ├── handlers.ajouter_lot
+           └── handlers.envoyer_notif...        └── handlers.envoyer_notif...
 
    Mêmes handlers, dépendances différentes.
 ```
@@ -538,9 +538,9 @@ Voici le schéma complet de l'architecture, avec le bootstrap au sommet :
    │  Command      │                   │  Event        │
    │  Handlers     │                   │  Handlers     │
    │               │                   │               │
-   │  allocate     │                   │  reallocate   │
-   │  add_batch    │                   │  send_notif   │
-   │  change_qty   │                   │  publish      │
+   │  allouer      │                   │  réallouer    │
+   │  ajouter_lot  │                   │  envoyer_notif│
+   │  modifier_qté │                   │  publier      │
    └──────┬───────┘                   └──────┬───────┘
           │                                  │
           │ utilisent                        │ utilisent

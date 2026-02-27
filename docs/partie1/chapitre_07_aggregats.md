@@ -5,22 +5,22 @@
     - Ce qu'est un **Agrégat** et comment il protège les invariants métier
     - Le rôle de l'**Aggregate Root** comme point d'entrée unique
     - Comment choisir les frontières d'un agrégat
-    - Comment le **version_number** et l'**optimistic locking** protègent contre les accès concurrents
-    - Comment `Product` devient l'agrégat qui contient les `Batch`
+    - Comment le **numéro_version** et l'**optimistic locking** protègent contre les accès concurrents
+    - Comment `Produit` devient l'agrégat qui contient les `Lot`
 
 ---
 
 ## Le problème : un domaine sans frontières
 
-Jusqu'ici, notre modèle de domaine contient des `OrderLine`, des `Batch` et des règles métier d'allocation. Mais rien n'empêche du code extérieur de manipuler directement un `Batch`, de modifier sa quantité, ou d'allouer une ligne sans passer par une logique centralisée.
+Jusqu'ici, notre modèle de domaine contient des `LigneDeCommande`, des `Lot` et des règles métier d'allocation. Mais rien n'empêche du code extérieur de manipuler directement un `Lot`, de modifier sa quantité, ou d'allouer une ligne sans passer par une logique centralisée.
 
 Imaginons deux requêtes HTTP simultanées qui tentent d'allouer la même quantité de stock :
 
 ```
 Requete A                          Requete B
     |                                  |
-    |  lire batch (dispo = 10)         |
-    |                                  |  lire batch (dispo = 10)
+    |  lire lot (dispo = 10)           |
+    |                                  |  lire lot (dispo = 10)
     |  allouer 10 unites               |
     |                                  |  allouer 10 unites
     |  sauvegarder (dispo = 0)         |
@@ -43,16 +43,16 @@ Un **Agrégat** est un regroupement d'objets du domaine qui forment une unité d
 Les principes fondamentaux :
 
 - **Un agrégat = une transaction.** On ne modifie qu'un seul agrégat par transaction.
-- **Les objets internes sont inaccessibles de l'extérieur.** On ne peut pas aller chercher un `Batch` directement, on passe par l'agrégat.
+- **Les objets internes sont inaccessibles de l'extérieur.** On ne peut pas aller chercher un `Lot` directement, on passe par l'agrégat.
 - **Un seul point d'entrée** : l'Aggregate Root.
 
 Dans notre domaine, les invariants sont :
 
-1. On ne peut pas allouer une `OrderLine` à un `Batch` si la quantité disponible est insuffisante.
+1. On ne peut pas allouer une `LigneDeCommande` à un `Lot` si la quantité disponible est insuffisante.
 2. L'allocation doit privilégier les lots en stock, puis ceux avec l'ETA la plus proche.
 3. Si la quantité d'un lot change, les allocations en excédent doivent être désallouées.
 
-Toutes ces règles impliquent de raisonner sur **l'ensemble des `Batch` pour un SKU donné**. C'est donc le `Product` (un SKU et ses lots) qui constitue notre agrégat.
+Toutes ces règles impliquent de raisonner sur **l'ensemble des `Lot` pour un SKU donné**. C'est donc le `Produit` (un SKU et ses lots) qui constitue notre agrégat.
 
 ---
 
@@ -60,36 +60,36 @@ Toutes ces règles impliquent de raisonner sur **l'ensemble des `Batch` pour un 
 
 L'**Aggregate Root** est l'objet par lequel on accède à tout le contenu de l'agrégat. C'est lui qui :
 
-- **Expose les opérations métier** (allouer, changer une quantité)
+- **Expose les opérations métier** (allouer, modifier une quantité)
 - **Vérifie les invariants** avant chaque modification
-- **Contrôle l'accès** aux objets internes (`Batch`, `OrderLine`)
+- **Contrôle l'accès** aux objets internes (`Lot`, `LigneDeCommande`)
 
-Le code extérieur ne doit jamais manipuler directement un `Batch`. Il demande au `Product` de le faire :
+Le code extérieur ne doit jamais manipuler directement un `Lot`. Il demande au `Produit` de le faire :
 
 ```python
 # Correct : passer par l'aggregate root
-product.allocate(order_line)
+produit.allouer(ligne_de_commande)
 
-# Incorrect : manipuler un Batch directement
-batch = somehow_get_batch("batch-001")
-batch.allocate(order_line)  # Aucune garantie de coherence !
+# Incorrect : manipuler un Lot directement
+lot = somehow_get_lot("lot-001")
+lot.allouer(ligne_de_commande)  # Aucune garantie de coherence !
 ```
 
-Cette règle a une conséquence directe sur le **Repository** : il manipule des `Product`, pas des `Batch`.
+Cette règle a une conséquence directe sur le **Repository** : il manipule des `Produit`, pas des `Lot`.
 
 ---
 
-## La classe `Product` : notre Aggregate Root
+## La classe `Produit` : notre Aggregate Root
 
-Voici la classe `Product` telle qu'elle apparaît dans notre code source
+Voici la classe `Produit` telle qu'elle apparaît dans notre code source
 (`src/allocation/domain/model.py`) :
 
 ```python
-class Product:
+class Produit:
     """
     Agregat racine pour la gestion des produits.
 
-    Un Product regroupe tous les Batch pour un SKU donne.
+    Un Produit regroupe tous les Lot pour un SKU donne.
     C'est la frontiere de coherence : toutes les operations
     d'allocation passent par cet agregat.
     """
@@ -97,13 +97,13 @@ class Product:
     def __init__(
         self,
         sku: str,
-        batches: Optional[list[Batch]] = None,
-        version_number: int = 0,
+        lots: Optional[list[Lot]] = None,
+        numéro_version: int = 0,
     ):
         self.sku = sku
-        self.batches = batches or []
-        self.version_number = version_number
-        self.events: list[events.Event] = []
+        self.lots = lots or []
+        self.numéro_version = numéro_version
+        self.événements: list[events.Event] = []
 ```
 
 Trois attributs méritent une attention particulière :
@@ -111,15 +111,15 @@ Trois attributs méritent une attention particulière :
 | Attribut | Rôle |
 |----------|------|
 | `sku` | L'identité de l'agrégat. C'est le SKU du produit. |
-| `batches` | Les objets internes à l'agrégat. La liste de tous les lots pour ce SKU. |
-| `version_number` | Le compteur de version pour l'optimistic locking (voir plus bas). |
+| `lots` | Les objets internes à l'agrégat. La liste de tous les lots pour ce SKU. |
+| `numéro_version` | Le compteur de version pour l'optimistic locking (voir plus bas). |
 
-Et une liste `events` qui collecte les domain events émis par les opérations métier.
+Et une liste `événements` qui collecte les domain events émis par les opérations métier.
 
-### La méthode `allocate()`
+### La méthode `allouer()`
 
 ```python
-def allocate(self, line: OrderLine) -> str:
+def allouer(self, ligne: LigneDeCommande) -> str:
     """
     Alloue une ligne de commande au lot le plus approprie.
 
@@ -127,52 +127,52 @@ def allocate(self, line: OrderLine) -> str:
     (sans ETA) puis les lots avec l'ETA la plus proche.
 
     Retourne la reference du lot choisi.
-    Emet un evenement OutOfStock s'il n'y a plus de stock.
+    Emet un evenement RuptureDeStock s'il n'y a plus de stock.
     """
     try:
-        batch = next(
-            b for b in sorted(self.batches)
-            if b.can_allocate(line)
+        lot = next(
+            l for l in sorted(self.lots)
+            if l.peut_allouer(ligne)
         )
     except StopIteration:
-        self.events.append(events.OutOfStock(sku=line.sku))
+        self.événements.append(events.RuptureDeStock(sku=ligne.sku))
         return ""
 
-    batch.allocate(line)
-    self.version_number += 1
-    return batch.reference
+    lot.allouer(ligne)
+    self.numéro_version += 1
+    return lot.référence
 ```
 
 Observons les responsabilités de cette méthode :
 
-1. **Elle trie les lots** (`sorted(self.batches)`) pour appliquer la stratégie d'allocation (stock d'abord, puis ETA la plus proche).
-2. **Elle trouve le premier lot capable** d'accueillir la ligne (`b.can_allocate(line)`).
-3. **Elle gère le cas d'erreur** : si aucun lot ne convient, elle émet un événement `OutOfStock` au lieu de lever une exception.
-4. **Elle incrémente le `version_number`** après chaque allocation réussie.
+1. **Elle trie les lots** (`sorted(self.lots)`) pour appliquer la stratégie d'allocation (stock d'abord, puis ETA la plus proche).
+2. **Elle trouve le premier lot capable** d'accueillir la ligne (`l.peut_allouer(ligne)`).
+3. **Elle gère le cas d'erreur** : si aucun lot ne convient, elle émet un événement `RuptureDeStock` au lieu de lever une exception.
+4. **Elle incrémente le `numéro_version`** après chaque allocation réussie.
 5. **Elle retourne la référence du lot choisi**, permettant au code appelant de savoir où l'allocation a été faite.
 
-Le code appelant (la service layer) n'a aucune connaissance des `Batch` individuels. Il demande simplement au `Product` d'allouer.
+Le code appelant (la service layer) n'a aucune connaissance des `Lot` individuels. Il demande simplement au `Produit` d'allouer.
 
-### La méthode `change_batch_quantity()`
+### La méthode `modifier_quantité_lot()`
 
 ```python
-def change_batch_quantity(self, ref: str, qty: int) -> None:
+def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
     """
     Modifie la quantite d'un lot et realloue si necessaire.
 
     Si la nouvelle quantite est inferieure aux allocations existantes,
     les lignes en excedent sont desallouees et des evenements
-    Deallocated sont emis pour chacune.
+    Désalloué sont emis pour chacune.
     """
-    batch = next(b for b in self.batches if b.reference == ref)
-    batch._purchased_quantity = qty
-    while batch.available_quantity < 0:
-        line = batch.deallocate_one()
-        self.events.append(
-            events.Deallocated(
-                orderid=line.orderid,
-                sku=line.sku,
-                qty=line.qty,
+    lot = next(l for l in self.lots if l.référence == réf)
+    lot._quantité_achetée = quantité
+    while lot.quantité_disponible < 0:
+        ligne = lot.désallouer_une()
+        self.événements.append(
+            events.Désalloué(
+                id_commande=ligne.id_commande,
+                sku=ligne.sku,
+                quantité=ligne.quantité,
             )
         )
 ```
@@ -182,7 +182,7 @@ Cette méthode illustre un scénario plus complexe :
 1. Elle retrouve le lot concerné **à l'intérieur de l'agrégat** (pas via le repository).
 2. Elle modifie la quantité achetée.
 3. Si la quantité disponible devient négative, elle **désalloue progressivement** des lignes de commande.
-4. Pour chaque ligne désallouée, elle émet un événement `Deallocated`. Ce sont ces events qui déclencheront une réallocation ailleurs dans le système (via le message bus, que nous verrons au chapitre 8).
+4. Pour chaque ligne désallouée, elle émet un événement `Désalloué`. Ce sont ces events qui déclencheront une réallocation ailleurs dans le système (via le message bus, que nous verrons au chapitre 8).
 
 ---
 
@@ -193,24 +193,24 @@ Le repository est l'interface entre le domaine et la persistance. Il doit opére
 ```python
 class AbstractRepository(abc.ABC):
 
-    def add(self, product: model.Product) -> None:
+    def add(self, produit: model.Produit) -> None:
         """Ajoute un produit au repository."""
         ...
 
-    def get(self, sku: str) -> model.Product | None:
+    def get(self, sku: str) -> model.Produit | None:
         """Recupere un produit par son SKU."""
         ...
 
-    def get_by_batchref(self, batchref: str) -> model.Product | None:
-        """Recupere un produit contenant le batch de reference donnee."""
+    def get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
+        """Recupere un produit contenant le lot de reference donnee."""
         ...
 ```
 
 On remarque :
 
-- **`add()` et `get()` travaillent avec des `Product`**, jamais des `Batch`.
-- **`get_by_batchref()`** retrouve le `Product` parent à partir d'une référence de lot. Même ici, c'est l'agrégat entier qui est retourné.
-- La méthode `seen` (un `set[Product]`) permet de garder une trace de tous les agrégats chargés ou ajoutés, ce qui sera utile pour collecter les domain events.
+- **`add()` et `get()` travaillent avec des `Produit`**, jamais des `Lot`.
+- **`get_par_réf_lot()`** retrouve le `Produit` parent à partir d'une référence de lot. Même ici, c'est l'agrégat entier qui est retourné.
+- La méthode `seen` (un `set[Produit]`) permet de garder une trace de tous les agrégats chargés ou ajoutés, ce qui sera utile pour collecter les domain events.
 
 ---
 
@@ -227,25 +227,25 @@ Si on faisait un agrégat unique `Entrepôt` contenant **tous** les produits et 
 
 ### Trop petit : le problème de l'incohérence
 
-Si chaque `Batch` était son propre agrégat, on n'aurait aucun moyen de garantir que l'allocation choisit le bon lot. Deux transactions pourraient allouer le même lot simultanément sans le savoir.
+Si chaque `Lot` était son propre agrégat, on n'aurait aucun moyen de garantir que l'allocation choisit le bon lot. Deux transactions pourraient allouer le même lot simultanément sans le savoir.
 
-### La bonne granularité : `Product`
+### La bonne granularité : `Produit`
 
-Un `Product` regroupe tous les lots pour un SKU donné. C'est le bon compromis :
+Un `Produit` regroupe tous les lots pour un SKU donné. C'est le bon compromis :
 
 - **Cohérence** : toutes les règles d'allocation pour un SKU sont vérifiées dans une seule transaction.
 - **Concurrence** : deux allocations pour des SKU différents se font en parallèle sans conflit.
 
 ```
-+------------------+   +------------------+
-|  Product (SKU-A) |   |  Product (SKU-B) |
-|  +-------+       |   |  +-------+       |
-|  |Batch 1|       |   |  |Batch 3|       |
-|  +-------+       |   |  +-------+       |
-|  +-------+       |   |  +-------+       |
-|  |Batch 2|       |   |  |Batch 4|       |
-|  +-------+       |   |  +-------+       |
-+------------------+   +------------------+
++-------------------+   +-------------------+
+|  Produit (SKU-A)  |   |  Produit (SKU-B)  |
+|  +-------+        |   |  +-------+        |
+|  | Lot 1 |        |   |  | Lot 3 |        |
+|  +-------+        |   |  +-------+        |
+|  +-------+        |   |  +-------+        |
+|  | Lot 2 |        |   |  | Lot 4 |        |
+|  +-------+        |   |  +-------+        |
++-------------------+   +-------------------+
   ^ transaction A        ^ transaction B
   (independantes)
 ```
@@ -254,10 +254,10 @@ Un `Product` regroupe tous les lots pour un SKU donné. C'est le bon compromis :
 
 ## Le versioning optimiste (Optimistic Locking)
 
-Même avec des frontières d'agrégat bien choisies, il reste un risque : deux transactions concurrentes peuvent tenter de modifier **le même** `Product` simultanément. Le **version_number** résout ce problème :
+Même avec des frontières d'agrégat bien choisies, il reste un risque : deux transactions concurrentes peuvent tenter de modifier **le même** `Produit` simultanément. Le **numéro_version** résout ce problème :
 
-1. Quand on charge un `Product`, on lit son `version_number`.
-2. Quand on le sauvegarde, on vérifie que le `version_number` en base n'a pas changé.
+1. Quand on charge un `Produit`, on lit son `numéro_version`.
+2. Quand on le sauvegarde, on vérifie que le `numéro_version` en base n'a pas changé.
 3. Si le numéro a changé (une autre transaction est passée entre-temps), la sauvegarde échoue.
 
 ```
@@ -265,8 +265,8 @@ Transaction A                       Transaction B
      |                                   |
      | SELECT ... => version = 3         |
      |                                   | SELECT ... => version = 3
-     | allocate(...) => version = 4      |
-     |                                   | allocate(...) => version = 4
+     | allouer(...) => version = 4       |
+     |                                   | allouer(...) => version = 4
      | UPDATE ... WHERE version=3        |
      | => OK (1 row)                     |
      |                                   | UPDATE ... WHERE version=3
@@ -274,7 +274,7 @@ Transaction A                       Transaction B
      v                                   v
 ```
 
-La transaction B échoue car la clause `WHERE version_number=3` ne correspond plus à l'état en base. C'est le principe de l'**optimistic locking** : on suppose que les conflits sont rares, mais on les détecte au moment du `commit`.
+La transaction B échoue car la clause `WHERE numéro_version=3` ne correspond plus à l'état en base. C'est le principe de l'**optimistic locking** : on suppose que les conflits sont rares, mais on les détecte au moment du `commit`.
 
 Dans le mapping ORM (`src/allocation/adapters/orm.py`), la table `products` porte ce champ :
 
@@ -284,16 +284,16 @@ products = Table(
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
     Column("sku", String(255)),
-    Column("version_number", Integer, nullable=False, server_default="0"),
+    Column("numero_version", Integer, nullable=False, server_default="0"),
 )
 ```
 
-Et dans la classe `Product`, chaque appel à `allocate()` incrémente le compteur :
+Et dans la classe `Produit`, chaque appel à `allouer()` incrémente le compteur :
 
 ```python
-batch.allocate(line)
-self.version_number += 1
-return batch.reference
+lot.allouer(ligne)
+self.numéro_version += 1
+return lot.référence
 ```
 
 !!! tip "Pourquoi optimiste ?"
@@ -303,25 +303,25 @@ return batch.reference
 
 ## Les Domain Events émis par l'Agrégat
 
-L'agrégat `Product` ne se contente pas de modifier son état interne. Il **émet des événements** qui signalent ce qui s'est passé :
+L'agrégat `Produit` ne se contente pas de modifier son état interne. Il **émet des événements** qui signalent ce qui s'est passé :
 
 | Événement | Quand | Déclencheur |
 |-----------|-------|-------------|
-| `OutOfStock` | Aucun lot ne peut accueillir la ligne | `allocate()` |
-| `Deallocated` | Une ligne est désallouée suite à un changement de quantité | `change_batch_quantity()` |
+| `RuptureDeStock` | Aucun lot ne peut accueillir la ligne | `allouer()` |
+| `Désalloué` | Une ligne est désallouée suite à un changement de quantité | `modifier_quantité_lot()` |
 
-Ces événements sont collectés dans `self.events` et seront publiés par l'infrastructure (le Unit of Work et le message bus) après la transaction. C'est une séparation nette entre "ce qui s'est passé" et "ce qu'il faut faire ensuite".
+Ces événements sont collectés dans `self.événements` et seront publiés par l'infrastructure (le Unit of Work et le message bus) après la transaction. C'est une séparation nette entre "ce qui s'est passé" et "ce qu'il faut faire ensuite".
 
 ```python
-# Dans Product.__init__
-self.events: list[events.Event] = []
+# Dans Produit.__init__
+self.événements: list[events.Event] = []
 
-# Dans allocate(), si rupture de stock :
-self.events.append(events.OutOfStock(sku=line.sku))
+# Dans allouer(), si rupture de stock :
+self.événements.append(events.RuptureDeStock(sku=ligne.sku))
 
-# Dans change_batch_quantity(), pour chaque ligne desallouee :
-self.events.append(
-    events.Deallocated(orderid=line.orderid, sku=line.sku, qty=line.qty)
+# Dans modifier_quantité_lot(), pour chaque ligne désallouée :
+self.événements.append(
+    events.Désalloué(id_commande=ligne.id_commande, sku=ligne.sku, quantité=ligne.quantité)
 )
 ```
 
@@ -332,29 +332,29 @@ self.events.append(
 ```
 +------------------------------------------------------------+
 |                                                            |
-|   Aggregate : Product                                      |
+|   Aggregate : Produit                                      |
 |                                                            |
 |   Identite :  sku = "BLUE-VASE"                            |
-|   Version :   version_number = 3                           |
-|   Events :    [OutOfStock(...), Deallocated(...)]          |
+|   Version :   numéro_version = 3                           |
+|   Events :    [RuptureDeStock(...), Désalloué(...)]        |
 |                                                            |
 |   +------------------------+  +------------------------+   |
-|   |  Batch                 |  |  Batch                 |   |
-|   |  reference: "batch-01" |  |  reference: "batch-02" |   |
-|   |  sku: "BLUE-VASE"     |  |  sku: "BLUE-VASE"      |   |
-|   |  qty: 100             |  |  qty: 50               |   |
-|   |  eta: None (en stock) |  |  eta: 2025-03-15       |   |
+|   |  Lot                   |  |  Lot                   |   |
+|   |  référence: "lot-01"   |  |  référence: "lot-02"   |   |
+|   |  sku: "BLUE-VASE"      |  |  sku: "BLUE-VASE"      |   |
+|   |  quantité: 100         |  |  quantité: 50          |   |
+|   |  eta: None (en stock)  |  |  eta: 2025-03-15       |   |
 |   |                        |  |                        |   |
 |   |  _allocations:         |  |  _allocations:         |   |
-|   |    {OrderLine(...),    |  |    {OrderLine(...)}    |   |
-|   |     OrderLine(...)}    |  |                        |   |
+|   |    {LigneDeCommande(.),|  |    {LigneDeCommande(.)}|   |
+|   |     LigneDeCommande(.)}|  |                        |   |
 |   +------------------------+  +------------------------+   |
 |                                                            |
 +------------------------------------------------------------+
          ^
          |
     Aggregate Root : le seul point d'acces
-    Repository.get("BLUE-VASE") -> Product
+    Repository.get("BLUE-VASE") -> Produit
 ```
 
 ---
@@ -369,12 +369,12 @@ Les **Agrégats** sont la réponse du Domain-Driven Design au problème de la co
 | **Aggregate Root** | Le point d'entrée unique de l'agrégat. Toutes les opérations passent par lui. |
 | **Invariant** | Une règle métier qui doit toujours être vraie. L'agrégat la garantit. |
 | **Frontière** | Un agrégat = une transaction = un verrou. Ni trop gros, ni trop petit. |
-| **Optimistic Locking** | Le `version_number` détecte les conflits entre transactions concurrentes. |
+| **Optimistic Locking** | Le `numéro_version` détecte les conflits entre transactions concurrentes. |
 | **Repository** | Il travaille au niveau de l'agrégat, pas de ses composants internes. |
 | **Domain Events** | L'agrégat émet des événements pour signaler ce qui s'est passé. |
 
 !!! quote "À retenir"
-    L'agrégat est la réponse à la question : **"quels objets doivent être cohérents entre eux ?"**. Dans notre domaine, tous les lots d'un même produit doivent être cohérents, donc `Product` est l'agrégat qui contient les `Batch`. Le `version_number` garantit qu'une seule transaction à la fois peut modifier un `Product` donné.
+    L'agrégat est la réponse à la question : **"quels objets doivent être cohérents entre eux ?"**. Dans notre domaine, tous les lots d'un même produit doivent être cohérents, donc `Produit` est l'agrégat qui contient les `Lot`. Le `numéro_version` garantit qu'une seule transaction à la fois peut modifier un `Produit` donné.
 
 ---
 

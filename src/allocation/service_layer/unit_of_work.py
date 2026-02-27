@@ -3,17 +3,12 @@ Pattern Unit of Work.
 
 Le Unit of Work (UoW) gère la notion de transaction atomique.
 Il coordonne l'écriture en base de données et la collecte
-des events émis par les agrégats au cours de la transaction.
+des événements émis par les agrégats au cours de la transaction.
 
 Le UoW agit comme un context manager :
     with uow:
         # ... opérations sur le repository ...
         uow.commit()
-
-Avantages :
-- Garantit l'atomicité des opérations
-- Centralise la gestion des sessions/transactions
-- Collecte les events pour le message bus
 """
 
 from __future__ import annotations
@@ -37,11 +32,12 @@ class AbstractUnitOfWork(abc.ABC):
     """
     Interface abstraite du Unit of Work.
 
-    Définit le contrat : un repository products,
-    et les méthodes commit/rollback.
+    Fournit un repository `produits` et gère commit/rollback.
+    Le rollback est automatique si commit() n'est pas appelé
+    (grâce au __exit__ du context manager).
     """
 
-    products: repository.AbstractRepository
+    produits: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         return self
@@ -54,12 +50,15 @@ class AbstractUnitOfWork(abc.ABC):
 
     def collect_new_events(self):
         """
-        Collecte tous les events émis par les agrégats vus
-        au cours de cette transaction.
+        Collecte tous les événements émis par les agrégats vus
+        pendant cette transaction.
+
+        Parcourt les agrégats trackés par le repository (via `seen`)
+        et vide leur liste d'événements pour les passer au message bus.
         """
-        for product in self.products.seen:
-            while product.events:
-                yield product.events.pop(0)
+        for produit in self.produits.seen:
+            while produit.événements:
+                yield produit.événements.pop(0)
 
     @abc.abstractmethod
     def _commit(self) -> None:
@@ -74,7 +73,8 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     """
     Implémentation concrète du UoW avec SQLAlchemy.
 
-    Gère la session SQLAlchemy et le repository associé.
+    Crée une session à l'entrée du context manager,
+    la ferme à la sortie. Rollback automatique si pas de commit.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
@@ -82,7 +82,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self) -> SqlAlchemyUnitOfWork:
         self.session: Session = self.session_factory()
-        self.products = repository.SqlAlchemyRepository(self.session)
+        self.produits = repository.SqlAlchemyRepository(self.session)
         return super().__enter__()
 
     def __exit__(self, *args: object) -> None:

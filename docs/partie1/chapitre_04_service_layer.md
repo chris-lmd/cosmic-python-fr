@@ -12,7 +12,7 @@
 
 ## Le problème : des routes Flask qui grossissent
 
-Dans les chapitres précédents, nous avons construit un modèle de domaine (`Product`, `Batch`, `OrderLine`) et un Repository pour persister nos agrégats. Imaginons maintenant une première route Flask pour allouer du stock :
+Dans les chapitres précédents, nous avons construit un modèle de domaine (`Produit`, `Lot`, `LigneDeCommande`) et un Repository pour persister nos agrégats. Imaginons maintenant une première route Flask pour allouer du stock :
 
 ```python
 # Version naïve -- toute la logique dans la route
@@ -22,16 +22,16 @@ def allocate_endpoint():
     # 1. Ouvrir une session / transaction
     session = get_session()
     # 2. Récupérer l'agrégat
-    product = repo.get(data["sku"])
-    if product is None:
+    produit = repo.get(data["sku"])
+    if produit is None:
         return jsonify({"message": "SKU inconnu"}), 400
     # 3. Construire le value object
-    line = OrderLine(data["orderid"], data["sku"], data["qty"])
+    ligne = LigneDeCommande(data["id_commande"], data["sku"], data["quantité"])
     # 4. Appeler la logique métier
-    batchref = product.allocate(line)
+    réf_lot = produit.allouer(ligne)
     # 5. Committer
     session.commit()
-    return jsonify({"batchref": batchref}), 201
+    return jsonify({"réf_lot": réf_lot}), 201
 ```
 
 Ce code fonctionne, mais il pose plusieurs problèmes :
@@ -52,7 +52,7 @@ La Service Layer est une couche mince qui se place **entre** les points d'entré
 2. Appeler les méthodes du domaine
 3. Committer la transaction
 
-Elle **ne contient pas** de logique métier. La logique métier reste dans le modèle de domaine (c'est `Product.allocate()` qui décide quel batch choisir, pas le handler). La Service Layer se contente de **coordonner**.
+Elle **ne contient pas** de logique métier. La logique métier reste dans le modèle de domaine (c'est `Produit.allouer()` qui décide quel lot choisir, pas le handler). La Service Layer se contente de **coordonner**.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -71,7 +71,7 @@ Elle **ne contient pas** de logique métier. La logique métier reste dans le mo
                    ▼
 ┌──────────────────────────────────────────────┐
 │          Modèle de domaine                    │
-│  (Product, Batch, OrderLine)                  │
+│  (Produit, Lot, LigneDeCommande)              │
 │  Contient TOUTE la logique métier             │
 └──────────────────────────────────────────────┘
 ```
@@ -82,48 +82,50 @@ Elle **ne contient pas** de logique métier. La logique métier reste dans le mo
 
 Nos handlers vivent dans `src/allocation/service_layer/handlers.py`. Chaque handler prend une command (un simple dataclass décrivant l'intention) et un Unit of Work, puis orchestre le workflow en quelques lignes.
 
-### `add_batch` -- créer un lot de stock
+### `ajouter_lot` -- créer un lot de stock
 
 ```python
-def add_batch(
-    cmd: commands.CreateBatch,
+def ajouter_lot(
+    cmd: commands.CréerLot,
     uow: AbstractUnitOfWork,
 ) -> None:
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        if product is None:
-            product = model.Product(sku=cmd.sku, batches=[])
-            uow.products.add(product)
-        product.batches.append(
-            model.Batch(ref=cmd.ref, sku=cmd.sku, qty=cmd.qty, eta=cmd.eta)
+        produit = uow.produits.get(sku=cmd.sku)
+        if produit is None:
+            produit = model.Produit(sku=cmd.sku, lots=[])
+            uow.produits.add(produit)
+        produit.lots.append(
+            model.Lot(réf=cmd.réf, sku=cmd.sku, quantité=cmd.quantité, eta=cmd.eta)
         )
         uow.commit()
 ```
 
-Le handler est **procédural** : il ouvre le Unit of Work, récupère ou crée le produit, ajoute le batch, puis committe. Pas de boucle complexe, pas de logique conditionnelle métier.
+Le handler est **procédural** : il ouvre le Unit of Work, récupère ou crée le produit, ajoute le lot, puis committe. Pas de boucle complexe, pas de logique conditionnelle métier.
 
-### `allocate` -- allouer une ligne de commande
+### `allouer` -- allouer une ligne de commande
 
 ```python
-def allocate(
-    cmd: commands.Allocate,
+def allouer(
+    cmd: commands.Allouer,
     uow: AbstractUnitOfWork,
 ) -> str:
-    line = model.OrderLine(orderid=cmd.orderid, sku=cmd.sku, qty=cmd.qty)
+    ligne = model.LigneDeCommande(
+        id_commande=cmd.id_commande, sku=cmd.sku, quantité=cmd.quantité
+    )
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        if product is None:
-            raise InvalidSku(f"SKU inconnu : {cmd.sku}")
-        batchref = product.allocate(line)
+        produit = uow.produits.get(sku=cmd.sku)
+        if produit is None:
+            raise SkuInconnu(f"SKU inconnu : {cmd.sku}")
+        réf_lot = produit.allouer(ligne)
         uow.commit()
-    return batchref
+    return réf_lot
 ```
 
-Observez que **toute la logique d'allocation** (trier les batches par ETA, vérifier la quantité disponible, choisir le meilleur lot) est dans `product.allocate()`. Le handler ne fait que préparer les données et déclencher l'appel.
+Observez que **toute la logique d'allocation** (trier les lots par ETA, vérifier la quantité disponible, choisir le meilleur lot) est dans `produit.allouer()`. Le handler ne fait que préparer les données et déclencher l'appel.
 
 ### La ligne de démarcation
 
-Un bon test pour savoir si la logique est au bon endroit : si vous enlevez le handler et appelez directement `product.allocate()` dans un test unitaire, la règle métier fonctionne-t-elle toujours ? Si oui, la logique est bien dans le domaine. Le handler ne fait que du "plumbing".
+Un bon test pour savoir si la logique est au bon endroit : si vous enlevez le handler et appelez directement `produit.allouer()` dans un test unitaire, la règle métier fonctionne-t-elle toujours ? Si oui, la logique est bien dans le domaine. Le handler ne fait que du "plumbing".
 
 ---
 
@@ -145,10 +147,10 @@ def add_batch_endpoint():
     if eta is not None:
         eta = datetime.fromisoformat(eta).date()
 
-    cmd = commands.CreateBatch(
-        ref=data["ref"],
+    cmd = commands.CréerLot(
+        réf=data["ref"],
         sku=data["sku"],
-        qty=data["qty"],
+        quantité=data["qty"],
         eta=eta,
     )
     bus.handle(cmd)
@@ -159,17 +161,17 @@ def add_batch_endpoint():
 def allocate_endpoint():
     data = request.json
     try:
-        cmd = commands.Allocate(
-            orderid=data["orderid"],
+        cmd = commands.Allouer(
+            id_commande=data["orderid"],
             sku=data["sku"],
-            qty=data["qty"],
+            quantité=data["qty"],
         )
         results = bus.handle(cmd)
-        batchref = results.pop(0)
-    except handlers.InvalidSku as e:
+        réf_lot = results.pop(0)
+    except handlers.SkuInconnu as e:
         return jsonify({"message": str(e)}), 400
 
-    return jsonify({"batchref": batchref}), 201
+    return jsonify({"batchref": réf_lot}), 201
 ```
 
 Chaque endpoint suit la même structure en trois temps :
@@ -178,7 +180,7 @@ Chaque endpoint suit la même structure en trois temps :
 2. **Construire** une command (un dataclass immuable)
 3. **Déléguer** au bus (qui dispatch vers le handler)
 
-Il n'y a **aucune logique métier** dans ces fonctions. Pas de `if` sur la disponibilité du stock, pas de tri des batches, pas d'accès direct au Repository. Flask ne sait même pas que des batches existent.
+Il n'y a **aucune logique métier** dans ces fonctions. Pas de `if` sur la disponibilité du stock, pas de tri des lots, pas d'accès direct au Repository. Flask ne sait même pas que des lots existent.
 
 !!! tip "Adaptateurs et ports"
 
@@ -194,27 +196,27 @@ L'un des gains majeurs de la Service Layer est la **testabilité**. On peut test
 
 ```python
 class FakeRepository(AbstractRepository):
-    def __init__(self, products: list[model.Product] | None = None):
+    def __init__(self, produits: list[model.Produit] | None = None):
         super().__init__()
-        self._products = set(products or [])
+        self._produits = set(produits or [])
 
-    def _add(self, product: model.Product) -> None:
-        self._products.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self._produits.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
-        return next((p for p in self._products if p.sku == sku), None)
+    def _get(self, sku: str) -> model.Produit | None:
+        return next((p for p in self._produits if p.sku == sku), None)
 
-    def _get_by_batchref(self, batchref: str) -> model.Product | None:
+    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
         return next(
-            (p for p in self._products for b in p.batches
-             if b.reference == batchref),
+            (p for p in self._produits for l in p.lots
+             if l.référence == réf_lot),
             None,
         )
 
 
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self):
-        self.products = FakeRepository([])
+        self.produits = FakeRepository([])
         self.committed = False
 
     def __enter__(self):
@@ -237,37 +239,37 @@ Ces fakes sont des implémentations **en mémoire** des abstractions. Le `FakeRe
 Avec ces fakes, tester un handler est direct et rapide :
 
 ```python
-class TestAddBatch:
-    def test_add_batch_for_new_product(self):
+class TestAjouterLot:
+    def test_ajouter_lot_pour_nouveau_produit(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "COUSSIN-CARRE", 100, None))
+        bus.handle(commands.CréerLot("l1", "COUSSIN-CARRE", 100, None))
 
-        assert bus.uow.products.get("COUSSIN-CARRE") is not None
+        assert bus.uow.produits.get("COUSSIN-CARRE") is not None
         assert bus.uow.committed
 
-    def test_add_batch_for_existing_product(self):
+    def test_ajouter_lot_pour_produit_existant(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "LAMPE-RONDE", 100, None))
-        bus.handle(commands.CreateBatch("b2", "LAMPE-RONDE", 99, None))
+        bus.handle(commands.CréerLot("l1", "LAMPE-RONDE", 100, None))
+        bus.handle(commands.CréerLot("l2", "LAMPE-RONDE", 99, None))
 
-        product = bus.uow.products.get("LAMPE-RONDE")
-        assert len(product.batches) == 2
+        produit = bus.uow.produits.get("LAMPE-RONDE")
+        assert len(produit.lots) == 2
 
 
-class TestAllocate:
-    def test_allocate_returns_batch_ref(self):
+class TestAllouer:
+    def test_allouer_retourne_ref_lot(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "CHAISE-COMFY", 100, None))
-        results = bus.handle(commands.Allocate("o1", "CHAISE-COMFY", 10))
+        bus.handle(commands.CréerLot("l1", "CHAISE-COMFY", 100, None))
+        results = bus.handle(commands.Allouer("c1", "CHAISE-COMFY", 10))
 
-        assert results.pop(0) == "b1"
+        assert results.pop(0) == "l1"
 
-    def test_allocate_errors_for_invalid_sku(self):
+    def test_allouer_erreur_pour_sku_inconnu(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "VRAI-SKU", 100, None))
+        bus.handle(commands.CréerLot("l1", "VRAI-SKU", 100, None))
 
-        with pytest.raises(handlers.InvalidSku, match="SKU-INEXISTANT"):
-            bus.handle(commands.Allocate("o1", "SKU-INEXISTANT", 10))
+        with pytest.raises(handlers.SkuInconnu, match="SKU-INEXISTANT"):
+            bus.handle(commands.Allouer("c1", "SKU-INEXISTANT", 10))
 ```
 
 Remarquez ce que ces tests **ne font pas** :
@@ -276,7 +278,7 @@ Remarquez ce que ces tests **ne font pas** :
 - Pas de `session` SQLAlchemy -- aucune base de données
 - Pas de `mock.patch` -- on injecte de vrais objets (les fakes)
 
-Les tests sont rapides (millisecondes), isolés et lisibles. Ils vérifient le **comportement métier** (est-ce que le batch est bien créé ? est-ce que l'allocation retourne la bonne référence ?) sans être couplés à aucune infrastructure.
+Les tests sont rapides (millisecondes), isolés et lisibles. Ils vérifient le **comportement métier** (est-ce que le lot est bien créé ? est-ce que l'allocation retourne la bonne référence ?) sans être couplés à aucune infrastructure.
 
 ### Et les tests de l'API ?
 
@@ -305,15 +307,15 @@ La Service Layer est le ciment entre le monde extérieur et le modèle de domain
 
 | Couche | Responsabilité | Exemple |
 |--------|---------------|---------|
-| **Entrypoints** | Traduire un protocole externe en commands | Flask parse le JSON, construit `commands.Allocate`, délègue au bus |
-| **Service Layer** | Orchestrer le workflow applicatif | Le handler ouvre le UoW, récupère le produit, appelle `product.allocate()`, committe |
-| **Domaine** | Implémenter les règles métier | `Product.allocate()` trie les batches, vérifie la disponibilité, choisit le lot |
+| **Entrypoints** | Traduire un protocole externe en commands | Flask parse le JSON, construit `commands.Allouer`, délègue au bus |
+| **Service Layer** | Orchestrer le workflow applicatif | Le handler ouvre le UoW, récupère le produit, appelle `produit.allouer()`, committe |
+| **Domaine** | Implémenter les règles métier | `Produit.allouer()` trie les lots, vérifie la disponibilité, choisit le lot |
 
 Quelques principes à retenir :
 
 - **Les handlers sont fins.** Quelques lignes de code procédural. Si un handler dépasse 15 lignes, de la logique métier s'est probablement glissée au mauvais endroit.
 - **Le domaine ne sait rien de la persistance.** Il ne connaît ni le Repository, ni le Unit of Work. C'est le handler qui fait le lien.
-- **Les entrypoints ne savent rien du domaine.** Flask ne manipule jamais directement un `Product` ou un `Batch`. Il envoie des commands et reçoit des résultats.
+- **Les entrypoints ne savent rien du domaine.** Flask ne manipule jamais directement un `Produit` ou un `Lot`. Il envoie des commands et reçoit des résultats.
 - **Les fakes sont préférés aux mocks.** En implémentant les interfaces abstraites (`AbstractRepository`, `AbstractUnitOfWork`), on obtient des doubles de test fiables et maintenables.
 
 !!! quote "Règle d'or"

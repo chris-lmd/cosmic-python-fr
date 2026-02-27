@@ -45,9 +45,9 @@ Dans une architecture classique, le endpoint Flask aurait ressemblé à ceci :
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
     data = request.json
-    line = OrderLine(data["orderid"], data["sku"], data["qty"])
-    batchref = services.allocate(line, unit_of_work.SqlAlchemyUnitOfWork())
-    return jsonify({"batchref": batchref}), 201
+    ligne = LigneDeCommande(data["id_commande"], data["sku"], data["quantité"])
+    réf_lot = services.allouer(ligne, unit_of_work.SqlAlchemyUnitOfWork())
+    return jsonify({"réf_lot": réf_lot}), 201
 ```
 
 L'API connaissait les fonctions du service layer et instanciait elle-même les
@@ -60,17 +60,17 @@ bus = bootstrap.bootstrap()
 def allocate_endpoint():
     data = request.json
     try:
-        cmd = commands.Allocate(
-            orderid=data["orderid"],
+        cmd = commands.Allouer(
+            id_commande=data["id_commande"],
             sku=data["sku"],
-            qty=data["qty"],
+            quantité=data["quantité"],
         )
         results = bus.handle(cmd)
-        batchref = results.pop(0)
-    except handlers.InvalidSku as e:
+        réf_lot = results.pop(0)
+    except handlers.SkuInconnu as e:
         return jsonify({"message": str(e)}), 400
 
-    return jsonify({"batchref": batchref}), 201
+    return jsonify({"réf_lot": réf_lot}), 201
 ```
 
 Le endpoint ne connaît plus aucun handler. Son travail se résume à :
@@ -159,9 +159,9 @@ parcourt tous les agrégats observés pendant la transaction :
 
 ```python
 def collect_new_events(self):
-    for product in self.products.seen:
-        while product.events:
-            yield product.events.pop(0)
+    for produit in self.produits.seen:
+        while produit.événements:
+            yield produit.événements.pop(0)
 ```
 
 ### Différence de traitement entre commands et events
@@ -189,16 +189,16 @@ que 25 unités. Certaines lignes de commande déjà allouées à ce lot doivent
 être désallouées puis réallouées à d'autres lots.
 
 ```text
-1. ChangeBatchQuantity (command)
-   --> change_batch_quantity handler
-       --> Product.change_batch_quantity()
-           --> émet Deallocated event(s)
-2. Deallocated (event) ajouté à la queue
-   --> reallocate handler
-       --> Product.allocate()
-           --> peut émettre OutOfStock
-3. (optionnel) OutOfStock (event) ajouté à la queue
-   --> send_out_of_stock_notification handler
+1. ModifierQuantitéLot (command)
+   --> modifier_quantité_lot handler
+       --> Produit.modifier_quantité_lot()
+           --> émet Désalloué event(s)
+2. Désalloué (event) ajouté à la queue
+   --> réallouer handler
+       --> Produit.allouer()
+           --> peut émettre RuptureDeStock
+3. (optionnel) RuptureDeStock (event) ajouté à la queue
+   --> envoyer_notification_rupture_stock handler
        --> envoie un email via l'adapter de notifications
 ```
 
@@ -206,33 +206,33 @@ Dans le domaine (`src/allocation/domain/model.py`), le modèle émet les events
 sans savoir ce qui va se passer ensuite :
 
 ```python
-def change_batch_quantity(self, ref: str, qty: int) -> None:
-    batch = next(b for b in self.batches if b.reference == ref)
-    batch._purchased_quantity = qty
-    while batch.available_quantity < 0:
-        line = batch.deallocate_one()
-        self.events.append(
-            events.Deallocated(orderid=line.orderid, sku=line.sku, qty=line.qty)
+def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
+    lot = next(l for l in self.lots if l.référence == réf)
+    lot._quantité_achetée = quantité
+    while lot.quantité_disponible < 0:
+        ligne = lot.désallouer_une()
+        self.événements.append(
+            events.Désalloué(id_commande=ligne.id_commande, sku=ligne.sku, quantité=ligne.quantité)
         )
 ```
 
-Côté handlers (`src/allocation/service_layer/handlers.py`), `reallocate`
-réagit à l'event `Deallocated` :
+Côté handlers (`src/allocation/service_layer/handlers.py`), `réallouer`
+réagit à l'event `Désalloué` :
 
 ```python
-def reallocate(event: events.Deallocated, uow: AbstractUnitOfWork) -> None:
-    allocate(
-        commands.Allocate(orderid=event.orderid, sku=event.sku, qty=event.qty),
+def réallouer(event: events.Désalloué, uow: AbstractUnitOfWork) -> None:
+    allouer(
+        commands.Allouer(id_commande=event.id_commande, sku=event.sku, quantité=event.quantité),
         uow=uow,
     )
 ```
 
-Et si `allocate()` échoue par manque de stock, le domaine émet un `OutOfStock`
-event, dispatché vers `send_out_of_stock_notification` :
+Et si `allouer()` échoue par manque de stock, le domaine émet un `RuptureDeStock`
+event, dispatché vers `envoyer_notification_rupture_stock` :
 
 ```python
-def send_out_of_stock_notification(
-    event: events.OutOfStock, notifications: AbstractNotifications,
+def envoyer_notification_rupture_stock(
+    event: events.RuptureDeStock, notifications: AbstractNotifications,
 ) -> None:
     notifications.send(
         destination="stock@example.com",
@@ -280,7 +280,7 @@ La logique est la suivante :
 4. Le handler est appelé avec le message en premier et les dépendances en
    keyword arguments.
 
-Prenons `send_out_of_stock_notification(event, notifications)`. Le bus
+Prenons `envoyer_notification_rupture_stock(event, notifications)`. Le bus
 inspecte la signature, trouve `"notifications"` dans `self.dependencies`, et
 appelle `handler(event, notifications=email_adapter)`. Le handler n'a jamais
 besoin de savoir d'où viennent ses dépendances.
@@ -321,14 +321,20 @@ office de contrat**. Le mapping handlers/messages est déclaré explicitement :
 
 ```python
 EVENT_HANDLERS = {
-    events.Allocated: [handlers.publish_allocated_event],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Alloué: [
+        handlers.publier_événement_allocation,
+        handlers.ajouter_allocation_vue,
+    ],
+    events.Désalloué: [
+        handlers.réallouer,
+        handlers.supprimer_allocation_vue,
+    ],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 COMMAND_HANDLERS = {
-    commands.CreateBatch: handlers.add_batch,
-    commands.Allocate: handlers.allocate,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
+    commands.CréerLot: handlers.ajouter_lot,
+    commands.Allouer: handlers.allouer,
+    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }
 ```
 
@@ -340,7 +346,7 @@ bus = bootstrap.bootstrap(
     uow=FakeUnitOfWork(),
     notifications_adapter=FakeNotifications(),
 )
-bus.handle(commands.CreateBatch(ref="batch-001", sku="TABLE", qty=100))
+bus.handle(commands.CréerLot(réf="batch-001", sku="TABLE", quantité=100))
 ```
 
 ---
@@ -350,13 +356,13 @@ bus.handle(commands.CreateBatch(ref="batch-001", sku="TABLE", qty=100))
 ```text
   Entrypoints             Service Layer              Domain
  (thin adapters)       (MessageBus + Handlers)       (Model)
- +--------------+     +--------------------+     +-------------+
- | Flask API    | cmd |    MessageBus      |     |  Product    |
- | Redis sub    |---->|  1. queue = [cmd]  |     |  Batch      |
- | CLI          |     |  2. dispatch       |     |  OrderLine  |
- +--------------+     |  3. collect events |     +------+------+
-                      |  4. repeat         |            |
-                      |  Handlers + Deps   |<-- events--+
+ +--------------+     +--------------------+     +------------------+
+ | Flask API    | cmd |    MessageBus      |     |  Produit         |
+ | Redis sub    |---->|  1. queue = [cmd]  |     |  Lot             |
+ | CLI          |     |  2. dispatch       |     |  LigneDeCommande |
+ +--------------+     |  3. collect events |     +--------+---------+
+                      |  4. repeat         |              |
+                      |  Handlers + Deps   |<-- events----+
                       +--------------------+
 ```
 

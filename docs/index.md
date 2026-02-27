@@ -73,20 +73,20 @@ Les règles métier :
 
 ```python
 @dataclass(frozen=True)
-class OrderLine:
+class LigneDeCommande:
     """Value Object : une ligne de commande."""
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
-class Batch:
+class Lot:
     """Entity : un lot de stock."""
-    def __init__(self, ref, sku, qty, eta=None):
-        self.reference = ref
+    def __init__(self, réf, sku, quantité, eta=None):
+        self.référence = réf
         self.sku = sku
         self.eta = eta
-        self._purchased_quantity = qty
-        self._allocations: set[OrderLine] = set()
+        self._quantité_achetée = quantité
+        self._allocations: set[LigneDeCommande] = set()
 ```
 
 ## Pré-requis

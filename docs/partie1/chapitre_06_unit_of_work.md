@@ -10,9 +10,9 @@ Dans ce chapitre, nous introduisons le pattern **Unit of Work** -- un context ma
 
 ## Le problème : qui contrôle la transaction ?
 
-Notre handler `allocate` doit faire plusieurs choses dans une seule transaction :
+Notre handler `allouer` doit faire plusieurs choses dans une seule transaction :
 
-1. Lire un `Product` depuis la base
+1. Lire un `Produit` depuis la base
 2. Appeler la logique d'allocation sur le domaine
 3. Persister le résultat en base
 4. Commiter la transaction
@@ -25,9 +25,9 @@ Si le repository crée et commite lui-même sa session, chaque opération (`add`
 
 ```python
 # Problème : chaque appel est une transaction séparée
-product = repo.get("CHAISE-COMFY")       # transaction 1
-batchref = product.allocate(line)         # en mémoire
-repo.save(product)                        # transaction 2 -- et si ça échoue ?
+produit = repo.get("CHAISE-COMFY")          # transaction 1
+réf_lot = produit.allouer(ligne)            # en mémoire
+repo.save(produit)                          # transaction 2 -- et si ça échoue ?
 ```
 
 ### Option 2 : le handler gère la session
@@ -36,11 +36,11 @@ Si le handler crée la session SQLAlchemy et la passe au repository, on retrouve
 
 ```python
 # Problème : le handler connaît SQLAlchemy
-def allocate(cmd, session_factory):
+def allouer(cmd, session_factory):
     session = session_factory()
     repo = SqlAlchemyRepository(session)
-    product = repo.get(cmd.sku)
-    batchref = product.allocate(line)
+    produit = repo.get(cmd.sku)
+    réf_lot = produit.allouer(ligne)
     session.commit()  # le handler manipule directement la session
 ```
 
@@ -64,21 +64,21 @@ Le Unit of Work représente une **unité de travail atomique**. C'est un concept
 Dans notre implémentation, le Unit of Work est un **context manager** Python. Voici comment un handler l'utilise :
 
 ```python
-def allocate(cmd: Allocate, uow: AbstractUnitOfWork) -> str:
-    line = OrderLine(orderid=cmd.orderid, sku=cmd.sku, qty=cmd.qty)
+def allouer(cmd: Allouer, uow: AbstractUnitOfWork) -> str:
+    ligne = LigneDeCommande(id_commande=cmd.id_commande, sku=cmd.sku, quantité=cmd.quantité)
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        if product is None:
-            raise InvalidSku(f"SKU inconnu : {cmd.sku}")
-        batchref = product.allocate(line)
+        produit = uow.produits.get(sku=cmd.sku)
+        if produit is None:
+            raise SkuInconnu(f"SKU inconnu : {cmd.sku}")
+        réf_lot = produit.allouer(ligne)
         uow.commit()
-    return batchref
+    return réf_lot
 ```
 
 Les règles sont simples :
 
 - `with uow:` ouvre la transaction et initialise le repository
-- `uow.products` donne accès au repository (sans savoir comment il est construit)
+- `uow.produits` donne accès au repository (sans savoir comment il est construit)
 - `uow.commit()` valide la transaction
 - Si une exception survient avant le commit, `__exit__` déclenche un **rollback automatique**
 - La session est fermée dans tous les cas
@@ -94,11 +94,11 @@ class AbstractUnitOfWork(abc.ABC):
     """
     Interface abstraite du Unit of Work.
 
-    Définit le contrat : un repository products,
+    Définit le contrat : un repository produits,
     et les méthodes commit/rollback.
     """
 
-    products: repository.AbstractRepository
+    produits: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
         return self
@@ -159,7 +159,7 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
     def __enter__(self) -> SqlAlchemyUnitOfWork:
         self.session: Session = self.session_factory()
-        self.products = repository.SqlAlchemyRepository(self.session)
+        self.produits = repository.SqlAlchemyRepository(self.session)
         return super().__enter__()
 
     def __exit__(self, *args: object) -> None:
@@ -180,9 +180,9 @@ Voici ce qui se passe concrètement lors de l'exécution d'un handler :
 ```
 with uow:                          # (1) __enter__ est appelé
     |                              #     -> session = session_factory()
-    |                              #     -> products = SqlAlchemyRepository(session)
-    product = uow.products.get()   # (2) lecture via la session
-    product.allocate(line)         # (3) logique métier pure
+    |                              #     -> produits = SqlAlchemyRepository(session)
+    produit = uow.produits.get()   # (2) lecture via la session
+    produit.allouer(ligne)         # (3) logique métier pure
     uow.commit()                   # (4) session.commit()
                                    # (5) __exit__ est appelé
                                    #     -> rollback() (sans effet après commit)
@@ -206,7 +206,7 @@ Trois points importants :
 
 Le Unit of Work joue un rôle supplémentaire dans notre architecture : il sert de **pont entre les agrégats et le message bus**.
 
-Quand un agrégat effectue une opération métier, il peut émettre des domain events. Par exemple, `Product.allocate()` émet un event `OutOfStock` si le stock est épuisé, et `Product.change_batch_quantity()` émet des events `Deallocated` pour les lignes à réallouer.
+Quand un agrégat effectue une opération métier, il peut émettre des domain events. Par exemple, `Produit.allouer()` émet un event `RuptureDeStock` si le stock est épuisé, et `Produit.modifier_quantité_lot()` émet des events `Désalloué` pour les lignes à réallouer.
 
 Le problème est : **comment le message bus récupère-t-il ces events ?**
 
@@ -215,12 +215,12 @@ C'est la méthode `collect_new_events()` du UoW qui s'en charge :
 ```python title="src/allocation/service_layer/unit_of_work.py"
 def collect_new_events(self):
     """
-    Collecte tous les events émis par les agrégats vus
+    Collecte tous les événements émis par les agrégats vus
     au cours de cette transaction.
     """
-    for product in self.products.seen:
-        while product.events:
-            yield product.events.pop(0)
+    for produit in self.produits.seen:
+        while produit.événements:
+            yield produit.événements.pop(0)
 ```
 
 ### Comment ça fonctionne
@@ -228,9 +228,9 @@ def collect_new_events(self):
 Le mécanisme repose sur la collaboration entre le repository et le UoW :
 
 1. Le repository garde une trace de tous les agrégats qu'il a **vus** (via `add` ou `get`), dans son attribut `seen`.
-2. Chaque agrégat `Product` maintient une liste `events` où il accumule ses domain events.
+2. Chaque agrégat `Produit` maintient une liste `événements` où il accumule ses domain events.
 3. Après chaque handler, le message bus appelle `uow.collect_new_events()`.
-4. Cette méthode itère sur les agrégats vus et **vide** leur liste d'events (avec `pop`).
+4. Cette méthode itère sur les agrégats vus et **vide** leur liste `événements` (avec `pop`).
 5. Les events récupérés sont réinjectés dans la queue du message bus pour être traités à leur tour.
 
 ```python title="src/allocation/service_layer/messagebus.py (extrait)"
@@ -259,7 +259,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """
 
     def __init__(self):
-        self.products = FakeRepository([])
+        self.produits = FakeRepository([])
         self.committed = False  # (1)
 
     def __enter__(self):
@@ -283,12 +283,12 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
 L'attribut `committed` est un outil de test simple mais puissant. Il permet de **vérifier que le handler a bien commité la transaction** :
 
 ```python
-class TestAddBatch:
-    def test_add_batch_for_new_product(self):
+class TestAjouterLot:
+    def test_ajouter_un_lot(self):
         bus = bootstrap_test_bus()
-        bus.handle(commands.CreateBatch("b1", "COUSSIN-CARRE", 100, None))
+        bus.handle(commands.CréerLot("b1", "COUSSIN-CARRE", 100, None))
 
-        assert bus.uow.products.get("COUSSIN-CARRE") is not None
+        assert bus.uow.produits.get("COUSSIN-CARRE") is not None
         assert bus.uow.committed  # on vérifie que le commit a eu lieu
 ```
 
@@ -305,20 +305,20 @@ Le `FakeRepository` hérite de `AbstractRepository`, qui définit l'attribut `se
 
 ## Le flux complet : du handler au domaine
 
-Voici le flux complet quand le message bus traite une command `Allocate` :
+Voici le flux complet quand le message bus traite une command `Allouer` :
 
 ```
-MessageBus.handle(Allocate)
+MessageBus.handle(Allouer)
     |
     v
-handler: allocate(cmd, uow)
+handler: allouer(cmd, uow)
     |
     +---> with uow:                          # UoW.__enter__
     |         |                               #   crée session + repository
-    |         +---> uow.products.get(sku)     # Repository.get()
-    |         |         |                     #   marque le Product comme "seen"
+    |         +---> uow.produits.get(sku)     # Repository.get()
+    |         |         |                     #   marque le Produit comme "seen"
     |         |         v
-    |         +---> product.allocate(line)     # Logique métier pure
+    |         +---> produit.allouer(ligne)    # Logique métier pure
     |         |         |                     #   peut émettre des events
     |         |         v
     |         +---> uow.commit()              # UoW.commit()
@@ -345,20 +345,20 @@ Le diagramme en couches correspondant :
 +------------------------------------------------------+
 |                   Unit of Work                        |
 |   __enter__  |  commit  |  rollback  |  __exit__     |
-|   fournit: repository (products)                     |
+|   fournit: repository (produits)                     |
 +------------------------------------------------------+
           |                          ^
           v                          |
 +------------------------------------------------------+
 |                    Repository                         |
-|   add(product)  |  get(sku)  |  seen: set[Product]   |
+|   add(produit)  |  get(sku)  |  seen: set[Produit]   |
 +------------------------------------------------------+
           |                          ^
           v                          |
 +------------------------------------------------------+
 |               Modèle de Domaine                       |
-|   Product -> Batch -> OrderLine                       |
-|   events: [OutOfStock, Deallocated, ...]             |
+|   Produit -> Lot -> LigneDeCommande                   |
+|   événements: [RuptureDeStock, Désalloué, ...]       |
 +------------------------------------------------------+
 ```
 
@@ -396,4 +396,4 @@ Le pattern **Unit of Work** résout le problème de la gestion des transactions 
 5. **Le `FakeUnitOfWork` rend les tests rapides** et déterministes, sans base de données.
 
 !!! abstract "Dans le prochain chapitre"
-    Nous verrons le pattern **Aggregate** et la notion de **frontière de cohérence**. L'agrégat `Product` définit le périmètre à l'intérieur duquel les invariants métier sont garantis -- et le Unit of Work commite exactement un agrégat par transaction.
+    Nous verrons le pattern **Aggregate** et la notion de **frontière de cohérence**. L'agrégat `Produit` définit le périmètre à l'intérieur duquel les invariants métier sont garantis -- et le Unit of Work commite exactement un agrégat par transaction.

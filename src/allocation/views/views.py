@@ -11,18 +11,21 @@ lecture (qui interrogent directement la BDD pour la performance).
 
 from __future__ import annotations
 
+from sqlalchemy import text
+
 from allocation.service_layer import unit_of_work
 
 
-def allocations(orderid: str, uow: unit_of_work.SqlAlchemyUnitOfWork) -> list[dict]:
+def allocations(id_commande: str, uow: unit_of_work.AbstractUnitOfWork) -> list[dict]:
     """
-    Retourne les allocations pour un orderid donné.
+    Retourne les allocations pour un id_commande donné.
 
-    Requête SQL directe sur la table de lecture (read model).
+    Requête SQL directe sur la table de lecture (read model),
+    sans charger d'agrégat — c'est tout l'intérêt de CQRS.
     """
     with uow:
         results = uow.session.execute(
-            "SELECT sku, batchref FROM allocations_view WHERE orderid = :orderid",
-            dict(orderid=orderid),
+            text("SELECT sku, réf_lot FROM allocations_view WHERE id_commande = :id_commande"),
+            dict(id_commande=id_commande),
         )
         return [dict(r._mapping) for r in results]

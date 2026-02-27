@@ -12,8 +12,8 @@
 ## Events internes vs events externes
 
 Jusqu'ici, nos events circulent uniquement **à l'intérieur** de notre application.
-Quand un `Product` émet un event `Allocated`, le message bus le dispatch vers
-`publish_allocated_event` ou `reallocate` -- tout cela dans le même processus.
+Quand un `Produit` émet un event `Alloué`, le message bus le dispatch vers
+`publier_événement_allocation` ou `réallouer` -- tout cela dans le même processus.
 Mais d'autres services ont besoin de savoir qu'une allocation a eu lieu, et des
 systèmes externes doivent pouvoir nous informer de changements. Comment faire
 communiquer ces services sans les coupler ?
@@ -26,9 +26,9 @@ communiquer ces services sans les coupler ?
 | **Fiabilité** | Garantie par le processus | Nécessite des mécanismes dédiés |
 | **Couplage** | Même bounded context | Entre bounded contexts différents |
 
-Un event **interne** comme `Deallocated` déclenche une réallocation dans le même
+Un event **interne** comme `Désalloué` déclenche une réallocation dans le même
 service -- c'est un détail d'implémentation invisible de l'extérieur. Un event
-**externe** comme `Allocated` informe les autres services qu'une allocation a
+**externe** comme `Alloué` informe les autres services qu'une allocation a
 eu lieu -- c'est un **contrat** dont d'autres équipes dépendent.
 
 ```
@@ -94,23 +94,23 @@ class RedisEventPublisher(AbstractEventPublisher):
         self.client.publish(channel, json.dumps(event_data))
 ```
 
-Notre handler `publish_allocated_event` utilise cet adapter via l'injection
+Notre handler `publier_événement_allocation` utilise cet adapter via l'injection
 de dépendances du message bus :
 ```python
 # service_layer/handlers.py
 
-def publish_allocated_event(
-    event: events.Allocated,
+def publier_événement_allocation(
+    event: events.Alloué,
     publish: AbstractEventPublisher,
 ) -> None:
     """Publie un event d'allocation vers le message broker."""
     publish.publish(
         channel="line_allocated",
         event_data={
-            "orderid": event.orderid,
+            "id_commande": event.id_commande,
             "sku": event.sku,
-            "qty": event.qty,
-            "batchref": event.batchref,
+            "quantité": event.quantité,
+            "réf_lot": event.réf_lot,
         },
     )
 ```
@@ -159,7 +159,7 @@ def main():
     bus = bootstrap.bootstrap()
     client = redis.Redis("localhost", 6379)
     pubsub = client.pubsub(ignore_subscribe_messages=True)
-    pubsub.subscribe("change_batch_quantity")
+    pubsub.subscribe("modifier_quantité_lot")
 
     for message in pubsub.listen():
         handle_message(message, bus)
@@ -170,10 +170,10 @@ def handle_message(message, bus):
     data = json.loads(message["data"])
     channel = message["channel"].decode()
 
-    if channel == "change_batch_quantity":
-        cmd = commands.ChangeBatchQuantity(
-            ref=data["batchref"],
-            qty=data["qty"],
+    if channel == "modifier_quantité_lot":
+        cmd = commands.ModifierQuantitéLot(
+            réf=data["réf_lot"],
+            quantité=data["quantité"],
         )
         bus.handle(cmd)
 ```
@@ -189,19 +189,19 @@ def handle_message(message, bus):
 ```
 Système externe                    Notre service
       │                                  │
-      │  PUBLISH change_batch_quantity   │
-      │  {"batchref":"b1", "qty":10}     │
+      │  PUBLISH modifier_quantité_lot  │
+      │  {"réf_lot":"b1", "quantité":10}│
       │ ────────────── Redis ──────────▶ │
       │                                  │
       │                     redis_eventconsumer.py
       │                          │
-      │                     ChangeBatchQuantity(ref="b1", qty=10)
+      │                     ModifierQuantitéLot(réf="b1", quantité=10)
       │                          │
       │                     bus.handle(cmd) ──▶ handler ──▶ domaine
       │                          │
       │                     (si réallocation nécessaire)
-      │                     Deallocated ──▶ reallocate
-      │                     Allocated  ──▶ publish vers Redis
+      │                     Désalloué ──▶ réallouer
+      │                     Alloué   ──▶ publier vers Redis
 ```
 
 ---
@@ -221,7 +221,7 @@ le problème du **dual write**. Le pattern Outbox le résout :
 ┌─────────────────────────────────────┐
 │         Transaction BDD             │
 │                                     │
-│  UPDATE products SET ...            │
+│  UPDATE produits SET ...            │
 │  INSERT INTO outbox (type, data)    │
 │  COMMIT  ◀── atomique              │
 └──────────────────┬──────────────────┘
@@ -250,15 +250,15 @@ outbox = Table(
 
 Le handler écrit dans l'outbox au lieu de publier directement :
 ```python
-def publish_allocated_event(event: events.Allocated,
+def publier_événement_allocation(event: events.Alloué,
                             uow: AbstractUnitOfWork) -> None:
     """Écrit l'event dans la table outbox (même transaction)."""
     with uow:
         uow.session.execute(outbox.insert().values(
-            event_type="Allocated",
+            event_type="Alloué",
             data=json.dumps({
-                "orderid": event.orderid, "sku": event.sku,
-                "qty": event.qty, "batchref": event.batchref,
+                "id_commande": event.id_commande, "sku": event.sku,
+                "quantité": event.quantité, "réf_lot": event.réf_lot,
             }),
         ))
         uow.commit()
@@ -304,8 +304,8 @@ deux fois doit produire le même résultat.
 "Fixer la quantité du lot B1 à 50" est idempotent -- l'exécuter deux fois
 donne le même résultat. "Ajouter 10 au lot B1" ne l'est pas.
 
-C'est pourquoi notre command `ChangeBatchQuantity` prend une **quantité
-absolue** (`qty=50`) plutôt qu'un delta (`delta=+10`). Ce choix de design
+C'est pourquoi notre command `ModifierQuantitéLot` prend une **quantité
+absolue** (`quantité=50`) plutôt qu'un delta (`delta=+10`). Ce choix de design
 rend le consumer naturellement idempotent.
 
 ### Stratégie 2 : table de déduplication
@@ -319,7 +319,7 @@ processed_messages = Table(
     Column("processed_at", DateTime, server_default=func.now()),
 )
 
-def handle_change_batch_quantity(message, bus):
+def handle_modifier_quantité_lot(message, bus):
     """Consumer idempotent avec déduplication."""
     data = json.loads(message["data"])
     message_id = data.get("message_id")
@@ -327,7 +327,7 @@ def handle_change_batch_quantity(message, bus):
     if message_id and already_processed(message_id):
         return  # déjà traité, on ignore
 
-    cmd = commands.ChangeBatchQuantity(ref=data["batchref"], qty=data["qty"])
+    cmd = commands.ModifierQuantitéLot(réf=data["réf_lot"], quantité=data["quantité"])
     bus.handle(cmd)
 
     if message_id:

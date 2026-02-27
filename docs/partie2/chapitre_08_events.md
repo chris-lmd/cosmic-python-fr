@@ -7,7 +7,7 @@
 
 ## Le problème des effets de bord
 
-Jusqu'ici, notre système d'allocation fait bien son travail : il choisit le bon batch,
+Jusqu'ici, notre système d'allocation fait bien son travail : il choisit le bon lot,
 respecte les règles métier, et le Unit of Work garantit l'atomicité des transactions.
 
 Mais la réalité rattrape vite une architecture trop simple. Quand une allocation réussit,
@@ -22,19 +22,19 @@ La tentation naturelle est de tout mettre dans le handler :
 
 ```python
 # NE FAITES PAS CA -- handler monolithique
-def allocate(cmd, uow):
-    line = OrderLine(cmd.orderid, cmd.sku, cmd.qty)
+def allouer(cmd, uow):
+    ligne = LigneDeCommande(cmd.id_commande, cmd.sku, cmd.quantité)
     with uow:
-        product = uow.products.get(sku=cmd.sku)
-        batchref = product.allocate(line)
+        produit = uow.produits.get(sku=cmd.sku)
+        réf_lot = produit.allouer(ligne)
         uow.commit()
 
     # Effets de bord empilés...
-    send_email("client@example.com", f"Commande {cmd.orderid} allouée")
-    update_dashboard(cmd.sku, batchref)
-    notify_warehouse(batchref, cmd.orderid)
-    publish_to_redis("allocation", {"orderid": cmd.orderid})
-    return batchref
+    send_email("client@example.com", f"Commande {cmd.id_commande} allouée")
+    update_dashboard(cmd.sku, réf_lot)
+    notify_warehouse(réf_lot, cmd.id_commande)
+    publish_to_redis("allocation", {"id_commande": cmd.id_commande})
+    return réf_lot
 ```
 
 Ce code pose trois problèmes sérieux :
@@ -61,16 +61,16 @@ La convention de nommage est importante : les events sont toujours au **passé**
 
 | Event | Signification |
 |-------|---------------|
-| `Allocated` | Une ligne de commande **a été** allouée à un batch |
-| `Deallocated` | Une ligne de commande **a été** désallouée |
-| `OutOfStock` | Le stock **est épuisé** pour un SKU donné |
+| `Alloué` | Une ligne de commande **a été** allouée à un lot |
+| `Désalloué` | Une ligne de commande **a été** désallouée |
+| `RuptureDeStock` | Le stock **est épuisé** pour un SKU donné |
 
 Comparez avec les commands, qui sont des **demandes** au présent impératif :
 
 | Command | Event correspondant |
 |---------|---------------------|
-| `Allocate` (alloue !) | `Allocated` (a été alloué) |
-| `ChangeBatchQuantity` (change !) | `Deallocated` (a été désalloué) |
+| `Allouer` (alloue !) | `Alloué` (a été alloué) |
+| `ModifierQuantitéLot` (change !) | `Désalloué` (a été désalloué) |
 
 Cette distinction est fondamentale. Une command peut échouer (stock insuffisant,
 SKU inexistant). Un event, lui, **ne peut pas échouer** : il décrit un fait déjà
@@ -100,22 +100,22 @@ de distinguer un event d'une command. Pas de méthode, pas d'attribut -- juste u
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
-class Allocated(Event):
-    """Un OrderLine a été alloué à un Batch."""
-    orderid: str
+class Alloué(Event):
+    """Une LigneDeCommande a été allouée à un Lot."""
+    id_commande: str
     sku: str
-    qty: int
-    batchref: str
+    quantité: int
+    réf_lot: str
 
 @dataclass(frozen=True)
-class Deallocated(Event):
-    """Un OrderLine a été désalloué d'un Batch."""
-    orderid: str
+class Désalloué(Event):
+    """Une LigneDeCommande a été désallouée d'un Lot."""
+    id_commande: str
     sku: str
-    qty: int
+    quantité: int
 
 @dataclass(frozen=True)
-class OutOfStock(Event):
+class RuptureDeStock(Event):
     """Le stock est épuisé pour un SKU donné."""
     sku: str
 ```
@@ -130,13 +130,13 @@ Le paramètre `frozen=True` rend la dataclass **immutable**. C'est un choix dél
 - Un objet frozen est **hashable**, utilisable dans des sets ou comme clé de dict.
 
 ```python
-event = Allocated(orderid="o1", sku="LAMP", qty=10, batchref="batch-001")
-event.qty = 5  # FrozenInstanceError !
+event = Alloué(id_commande="o1", sku="LAMP", quantité=10, réf_lot="batch-001")
+event.quantité = 5  # FrozenInstanceError !
 ```
 
 Chaque event porte exactement les **données nécessaires** pour que ses handlers puissent
-travailler sans dépendre du contexte d'émission. `Allocated` porte l'`orderid`, le `sku`,
-la `qty` et le `batchref`. `OutOfStock` ne porte que le `sku`. Un event est
+travailler sans dépendre du contexte d'émission. `Alloué` porte l'`id_commande`, le `sku`,
+la `quantité` et le `réf_lot`. `RuptureDeStock` ne porte que le `sku`. Un event est
 **autosuffisant** : ses consommateurs n'ont pas besoin d'interroger la base de données.
 
 ---
@@ -146,36 +146,36 @@ la `qty` et le `batchref`. `OutOfStock` ne porte que le `sku`. Un event est
 C'est le domaine qui sait quand quelque chose d'intéressant se produit. Pas le handler,
 pas la couche service -- le **domaine lui-même**. C'est donc l'agrégat qui émet les events.
 
-L'agrégat `Product` maintient une liste d'events en attente :
+L'agrégat `Produit` maintient une liste d'events en attente :
 
 ```python
-class Product:
-    def __init__(self, sku: str, batches=None, version_number: int = 0):
+class Produit:
+    def __init__(self, sku: str, lots=None, numéro_version: int = 0):
         self.sku = sku
-        self.batches = batches or []
-        self.version_number = version_number
-        self.events: list[events.Event] = []  # (1)
+        self.lots = lots or []
+        self.numéro_version = numéro_version
+        self.événements: list[events.Event] = []  # (1)
 ```
 
-**(1)** La liste `self.events` est le **tampon d'events**. Les events y sont accumulés
+**(1)** La liste `self.événements` est le **tampon d'events**. Les events y sont accumulés
 pendant l'exécution des méthodes métier, puis collectés par le Unit of Work.
 
 ### Émission lors de l'allocation
 
-Quand l'allocation échoue par manque de stock, le `Product` émet un `OutOfStock` :
+Quand l'allocation échoue par manque de stock, le `Produit` émet un `RuptureDeStock` :
 
 ```python
-def allocate(self, line: OrderLine) -> str:
+def allouer(self, ligne: LigneDeCommande) -> str:
     try:
-        batch = next(
-            b for b in sorted(self.batches) if b.can_allocate(line)
+        lot = next(
+            l for l in sorted(self.lots) if l.peut_allouer(ligne)
         )
     except StopIteration:
-        self.events.append(events.OutOfStock(sku=line.sku))  # (1)
+        self.événements.append(events.RuptureDeStock(sku=ligne.sku))  # (1)
         return ""
-    batch.allocate(line)
-    self.version_number += 1
-    return batch.reference
+    lot.allouer(ligne)
+    self.numéro_version += 1
+    return lot.référence
 ```
 
 **(1)** Plutôt que de lever une exception, le domaine **enregistre un fait** : "le stock
@@ -183,22 +183,22 @@ est épuisé". C'est un changement de philosophie important.
 
 ### Émission lors du changement de quantité
 
-Quand la quantité d'un batch diminue, chaque désallocation génère un `Deallocated` :
+Quand la quantité d'un lot diminue, chaque désallocation génère un `Désalloué` :
 
 ```python
-def change_batch_quantity(self, ref: str, qty: int) -> None:
-    batch = next(b for b in self.batches if b.reference == ref)
-    batch._purchased_quantity = qty
-    while batch.available_quantity < 0:
-        line = batch.deallocate_one()
-        self.events.append(
-            events.Deallocated(
-                orderid=line.orderid, sku=line.sku, qty=line.qty,
+def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
+    lot = next(l for l in self.lots if l.référence == réf)
+    lot._quantité_achetée = quantité
+    while lot.quantité_disponible < 0:
+        ligne = lot.désallouer_une()
+        self.événements.append(
+            events.Désalloué(
+                id_commande=ligne.id_commande, sku=ligne.sku, quantité=ligne.quantité,
             )
         )
 ```
 
-Si trois lignes sont désallouées, il y aura trois events `Deallocated`, et chacun pourra
+Si trois lignes sont désallouées, il y aura trois events `Désalloué`, et chacun pourra
 déclencher une réallocation indépendante.
 
 ### Pourquoi le domaine et pas le handler ?
@@ -312,9 +312,9 @@ Après chaque handler, le bus appelle `self.uow.collect_new_events()` :
 ```python
 class AbstractUnitOfWork(abc.ABC):
     def collect_new_events(self):
-        for product in self.products.seen:
-            while product.events:
-                yield product.events.pop(0)
+        for produit in self.produits.seen:
+            while produit.événements:
+                yield produit.événements.pop(0)
 ```
 
 Le UoW itère sur tous les agrégats **vus** pendant la transaction, vide leur liste
@@ -329,8 +329,8 @@ Voyons les handlers d'events définis dans `src/allocation/service_layer/handler
 ### Notification de rupture de stock
 
 ```python
-def send_out_of_stock_notification(
-    event: events.OutOfStock,
+def envoyer_notification_rupture_stock(
+    event: events.RuptureDeStock,
     notifications: AbstractNotifications,
 ) -> None:
     notifications.send(
@@ -339,25 +339,25 @@ def send_out_of_stock_notification(
     )
 ```
 
-Ce handler reçoit un `OutOfStock` et une dépendance `notifications` injectée par le bus.
+Ce handler reçoit un `RuptureDeStock` et une dépendance `notifications` injectée par le bus.
 Pas besoin du UoW, pas besoin de la base -- juste l'event et l'adapter.
 
 ### Réallocation après désallocation
 
 ```python
-def reallocate(
-    event: events.Deallocated,
+def réallouer(
+    event: events.Désalloué,
     uow: AbstractUnitOfWork,
 ) -> None:
-    allocate(
-        commands.Allocate(
-            orderid=event.orderid, sku=event.sku, qty=event.qty,
+    allouer(
+        commands.Allouer(
+            id_commande=event.id_commande, sku=event.sku, quantité=event.quantité,
         ),
         uow=uow,
     )
 ```
 
-Quand une ligne est désallouée, ce handler crée une **nouvelle command** `Allocate` et
+Quand une ligne est désallouée, ce handler crée une **nouvelle command** `Allouer` et
 la traite. C'est une **chaîne réactive** : un changement de quantité entraîne des
 désallocations, qui entraînent des réallocations.
 
@@ -367,15 +367,21 @@ Les associations sont déclarées dans `src/allocation/service_layer/bootstrap.p
 
 ```python
 EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Allocated: [handlers.publish_allocated_event],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Alloué: [
+        handlers.publier_événement_allocation,
+        handlers.ajouter_allocation_vue,
+    ],
+    events.Désalloué: [
+        handlers.réallouer,
+        handlers.supprimer_allocation_vue,
+    ],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 
 COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
-    commands.CreateBatch: handlers.add_batch,
-    commands.Allocate: handlers.allocate,
-    commands.ChangeBatchQuantity: handlers.change_batch_quantity,
+    commands.CréerLot: handlers.ajouter_lot,
+    commands.Allouer: handlers.allouer,
+    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }
 ```
 
@@ -383,9 +389,9 @@ Pour ajouter un nouveau comportement, il suffit d'**ajouter un handler à la lis
 sans modifier le code existant. C'est le principe Open/Closed en action :
 
 ```python
-events.OutOfStock: [
-    handlers.send_out_of_stock_notification,  # email existant
-    handlers.send_out_of_stock_sms,            # SMS (nouveau !)
+events.RuptureDeStock: [
+    handlers.envoyer_notification_rupture_stock,  # email existant
+    handlers.envoyer_sms_rupture_stock,            # SMS (nouveau !)
 ],
 ```
 
@@ -393,64 +399,64 @@ events.OutOfStock: [
 
 ## Le flux complet
 
-Déroulons un scénario de bout en bout : un changement de quantité de batch qui
+Déroulons un scénario de bout en bout : un changement de quantité de lot qui
 déclenche une cascade d'events.
 
-### Scénario : la quantité d'un batch diminue
+### Scénario : la quantité d'un lot diminue
 
-Un fournisseur informe qu'un batch de 50 "BLUE-VASE" ne contiendra que 20 unités.
+Un fournisseur informe qu'un lot de 50 "BLUE-VASE" ne contiendra que 20 unités.
 Trois commandes de 10 étaient allouées. Avec 20 unités, une doit être désallouée.
 
 **Étape 1** -- La command entre dans le bus :
 
 ```python
-cmd = ChangeBatchQuantity(ref="batch-001", qty=20)
+cmd = ModifierQuantitéLot(réf="batch-001", quantité=20)
 bus.handle(cmd)
 ```
 
-**Étape 2** -- Le command handler charge le Product et appelle la méthode métier.
+**Étape 2** -- Le command handler charge le Produit et appelle la méthode métier.
 
-**Étape 3** -- Le domaine désalloue une ligne et émet `Deallocated(orderid="order-3",
-sku="BLUE-VASE", qty=10)`.
+**Étape 3** -- Le domaine désalloue une ligne et émet `Désalloué(id_commande="order-3",
+sku="BLUE-VASE", quantité=10)`.
 
 **Étape 4** -- Le UoW collecte l'event et l'ajoute à la queue du bus.
 
-**Étape 5** -- Le bus dépile le `Deallocated` et appelle le handler `reallocate`.
+**Étape 5** -- Le bus dépile le `Désalloué` et appelle le handler `réallouer`.
 
-**Étape 6** -- `reallocate` crée une command `Allocate` et la traite. Le système
-tente de réallouer la ligne à un autre batch.
+**Étape 6** -- `réallouer` crée une command `Allouer` et la traite. Le système
+tente de réallouer la ligne à un autre lot.
 
-**Étape 7** -- Si la réallocation réussit, un `Allocated` est émis. S'il n'y a plus de
-stock, un `OutOfStock` déclenche l'envoi d'une notification. La boucle continue
+**Étape 7** -- Si la réallocation réussit, un `Alloué` est émis. S'il n'y a plus de
+stock, un `RuptureDeStock` déclenche l'envoi d'une notification. La boucle continue
 jusqu'à épuisement de la queue.
 
 ### Visualisation du flux
 
 ```
-ChangeBatchQuantity (command)
+ModifierQuantitéLot (command)
     |
     v
-change_batch_quantity (command handler)
+modifier_quantité_lot (command handler)
     |
     v
-Product.change_batch_quantity() --- émet ---> Deallocated (event)
+Produit.modifier_quantité_lot() --- émet ---> Désalloué (event)
     |                                              |
     v                                              v
-UoW.commit()                              reallocate (event handler)
+UoW.commit()                              réallouer (event handler)
                                                    |
                                                    v
-                                           Allocate (command)
+                                           Allouer (command)
                                                    |
                                                    v
-                                           Product.allocate()
+                                           Produit.allouer()
                                               /          \
                                         succès            échec
                                           |                |
                                           v                v
-                                     Allocated         OutOfStock
+                                       Alloué         RuptureDeStock
                                           |                |
                                           v                v
-                                  publish_event     send_notification
+                             publier_événement     envoyer_notification
 ```
 
 ---
@@ -465,14 +471,14 @@ Les Domain Events et le Message Bus résolvent le problème des effets de bord e
 | Concept | Rôle |
 |---------|------|
 | **Domain Event** | Objet immutable représentant un fait passé |
-| **`self.events`** | Tampon dans l'agrégat où les events sont accumulés |
+| **`self.événements`** | Tampon dans l'agrégat où les events sont accumulés |
 | **Message Bus** | Dispatcher qui route events et commands vers leurs handlers |
 | **`collect_new_events()`** | Méthode du UoW qui extrait les events des agrégats |
 | **Event Handler** | Fonction qui réagit à un event |
 
 ### Les règles à retenir
 
-1. **Les events sont au passé** : `Allocated`, pas `Allocate`. Ils constatent, ils ne
+1. **Les events sont au passé** : `Alloué`, pas `Allouer`. Ils constatent, ils ne
    demandent pas.
 2. **Les events sont immutables** : `frozen=True`. Le passé ne change pas.
 3. **Le domaine émet les events** : c'est l'agrégat qui sait ce qui s'est passé, pas
@@ -506,7 +512,7 @@ Les Domain Events et le Message Bus résolvent le problème des effets de bord e
                              v                      |
                     +------------------+            |
                     |     Domaine      |            |
-                    | (Product.events) |            |
+                    | (Produit.événements) |        |
                     +--------+---------+            |
                              |                      |
                              v                      |
@@ -518,7 +524,7 @@ Les Domain Events et le Message Bus résolvent le problème des effets de bord e
                              v
                     +------------------+
                     | Event Handlers   |
-                    | (email, realloc, |
+                    | (email, réalloc, |
                     |  publish, ...)   |
                     +------------------+
 ```

@@ -3,7 +3,7 @@
 ## Le problème de la lecture
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine riche :
-des agrégats (`Product`), des entités (`Batch`), des value objects (`OrderLine`),
+des agrégats (`Produit`), des entités (`Lot`), des value objects (`LigneDeCommande`),
 des invariants métier, un repository pour la persistance et un message bus pour
 l'orchestration. Tout cela forme un chemin d'écriture solide et bien protégé.
 
@@ -16,16 +16,16 @@ Avec notre architecture actuelle, le chemin ressemblerait à ceci :
    Requête GET /allocations/order-123
         │
         v
-   Repository.get(sku=...)          # Charge un Product entier
+   Repository.get(sku=...)          # Charge un Produit entier
         │
         v
-   Product                           # Avec tous ses Batch
-     ├── Batch("batch-001")          # Chaque Batch avec ses allocations
-     │     └── {OrderLine, OrderLine, ...}
-     ├── Batch("batch-002")
-     │     └── {OrderLine, OrderLine, ...}
-     └── Batch("batch-003")
-           └── {OrderLine, ...}
+   Produit                           # Avec tous ses Lot
+     ├── Lot("batch-001")            # Chaque Lot avec ses allocations
+     │     └── {LigneDeCommande, LigneDeCommande, ...}
+     ├── Lot("batch-002")
+     │     └── {LigneDeCommande, LigneDeCommande, ...}
+     └── Lot("batch-003")
+           └── {LigneDeCommande, ...}
         │
         v
    Parcours de toutes les allocations pour trouver celles de "order-123"
@@ -41,9 +41,9 @@ C'est comme sortir toute la bibliothèque pour trouver un seul livre.
 
 Le modèle de domaine est optimisé pour **protéger les invariants en écriture** :
 
-- L'agrégat `Product` garantit qu'on n'alloue pas plus que le stock disponible.
-- Le version number protège contre les accès concurrents.
-- Les events tracent chaque changement d'état.
+- L'agrégat `Produit` garantit qu'on n'alloue pas plus que le stock disponible.
+- Le numéro de version protège contre les accès concurrents.
+- Les événements tracent chaque changement d'état.
 
 Mais pour la **lecture**, on n'a besoin d'aucune de ces garanties. Pas
 d'invariants à vérifier, pas de concurrence à gérer, pas d'events à émettre.
@@ -75,7 +75,7 @@ appliqué à l'échelle de l'architecture :
    ┌──────────────────────────────────────────────────────────────────┐
    │                          API Flask                               │
    │                                                                  │
-   │   POST /allocate              GET /allocations/<orderid>         │
+   │   POST /allocate              GET /allocations/<id_commande>     │
    │        │                              │                          │
    └────────┼──────────────────────────────┼──────────────────────────┘
             │                              │
@@ -137,9 +137,9 @@ allocations_view = Table(
     "allocations_view",
     metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
-    Column("orderid", String(255)),
+    Column("id_commande", String(255)),
     Column("sku", String(255)),
-    Column("batchref", String(255)),
+    Column("réf_lot", String(255)),
 )
 ```
 
@@ -151,22 +151,22 @@ pour obtenir la même information :
    ─────────────────────────             ─────────────────────────
 
    order_lines                            allocations_view
-   ┌────────┬──────┬─────┐               ┌─────────┬──────┬──────────┐
-   │orderid │ sku  │ qty │               │ orderid │ sku  │ batchref │
-   ├────────┼──────┼─────┤               ├─────────┼──────┼──────────┤
-   │order-1 │LAMP  │  10 │               │ order-1 │LAMP  │ batch-01 │
-   └────┬───┴──────┴─────┘               │ order-1 │TABLE │ batch-03 │
-        │                                 │ order-2 │LAMP  │ batch-02 │
-        │  allocations                    └─────────┴──────┴──────────┘
+   ┌────────────────┬──────┬──────────┐   ┌──────────────┬──────┬──────────┐
+   │id_commande     │ sku  │ quantité │   │ id_commande  │ sku  │ réf_lot  │
+   ├────────────────┼──────┼──────────┤   ├──────────────┼──────┼──────────┤
+   │order-1         │LAMP  │  10      │   │ order-1      │LAMP  │ batch-01 │
+   └────┬───────────┴──────┴──────────┘   │ order-1      │TABLE │ batch-03 │
+        │                                 │ order-2      │LAMP  │ batch-02 │
+        │  allocations                    └──────────────┴──────┴──────────┘
         │  ┌────────────┬──────────┐
         └──│orderline_id│ batch_id │      Pas de jointure. Pas de
            ├────────────┼──────────┤      reconstruction d'objet.
            │     1      │    3     │      Tout est déjà prêt à lire.
            └────────────┴──────────┘
                              │
-        batches              │
+        lots                 │
         ┌────┬──────────┬────┘
-        │ id │reference │ ...
+        │ id │référence │ ...
         ├────┼──────────┤
         │  3 │batch-01  │
         └────┴──────────┘
@@ -205,16 +205,16 @@ lecture (qui interrogent directement la BDD pour la performance).
 from allocation.service_layer import unit_of_work
 
 
-def allocations(orderid: str, uow: unit_of_work.SqlAlchemyUnitOfWork) -> list[dict]:
+def allocations(id_commande: str, uow: unit_of_work.AbstractUnitOfWork) -> list[dict]:
     """
-    Retourne les allocations pour un orderid donné.
+    Retourne les allocations pour un id_commande donné.
 
     Requête SQL directe sur la table de lecture (read model).
     """
     with uow:
         results = uow.session.execute(
-            "SELECT sku, batchref FROM allocations_view WHERE orderid = :orderid",
-            dict(orderid=orderid),
+            text("SELECT sku, réf_lot FROM allocations_view WHERE id_commande = :id_commande"),
+            dict(id_commande=id_commande),
         )
         return [dict(r._mapping) for r in results]
 ```
@@ -225,7 +225,7 @@ Remarquez à quel point c'est simple. La fonction `allocations` :
 2. Exécute une requête SQL brute sur `allocations_view`.
 3. Retourne une liste de dictionnaires.
 
-Pas de `Product`, pas de `Batch`, pas de `OrderLine`. Pas de reconstruction
+Pas de `Produit`, pas de `Lot`, pas de `LigneDeCommande`. Pas de reconstruction
 d'agrégat, pas de traversée de relations. La requête va directement chercher
 les données là où elles sont, dans le format exact dont l'API a besoin.
 
@@ -234,16 +234,16 @@ Le endpoint Flask qui utilise cette view est tout aussi direct :
 ```python
 # src/allocation/entrypoints/flask_app.py
 
-@app.route("/allocations/<orderid>", methods=["GET"])
-def allocations_view_endpoint(orderid: str):
+@app.route("/allocations/<id_commande>", methods=["GET"])
+def allocations_view_endpoint(id_commande: str):
     """
-    GET /allocations/<orderid>
+    GET /allocations/<id_commande>
 
     Retourne les allocations pour une commande donnée (lecture CQRS).
     """
     from allocation.views import views
 
-    result = views.allocations(orderid, bus.uow)
+    result = views.allocations(id_commande, bus.uow)
     if not result:
         return "not found", 404
     return jsonify(result), 200
@@ -266,26 +266,26 @@ Le contraste avec les endpoints d'écriture est frappant :
 
 Si le read model est une table séparée, comment reste-t-il synchronisé avec le
 write model ? Par les **event handlers**. Quand une allocation est effectuée, le
-domaine émet un event `Allocated`. Un handler écoute cet event et met à jour la
+domaine émet un event `Alloué`. Un handler écoute cet event et met à jour la
 table `allocations_view`.
 
-Voici comment l'event `Allocated` est défini :
+Voici comment l'event `Alloué` est défini :
 
 ```python
 # src/allocation/domain/events.py
 
 @dataclass(frozen=True)
-class Allocated(Event):
-    """Un OrderLine a été alloué à un Batch."""
+class Alloué(Event):
+    """Une LigneDeCommande a été allouée à un Lot."""
 
-    orderid: str
+    id_commande: str
     sku: str
-    qty: int
-    batchref: str
+    quantité: int
+    réf_lot: str
 ```
 
 L'event contient toutes les informations nécessaires pour mettre à jour le read
-model : le `orderid`, le `sku` et le `batchref`. C'est exactement ce que la
+model : le `id_commande`, le `sku` et le `réf_lot`. C'est exactement ce que la
 table `allocations_view` attend.
 
 Le handler de mise à jour du read model ressemblerait à ceci :
@@ -293,16 +293,16 @@ Le handler de mise à jour du read model ressemblerait à ceci :
 ```python
 # src/allocation/service_layer/handlers.py
 
-def add_allocation_to_read_model(
-    event: events.Allocated,
+def ajouter_allocation_vue(
+    event: events.Alloué,
     uow: AbstractUnitOfWork,
 ) -> None:
     """Met à jour le read model quand une allocation est effectuée."""
     with uow:
         uow.session.execute(
-            "INSERT INTO allocations_view (orderid, sku, batchref)"
-            " VALUES (:orderid, :sku, :batchref)",
-            dict(orderid=event.orderid, sku=event.sku, batchref=event.batchref),
+            "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
+            " VALUES (:id_commande, :sku, :réf_lot)",
+            dict(id_commande=event.id_commande, sku=event.sku, réf_lot=event.réf_lot),
         )
         uow.commit()
 ```
@@ -313,34 +313,34 @@ Et il serait enregistré dans le bootstrap :
 # src/allocation/service_layer/bootstrap.py
 
 EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Allocated: [
-        handlers.publish_allocated_event,
-        handlers.add_allocation_to_read_model,  # <-- mise à jour du read model
+    events.Alloué: [
+        handlers.publier_événement_allocation,
+        handlers.ajouter_allocation_vue,  # <-- mise à jour du read model
     ],
-    events.Deallocated: [handlers.reallocate],
-    events.OutOfStock: [handlers.send_out_of_stock_notification],
+    events.Désalloué: [handlers.réallouer],
+    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 ```
 
 Le flux complet forme une boucle :
 
 ```
-   1. Command Allocate arrive
+   1. Command Allouer arrive
               │
               v
-   2. Handler allocate() charge le Product via le repository
+   2. Handler allouer() charge le Produit via le repository
               │
               v
-   3. Product.allocate() alloue et émet un event Allocated
+   3. Produit.allouer() alloue et émet un event Alloué
               │
               v
-   4. Message bus collecte l'event Allocated
+   4. Message bus collecte l'event Alloué
               │
               v
-   5. Handler add_allocation_to_read_model() met à jour allocations_view
+   5. Handler ajouter_allocation_vue() met à jour allocations_view
               │
               v
-   6. GET /allocations/<orderid> lit la table allocations_view
+   6. GET /allocations/<id_commande> lit la table allocations_view
 ```
 
 ### Eventual consistency
@@ -369,23 +369,23 @@ en capacité d'évolution.
 
 ---
 
-## Aller plus loin : Deallocated et le read model
+## Aller plus loin : Désalloué et le read model
 
 Le même principe s'applique symétriquement aux désallocations. Quand un lot
 change de quantité et que des lignes sont désallouées, le domaine émet des
-events `Deallocated`. Un handler peut alors nettoyer le read model :
+events `Désalloué`. Un handler peut alors nettoyer le read model :
 
 ```python
-def remove_allocation_from_read_model(
-    event: events.Deallocated,
+def supprimer_allocation_vue(
+    event: events.Désalloué,
     uow: AbstractUnitOfWork,
 ) -> None:
     """Supprime une allocation du read model quand une désallocation se produit."""
     with uow:
         uow.session.execute(
             "DELETE FROM allocations_view"
-            " WHERE orderid = :orderid AND sku = :sku",
-            dict(orderid=event.orderid, sku=event.sku),
+            " WHERE id_commande = :id_commande AND sku = :sku",
+            dict(id_commande=event.id_commande, sku=event.sku),
         )
         uow.commit()
 ```
@@ -484,12 +484,12 @@ distincts, chacun optimisé pour son cas d'usage.
 
 | Concept | Rôle | Dans notre code |
 |---------|------|-----------------|
-| **Command** | Intention d'écriture | `commands.Allocate` |
-| **Write model** | Tables normalisées, protégées par le domaine | `order_lines`, `batches`, `allocations` |
-| **Event** | Fait qui s'est produit | `events.Allocated` |
+| **Command** | Intention d'écriture | `commands.Allouer` |
+| **Write model** | Tables normalisées, protégées par le domaine | `order_lines`, `lots`, `allocations` |
+| **Event** | Fait qui s'est produit | `events.Alloué` |
 | **Read model** | Table dénormalisée, optimisée pour la lecture | `allocations_view` |
 | **View** | Fonction de lecture pure, SQL direct | `views.allocations()` |
-| **Event handler** | Met à jour le read model en réaction aux events | `add_allocation_to_read_model()` |
+| **Event handler** | Met à jour le read model en réaction aux events | `ajouter_allocation_vue()` |
 | **Eventual consistency** | Le read model peut avoir un léger retard | Délai entre commit write et update read |
 
 !!! tip "À retenir"

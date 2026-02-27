@@ -51,7 +51,7 @@ Maintenant, comparons avec une architecture où l'on a introduit des abstraction
 ```
 
 Les flèches ont changé de direction. Le Service Layer ne connaît plus SQLAlchemy
-ni `smtplib`. Il ne connaît que des **abstractions**. C'est le cœur du
+ni `smtplib`. Il ne connaît que des **abstractions**. C'est le coeur du
 Dependency Inversion Principle.
 
 ---
@@ -85,26 +85,26 @@ class AbstractRepository(abc.ABC):
     """
 
     def __init__(self) -> None:
-        self.seen: set[model.Product] = set()
+        self.seen: set[model.Produit] = set()
 
-    def add(self, product: model.Product) -> None:
+    def add(self, produit: model.Produit) -> None:
         """Ajoute un produit au repository et le marque comme vu."""
-        self._add(product)
-        self.seen.add(product)
+        self._add(produit)
+        self.seen.add(produit)
 
-    def get(self, sku: str) -> model.Product | None:
+    def get(self, sku: str) -> model.Produit | None:
         """Récupère un produit par son SKU et le marque comme vu."""
-        product = self._get(sku)
-        if product:
-            self.seen.add(product)
-        return product
+        produit = self._get(sku)
+        if produit:
+            self.seen.add(produit)
+        return produit
 
     @abc.abstractmethod
-    def _add(self, product: model.Product) -> None:
+    def _add(self, produit: model.Produit) -> None:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _get(self, sku: str) -> model.Product | None:
+    def _get(self, sku: str) -> model.Produit | None:
         raise NotImplementedError
 ```
 
@@ -126,12 +126,12 @@ class SqlAlchemyRepository(AbstractRepository):
         super().__init__()
         self.session = session
 
-    def _add(self, product: model.Product) -> None:
-        self.session.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self.session.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
+    def _get(self, sku: str) -> model.Produit | None:
         return (
-            self.session.query(model.Product)
+            self.session.query(model.Produit)
             .filter_by(sku=sku)
             .first()
         )
@@ -201,10 +201,10 @@ L'idée est simple :
          │ API Web  │───┼──>│                 │   │   │              │
          │ (adapter)│   │   │   Domaine        │   │<──│  PostgreSQL  │
          └──────────┘   │   │                 │   │   │  (adapter)   │
-                        │   │   OrderLine      │   │   └──────────────┘
-         ┌──────────┐   │   │   Batch          │   │
-         │ CLI      │───┼──>│   Product        │   │   ┌──────────────┐
-         │ (adapter)│   │   │   allocate()     │   │<──│  SMTP        │
+                        │   │   LigneDeCommande│   │   └──────────────┘
+         ┌──────────┐   │   │   Lot            │   │
+         │ CLI      │───┼──>│   Produit        │   │   ┌──────────────┐
+         │ (adapter)│   │   │   allouer()      │   │<──│  SMTP        │
          └──────────┘   │   │                 │   │   │  (adapter)   │
                         │   └─────────────────┘   │   └──────────────┘
                         │         ports           │
@@ -297,20 +297,20 @@ class FakeRepository(AbstractRepository):
     Utilisé pour les tests unitaires.
     """
 
-    def __init__(self, products: list[model.Product] | None = None):
+    def __init__(self, produits: list[model.Produit] | None = None):
         super().__init__()
-        self._products = set(products or [])
+        self._produits = set(produits or [])
 
-    def _add(self, product: model.Product) -> None:
-        self._products.add(product)
+    def _add(self, produit: model.Produit) -> None:
+        self._produits.add(produit)
 
-    def _get(self, sku: str) -> model.Product | None:
-        return next((p for p in self._products if p.sku == sku), None)
+    def _get(self, sku: str) -> model.Produit | None:
+        return next((p for p in self._produits if p.sku == sku), None)
 
-    def _get_by_batchref(self, batchref: str) -> model.Product | None:
+    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
         return next(
-            (p for p in self._products
-             for b in p.batches if b.reference == batchref),
+            (p for p in self._produits
+             for l in p.lots if l.référence == réf_lot),
             None,
         )
 ```
@@ -331,10 +331,10 @@ class FakeNotifications(AbstractNotifications):
     """Fake pour capturer les notifications envoyées."""
 
     def __init__(self):
-        self.sent: list[tuple[str, str]] = []
+        self.envoyées: list[tuple[str, str]] = []
 
     def send(self, destination: str, message: str) -> None:
-        self.sent.append((destination, message))
+        self.envoyées.append((destination, message))
 ```
 
 Au lieu d'envoyer un vrai email, le fake stocke les appels dans une liste.
@@ -342,7 +342,7 @@ Dans les tests, on peut alors vérifier :
 
 ```python
 # Exemple d'assertion dans un test
-assert notifications.sent == [
+assert notifications.envoyées == [
     ("stock@example.com", "Le SKU SMALL-TABLE est en rupture de stock")
 ]
 ```
