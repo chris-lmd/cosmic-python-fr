@@ -1,0 +1,50 @@
+site_name: "Patterns d'Architecture en Python"
+site_description: "Guide francophone des patterns d'architecture logicielle en Python"
+site_url: ""
+
+theme:
+  name: material
+  language: fr
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+  features:
+    - content.code.copy
+    - content.code.annotate
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+
+nav:
+  - Accueil: index.md
+  - "Partie 1 - Construire une architecture pour le Domain Modeling":
+    - "Chapitre 1 - Le modèle de domaine": partie1/chapitre_01_modele_domaine.md
+    - "Chapitre 2 - Le pattern Repository": partie1/chapitre_02_repository.md
+    - "Chapitre 3 - Couplage et abstractions": partie1/chapitre_03_abstractions.md
+    - "Chapitre 4 - La Service Layer": partie1/chapitre_04_service_layer.md
+    - "Chapitre 5 - TDD à haute et basse vitesse": partie1/chapitre_05_tdd.md
+    - "Chapitre 6 - Le pattern Unit of Work": partie1/chapitre_06_unit_of_work.md
+    - "Chapitre 7 - Agrégats et frontières de cohérence": partie1/chapitre_07_aggregats.md
+  - "Partie 2 - Architecture événementielle":
+    - "Chapitre 8 - Events et le Message Bus": partie2/chapitre_08_events.md
+    - "Chapitre 9 - Aller plus loin avec le Message Bus": partie2/chapitre_09_message_bus.md
+    - "Chapitre 10 - Commands": partie2/chapitre_10_commands.md
+    - "Chapitre 11 - Events externes": partie2/chapitre_11_events_externes.md
+    - "Chapitre 12 - CQRS": partie2/chapitre_12_cqrs.md
+    - "Chapitre 13 - Injection de dépendances": partie2/chapitre_13_injection_dependances.md
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - toc:
+      permalink: true
+
+extra:
+  social: []
