@@ -8,6 +8,23 @@ Ce guide vous accompagne dans la construction d'une **application Python bien ar
 
 Le fil rouge est un système d'**allocation de stock** : un problème métier suffisamment réaliste pour illustrer les enjeux, mais suffisamment simple pour se concentrer sur l'architecture.
 
+## Positionnement de ce guide
+
+Ce guide adopte une approche combinant **Domain-Driven Design (DDD)**, **architecture hexagonale (Ports & Adapters)** et **architecture événementielle**. Si vous avez déjà entendu parler de la **Clean Architecture** de Robert C. Martin, vous retrouverez ici les mêmes principes fondamentaux — isolation du domaine, inversion des dépendances, découplage de l'infrastructure — mais avec des patterns et un vocabulaire mieux adaptés à Python.
+
+Là où la Clean Architecture propose des Use Cases sous forme de classes et un découpage en 4 couches formelles (pensé pour Java/C#), ce guide privilégie des **handlers légers** (de simples fonctions), des patterns éprouvés comme le **Repository** et le **Unit of Work**, et une architecture événementielle complète (Events, Commands, Message Bus, CQRS) qui permet au système de grandir progressivement.
+
+| Aspect | Clean Architecture (Uncle Bob) | Ce guide (DDD + Hexagonal) |
+|--------|------|------|
+| **Orchestration** | Use Case (une classe avec `execute()`) | Handler (une simple fonction) |
+| **Formatage de la sortie** | Presenter dédié | Retour direct, l'entrypoint formate |
+| **Couches** | 4 couches strictes et formelles | Ajoutées progressivement selon le besoin |
+| **Architecture événementielle** | Peu détaillée | Centrale (Events, Commands, Message Bus, CQRS) |
+| **Modélisation du domaine** | Peu détaillée | Riche (Aggregates, Value Objects, Domain Events) |
+| **Persistance** | Gateways (concept générique) | Repository + Unit of Work (patterns éprouvés) |
+
+En résumé : même philosophie, outillage différent, taillé pour Python.
+
 ## Pourquoi ces patterns ?
 
 La plupart des applications commencent simples, puis deviennent difficiles à maintenir au fil du temps. La logique métier se disperse entre les routes de l'API, les requêtes SQL, et les scripts utilitaires. Les tests deviennent fragiles car couplés à la base de données.
