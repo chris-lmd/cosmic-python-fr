@@ -1,17 +1,17 @@
 # Chapitre 3 -- Couplage et abstractions
 
-## Le probleme du couplage
+## Le problème du couplage
 
-Imaginez un systeme d'allocation de stock ou chaque composant connait directement
+Imaginez un système d'allocation de stock où chaque composant connaît directement
 tous les autres. Le service layer appelle SQLAlchemy. Les handlers envoient des
-emails via `smtplib`. Les tests doivent demarrer une base de donnees et un serveur
+emails via `smtplib`. Les tests doivent démarrer une base de données et un serveur
 SMTP pour fonctionner.
 
-Quand tout depend de tout, modifier un composant revient a tirer sur un fil :
-tout le reste se detricote.
+Quand tout dépend de tout, modifier un composant revient à tirer sur un fil :
+tout le reste se détricote.
 
 ```
-   Couplage direct : chaque module depend des details des autres.
+   Couplage direct : chaque module dépend des détails des autres.
 
    ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
    │  Service      │────>│  SQLAlchemy   │────>│  PostgreSQL   │
@@ -22,18 +22,18 @@ tout le reste se detricote.
           └─────────────>│  smtplib      │────>│  Serveur SMTP │
                          └──────────────┘     └──────────────┘
 
-   Probleme : pour tester le Service Layer, il faut PostgreSQL ET un serveur SMTP.
+   Problème : pour tester le Service Layer, il faut PostgreSQL ET un serveur SMTP.
    Pour changer de BDD, il faut modifier le Service Layer.
 ```
 
-Ce schema illustre le **couplage direct** : les modules de haut niveau (la logique
-d'orchestration) dependent des modules de bas niveau (la base de donnees, le
-serveur de mail). Changer un detail d'infrastructure force a modifier le code metier.
+Ce schéma illustre le **couplage direct** : les modules de haut niveau (la logique
+d'orchestration) dépendent des modules de bas niveau (la base de données, le
+serveur de mail). Changer un détail d'infrastructure force à modifier le code métier.
 
-Maintenant, comparons avec une architecture ou l'on a introduit des abstractions :
+Maintenant, comparons avec une architecture où l'on a introduit des abstractions :
 
 ```
-   Dependances inversees : tout pointe vers les abstractions.
+   Dépendances inversées : tout pointe vers les abstractions.
 
    ┌──────────────┐     ┌────────────────────┐     ┌──────────────┐
    │  Service      │────>│  AbstractRepository │<────│ SqlAlchemy    │
@@ -45,35 +45,35 @@ Maintenant, comparons avec une architecture ou l'on a introduit des abstractions
                          │  (port)                 │  │ Notifications │
                          └────────────────────────┘  └──────────────┘
 
-   Le Service Layer ne connait QUE les abstractions.
-   Les implementations concretes aussi.
-   Personne ne depend des details.
+   Le Service Layer ne connaît QUE les abstractions.
+   Les implémentations concrètes aussi.
+   Personne ne dépend des détails.
 ```
 
-Les fleches ont change de direction. Le Service Layer ne connait plus SQLAlchemy
-ni `smtplib`. Il ne connait que des **abstractions**. C'est le coeur du
+Les flèches ont changé de direction. Le Service Layer ne connaît plus SQLAlchemy
+ni `smtplib`. Il ne connaît que des **abstractions**. C'est le cœur du
 Dependency Inversion Principle.
 
 ---
 
 ## Le Dependency Inversion Principle (DIP)
 
-Le DIP, cinquieme principe SOLID, s'enonce ainsi :
+Le DIP, cinquième principe SOLID, s'énonce ainsi :
 
 !!! note "Dependency Inversion Principle"
-    **Les modules de haut niveau ne doivent pas dependre des modules de bas niveau.**
-    Les deux doivent dependre d'abstractions.
-    **Les abstractions ne doivent pas dependre des details.**
-    Les details doivent dependre des abstractions.
+    **Les modules de haut niveau ne doivent pas dépendre des modules de bas niveau.**
+    Les deux doivent dépendre d'abstractions.
+    **Les abstractions ne doivent pas dépendre des détails.**
+    Les détails doivent dépendre des abstractions.
 
-En pratique, cela signifie que notre code metier ne doit jamais importer
+En pratique, cela signifie que notre code métier ne doit jamais importer
 `sqlalchemy` ou `smtplib`. Il travaille avec des **interfaces abstraites**,
-et ce sont les couches d'infrastructure qui fournissent les implementations concretes.
+et ce sont les couches d'infrastructure qui fournissent les implémentations concrètes.
 
 ### Illustration avec le Repository
 
 Voici comment notre projet applique ce principe. D'abord, l'abstraction -- le
-**port** -- qui definit le contrat :
+**port** -- qui définit le contrat :
 
 ```python
 # src/allocation/adapters/repository.py
@@ -81,7 +81,7 @@ Voici comment notre projet applique ce principe. D'abord, l'abstraction -- le
 class AbstractRepository(abc.ABC):
     """
     Interface abstraite du repository.
-    Definit le contrat que tout repository doit respecter.
+    Définit le contrat que tout repository doit respecter.
     """
 
     def __init__(self) -> None:
@@ -93,7 +93,7 @@ class AbstractRepository(abc.ABC):
         self.seen.add(product)
 
     def get(self, sku: str) -> model.Product | None:
-        """Recupere un produit par son SKU et le marque comme vu."""
+        """Récupère un produit par son SKU et le marque comme vu."""
         product = self._get(sku)
         if product:
             self.seen.add(product)
@@ -108,19 +108,19 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError
 ```
 
-Remarquez la structure : les methodes publiques `add` et `get` contiennent la
-logique commune (le tracking via `self.seen`), tandis que les methodes prefixees
-par `_` sont les points d'extension que chaque implementation concrete doit fournir.
+Remarquez la structure : les méthodes publiques `add` et `get` contiennent la
+logique commune (le tracking via `self.seen`), tandis que les méthodes préfixées
+par `_` sont les points d'extension que chaque implémentation concrète doit fournir.
 C'est le **Template Method** pattern au service du DIP.
 
-Ensuite, l'implementation concrete -- l'**adapter** -- qui sait parler a
+Ensuite, l'implémentation concrète -- l'**adapter** -- qui sait parler à
 SQLAlchemy :
 
 ```python
 # src/allocation/adapters/repository.py
 
 class SqlAlchemyRepository(AbstractRepository):
-    """Implementation concrete du repository avec SQLAlchemy."""
+    """Implémentation concrète du repository avec SQLAlchemy."""
 
     def __init__(self, session: Session):
         super().__init__()
@@ -137,13 +137,13 @@ class SqlAlchemyRepository(AbstractRepository):
         )
 ```
 
-Le Service Layer recoit un `AbstractRepository`. Il ne sait pas -- et **n'a pas
-besoin de savoir** -- si derriere se cache PostgreSQL, un fichier CSV, ou un
-simple dictionnaire en memoire.
+Le Service Layer reçoit un `AbstractRepository`. Il ne sait pas -- et **n'a pas
+besoin de savoir** -- si derrière se cache PostgreSQL, un fichier CSV, ou un
+simple dictionnaire en mémoire.
 
 ### Illustration avec les notifications
 
-Le meme pattern s'applique a d'autres preoccupations d'infrastructure.
+Le même pattern s'applique à d'autres préoccupations d'infrastructure.
 Pour les notifications :
 
 ```python
@@ -158,7 +158,7 @@ class AbstractNotifications(abc.ABC):
 
 
 class EmailNotifications(AbstractNotifications):
-    """Implementation concrete envoyant des emails via SMTP."""
+    """Implémentation concrète envoyant des emails via SMTP."""
 
     def __init__(self, smtp_host: str = "localhost", smtp_port: int = 587):
         self.smtp_host = smtp_host
@@ -174,25 +174,25 @@ class EmailNotifications(AbstractNotifications):
             )
 ```
 
-L'abstraction `AbstractNotifications` definit un contrat minimal : une seule
-methode `send`. L'implementation `EmailNotifications` encapsule toute la
-mecanique SMTP. Demain, si l'on veut envoyer des SMS ou des notifications Slack,
-il suffit de creer un nouvel adapter sans toucher au code metier.
+L'abstraction `AbstractNotifications` définit un contrat minimal : une seule
+méthode `send`. L'implémentation `EmailNotifications` encapsule toute la
+mécanique SMTP. Demain, si l'on veut envoyer des SMS ou des notifications Slack,
+il suffit de créer un nouvel adapter sans toucher au code métier.
 
 ---
 
 ## Ports and Adapters (architecture hexagonale)
 
 Le pattern que nous venons de voir porte un nom : **Ports and Adapters**,
-aussi appele **architecture hexagonale** (Alistair Cockburn, 2005).
+aussi appelé **architecture hexagonale** (Alistair Cockburn, 2005).
 
-L'idee est simple :
+L'idée est simple :
 
-- Le **domaine** est au centre. Il ne depend de rien d'exterieur.
+- Le **domaine** est au centre. Il ne dépend de rien d'extérieur.
 - Les **ports** sont les interfaces que le domaine expose ou requiert
   (par exemple `AbstractRepository`, `AbstractNotifications`).
-- Les **adapters** sont les implementations concretes qui connectent le domaine
-  au monde exterieur (base de donnees, API, email, etc.).
+- Les **adapters** sont les implémentations concrètes qui connectent le domaine
+  au monde extérieur (base de données, API, email, etc.).
 
 ```
                         ┌─────────────────────────┐
@@ -221,41 +221,41 @@ Dans notre projet, cela se traduit par :
 | Adapter (BDD)    | `SqlAlchemyRepository`                  |
 | Adapter (email)  | `EmailNotifications`                    |
 
-Le domaine definit les **ports** : "j'ai besoin d'un mecanisme pour stocker et
-recuperer des produits" et "j'ai besoin d'un mecanisme pour envoyer des
-notifications". Ce sont des interfaces, pas des implementations. Les adapters
-fournissent la realite concrete derriere ces interfaces.
+Le domaine définit les **ports** : "j'ai besoin d'un mécanisme pour stocker et
+récupérer des produits" et "j'ai besoin d'un mécanisme pour envoyer des
+notifications". Ce sont des interfaces, pas des implémentations. Les adapters
+fournissent la réalité concrète derrière ces interfaces.
 
 L'avantage fondamental : on peut **remplacer n'importe quel adapter** sans
-toucher au domaine ni a la logique d'orchestration.
+toucher au domaine ni à la logique d'orchestration.
 
 ---
 
 ## Quand abstraire, quand ne pas abstraire
 
-L'abstraction est un outil puissant, mais elle a un cout : l'**indirection**.
+L'abstraction est un outil puissant, mais elle a un coût : l'**indirection**.
 Chaque couche d'abstraction ajoute un fichier, une interface, un niveau
-supplementaire a comprendre pour le developpeur qui lit le code.
+supplémentaire à comprendre pour le développeur qui lit le code.
 
-!!! warning "Le piege de l'abstraction prematuree"
-    Abstraire trop tot, c'est construire un pont avant de savoir ou passe la
-    riviere. On risque de creer des abstractions inutiles qui compliquent le
+!!! warning "Le piège de l'abstraction prématurée"
+    Abstraire trop tôt, c'est construire un pont avant de savoir où passe la
+    rivière. On risque de créer des abstractions inutiles qui compliquent le
     code sans apporter de valeur.
 
-### La regle des 3
+### La règle des 3
 
-Une heuristique utile est la **regle des 3** :
+Une heuristique utile est la **règle des 3** :
 
-1. **3 implementations** : Si vous n'avez qu'une seule implementation (par
-   exemple, un seul type de base de donnees), l'abstraction est peut-etre
-   prematuree. Quand vous en avez 3 (SQL, fichier, in-memory pour les tests),
-   le pattern devient evident.
+1. **3 implémentations** : Si vous n'avez qu'une seule implémentation (par
+   exemple, un seul type de base de données), l'abstraction est peut-être
+   prématurée. Quand vous en avez 3 (SQL, fichier, in-memory pour les tests),
+   le pattern devient évident.
 
 2. **3 raisons de changer** : Si un composant pourrait changer pour 3 raisons
-   differentes (changer de BDD, ameliorer les performances, supporter un
+   différentes (changer de BDD, améliorer les performances, supporter un
    nouveau format), c'est un bon candidat pour une abstraction.
 
-Dans notre cas, le `Repository` a au moins deux implementations des le depart :
+Dans notre cas, le `Repository` a au moins deux implémentations dès le départ :
 
 - `SqlAlchemyRepository` pour la production
 - `FakeRepository` pour les tests
@@ -265,36 +265,36 @@ Et on pourrait facilement imaginer un `RedisRepository` pour du cache, ou un
 
 ### Quand NE PAS abstraire
 
-Ne creez pas d'abstraction si :
+Ne créez pas d'abstraction si :
 
-- Il n'y a qu'une seule implementation et aucune raison previsible d'en avoir
-  une deuxieme.
-- Le code est si simple qu'une abstraction le rendrait **plus** difficile a lire.
-- Vous le faites "au cas ou". Le **YAGNI** (You Ain't Gonna Need It) est
+- Il n'y a qu'une seule implémentation et aucune raison prévisible d'en avoir
+  une deuxième.
+- Le code est si simple qu'une abstraction le rendrait **plus** difficile à lire.
+- Vous le faites "au cas où". Le **YAGNI** (You Ain't Gonna Need It) est
   un contrepoids sain au DIP.
 
-Le bon reflexe : commencez concret, puis extrayez l'abstraction quand le
-besoin se manifeste. Le refactoring est moins couteux qu'une mauvaise abstraction.
+Le bon réflexe : commencez concret, puis extrayez l'abstraction quand le
+besoin se manifeste. Le refactoring est moins coûteux qu'une mauvaise abstraction.
 
 ---
 
 ## Edge-to-edge testing avec des fakes
 
-L'un des benefices les plus immediats de l'architecture Ports and Adapters
-est la possibilite de faire du **edge-to-edge testing** : tester de bout en
-bout sans infrastructure reelle, en remplacant les adapters par des **fakes**.
+L'un des bénéfices les plus immédiats de l'architecture Ports and Adapters
+est la possibilité de faire du **edge-to-edge testing** : tester de bout en
+bout sans infrastructure réelle, en remplaçant les adapters par des **fakes**.
 
 ### Le FakeRepository
 
-Voici comment on cree un fake pour le repository :
+Voici comment on crée un fake pour le repository :
 
 ```python
 # tests/unit/test_handlers.py
 
 class FakeRepository(AbstractRepository):
     """
-    Fake repository qui stocke les produits en memoire.
-    Utilise pour les tests unitaires.
+    Fake repository qui stocke les produits en mémoire.
+    Utilisé pour les tests unitaires.
     """
 
     def __init__(self, products: list[model.Product] | None = None):
@@ -315,20 +315,20 @@ class FakeRepository(AbstractRepository):
         )
 ```
 
-Le `FakeRepository` respecte exactement le meme contrat que le
+Le `FakeRepository` respecte exactement le même contrat que le
 `SqlAlchemyRepository`, mais il stocke tout dans un simple `set` Python.
-Pas de base de donnees, pas de connexion, pas de migration. Les tests
-s'executent en millisecondes.
+Pas de base de données, pas de connexion, pas de migration. Les tests
+s'exécutent en millisecondes.
 
 ### Le FakeNotifications
 
-Meme principe pour les notifications :
+Même principe pour les notifications :
 
 ```python
 # tests/unit/test_handlers.py
 
 class FakeNotifications(AbstractNotifications):
-    """Fake pour capturer les notifications envoyees."""
+    """Fake pour capturer les notifications envoyées."""
 
     def __init__(self):
         self.sent: list[tuple[str, str]] = []
@@ -338,7 +338,7 @@ class FakeNotifications(AbstractNotifications):
 ```
 
 Au lieu d'envoyer un vrai email, le fake stocke les appels dans une liste.
-Dans les tests, on peut alors verifier :
+Dans les tests, on peut alors vérifier :
 
 ```python
 # Exemple d'assertion dans un test
@@ -350,42 +350,42 @@ assert notifications.sent == [
 ### Pourquoi c'est puissant
 
 Le edge-to-edge testing combine les avantages des tests unitaires et des
-tests d'integration :
+tests d'intégration :
 
-| Aspect                  | Tests unitaires | Tests d'integration | Edge-to-edge (fakes) |
+| Aspect                  | Tests unitaires | Tests d'intégration | Edge-to-edge (fakes) |
 |-------------------------|:---------------:|:-------------------:|:--------------------:|
 | Vitesse                 | Rapide          | Lent                | Rapide               |
-| Couverture de code      | Faible          | Elevee              | Elevee               |
-| Fragilite               | Faible          | Elevee              | Faible               |
+| Couverture de code      | Faible          | Élevée              | Élevée               |
+| Fragilité               | Faible          | Élevée              | Faible               |
 | Besoin d'infrastructure | Non             | Oui                 | Non                  |
 
 Les tests avec fakes traversent toute la pile applicative -- du handler jusqu'au
-repository -- mais sans jamais toucher a une vraie base de donnees. On teste
-le **comportement reel** du systeme, pas un mock fragile qui simule un
-scenario idealise.
+repository -- mais sans jamais toucher à une vraie base de données. On teste
+le **comportement réel** du système, pas un mock fragile qui simule un
+scénario idéalisé.
 
 ---
 
-## Resume
+## Résumé
 
-Ce chapitre a introduit les concepts de couplage et d'abstraction, et montre
+Ce chapitre a introduit les concepts de couplage et d'abstraction, et montré
 comment le Dependency Inversion Principle et l'architecture Ports and Adapters
-permettent de construire un systeme decouple et testable.
+permettent de construire un système découplé et testable.
 
-| Concept | Definition | Benefice |
+| Concept | Définition | Bénéfice |
 |---------|-----------|----------|
-| **Couplage** | Degre de dependance entre composants | Le reduire rend le systeme plus flexible |
-| **DIP** | Dependre d'abstractions, pas de details concrets | Le code metier est isole de l'infrastructure |
-| **Port** | Interface abstraite definissant un contrat (`AbstractRepository`) | Definit ce dont le domaine a besoin sans dire comment |
-| **Adapter** | Implementation concrete d'un port (`SqlAlchemyRepository`) | Encapsule les details d'infrastructure |
-| **Fake** | Implementation simple d'un port pour les tests (`FakeRepository`) | Tests rapides sans infrastructure |
-| **Edge-to-edge testing** | Tester toute la pile avec des fakes | Couverture large, execution rapide |
+| **Couplage** | Degré de dépendance entre composants | Le réduire rend le système plus flexible |
+| **DIP** | Dépendre d'abstractions, pas de détails concrets | Le code métier est isolé de l'infrastructure |
+| **Port** | Interface abstraite définissant un contrat (`AbstractRepository`) | Définit ce dont le domaine a besoin sans dire comment |
+| **Adapter** | Implémentation concrète d'un port (`SqlAlchemyRepository`) | Encapsule les détails d'infrastructure |
+| **Fake** | Implémentation simple d'un port pour les tests (`FakeRepository`) | Tests rapides sans infrastructure |
+| **Edge-to-edge testing** | Tester toute la pile avec des fakes | Couverture large, exécution rapide |
 
-!!! tip "A retenir"
-    - Le couplage direct entre composants rend le systeme fragile et difficile a tester.
-    - Le DIP inverse les dependances : tout le monde depend des abstractions.
-    - L'architecture Ports and Adapters place le domaine au centre et l'infrastructure a la peripherie.
-    - N'abstraire que quand c'est justifie : la regle des 3 est un bon guide.
+!!! tip "À retenir"
+    - Le couplage direct entre composants rend le système fragile et difficile à tester.
+    - Le DIP inverse les dépendances : tout le monde dépend des abstractions.
+    - L'architecture Ports and Adapters place le domaine au centre et l'infrastructure à la périphérie.
+    - N'abstraire que quand c'est justifié : la règle des 3 est un bon guide.
     - Les fakes permettent un edge-to-edge testing rapide et fiable.
 
 Dans le [chapitre suivant](chapitre_04_service_layer.md), nous verrons comment

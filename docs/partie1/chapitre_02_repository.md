@@ -1,15 +1,15 @@
 # Chapitre 2 -- Le pattern Repository
 
-## Le probleme de la persistance
+## Le problème de la persistance
 
-Au chapitre precedent, nous avons construit un modele de domaine riche : des `OrderLine`, des `Batch`, un agregat `Product` avec des regles metier claires. Tout fonctionne en memoire, les tests passent, la logique est pure.
+Au chapitre précédent, nous avons construit un modèle de domaine riche : des `OrderLine`, des `Batch`, un agrégat `Product` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
 
-Mais une application reelle doit **sauvegarder ses donnees**. Les objets du domaine doivent etre persistes dans une base de donnees, puis rechargees plus tard. Et c'est la que les ennuis commencent.
+Mais une application réelle doit **sauvegarder ses données**. Les objets du domaine doivent être persistés dans une base de données, puis rechargées plus tard. Et c'est là que les ennuis commencent.
 
-La tentation naturelle est d'ajouter des methodes `save()` et `load()` directement dans le modele de domaine :
+La tentation naturelle est d'ajouter des méthodes `save()` et `load()` directement dans le modèle de domaine :
 
 ```python
-# Ce qu'on veut eviter
+# Ce qu'on veut éviter
 class Product:
     def save(self):
         db.execute("INSERT INTO products ...")
@@ -20,29 +20,29 @@ class Product:
         return cls(**row)
 ```
 
-Ce code melange deux responsabilites : la logique metier et l'acces aux donnees. Le modele de domaine, qui etait pur et testable, devient soudain dependant de la base de donnees.
+Ce code mélange deux responsabilités : la logique métier et l'accès aux données. Le modèle de domaine, qui était pur et testable, devient soudain dépendant de la base de données.
 
-!!! danger "Le piege"
-    Si le modele de domaine connait la BDD, chaque test unitaire devra instancier une connexion. Les tests deviennent lents, fragiles, et difficiles a maintenir.
+!!! danger "Le piège"
+    Si le modèle de domaine connaît la BDD, chaque test unitaire devra instancier une connexion. Les tests deviennent lents, fragiles, et difficiles à maintenir.
 
-La question est donc : **comment persister les objets du domaine sans polluer le modele ?**
+La question est donc : **comment persister les objets du domaine sans polluer le modèle ?**
 
-La reponse : le pattern Repository.
+La réponse : le pattern Repository.
 
 
 ## Le pattern Repository
 
-Le Repository est une abstraction qui donne **l'illusion d'une collection d'objets en memoire**. Du point de vue du code qui l'utilise, un repository ressemble a un simple `set` ou une `list` Python : on peut y ajouter des objets, en recuperer, sans jamais se soucier de la facon dont ils sont stockes.
+Le Repository est une abstraction qui donne **l'illusion d'une collection d'objets en mémoire**. Du point de vue du code qui l'utilise, un repository ressemble à un simple `set` ou une `list` Python : on peut y ajouter des objets, en récupérer, sans jamais se soucier de la façon dont ils sont stockés.
 
 L'interface est volontairement minimale :
 
-- **`add(product)`** -- ajouter un nouvel agregat
-- **`get(sku)`** -- recuperer un agregat existant par son identifiant
+- **`add(product)`** -- ajouter un nouvel agrégat
+- **`get(sku)`** -- récupérer un agrégat existant par son identifiant
 
-C'est tout. Pas de `save()`, pas de `update()`, pas de `delete()`. Le repository cache toute la complexite de la persistance derriere cette interface elementaire.
+C'est tout. Pas de `save()`, pas de `update()`, pas de `delete()`. Le repository cache toute la complexité de la persistance derrière cette interface élémentaire.
 
 ```
-Code metier                    Repository                     BDD
+Code métier                    Repository                     BDD
 -----------                    ----------                     ---
                   add(product)                  INSERT INTO ...
 product = repo ───────────────> repo ─────────────────────────> DB
@@ -50,12 +50,12 @@ product = repo ───────────────> repo ────�
 product = repo <─────────────── repo <───────────────────────── DB
 ```
 
-Le domaine ne sait pas **comment** les objets sont stockes. PostgreSQL ? SQLite ? Un fichier JSON ? Un service distant ? Peu importe. Le contrat est le meme.
+Le domaine ne sait pas **comment** les objets sont stockés. PostgreSQL ? SQLite ? Un fichier JSON ? Un service distant ? Peu importe. Le contrat est le même.
 
 
 ## Le port : l'interface abstraite
 
-Dans notre projet, le port est defini par la classe `AbstractRepository`. C'est une classe abstraite qui etablit le contrat que toute implementation doit respecter.
+Dans notre projet, le port est défini par la classe `AbstractRepository`. C'est une classe abstraite qui établit le contrat que toute implémentation doit respecter.
 
 Voici le code de `src/allocation/adapters/repository.py` :
 
@@ -68,10 +68,10 @@ class AbstractRepository(abc.ABC):
     """
     Interface abstraite du repository.
 
-    Definit le contrat que tout repository doit respecter.
-    Le pattern repose sur deux operations fondamentales :
-    - add : ajouter un nouvel agregat
-    - get : recuperer un agregat existant
+    Définit le contrat que tout repository doit respecter.
+    Le pattern repose sur deux opérations fondamentales :
+    - add : ajouter un nouvel agrégat
+    - get : récupérer un agrégat existant
     """
 
     seen: set[model.Product]
@@ -85,14 +85,14 @@ class AbstractRepository(abc.ABC):
         self.seen.add(product)
 
     def get(self, sku: str) -> model.Product | None:
-        """Recupere un produit par son SKU et le marque comme vu."""
+        """Récupère un produit par son SKU et le marque comme vu."""
         product = self._get(sku)
         if product:
             self.seen.add(product)
         return product
 
     def get_by_batchref(self, batchref: str) -> model.Product | None:
-        """Recupere un produit contenant le batch de reference donnee."""
+        """Récupère un produit contenant le batch de référence donnée."""
         product = self._get_by_batchref(batchref)
         if product:
             self.seen.add(product)
@@ -113,33 +113,33 @@ class AbstractRepository(abc.ABC):
 
 Analysons les choix de conception :
 
-### Methodes publiques et methodes abstraites protegees
+### Méthodes publiques et méthodes abstraites protégées
 
-Les methodes publiques (`add`, `get`, `get_by_batchref`) ne sont **pas** abstraites. Elles contiennent la logique commune a toutes les implementations -- en l'occurrence, le suivi des objets dans `self.seen`. Les methodes abstraites prefixees d'un underscore (`_add`, `_get`, `_get_by_batchref`) sont les points d'extension que chaque implementation concrete doit fournir.
+Les méthodes publiques (`add`, `get`, `get_by_batchref`) ne sont **pas** abstraites. Elles contiennent la logique commune à toutes les implémentations -- en l'occurrence, le suivi des objets dans `self.seen`. Les méthodes abstraites préfixées d'un underscore (`_add`, `_get`, `_get_by_batchref`) sont les points d'extension que chaque implémentation concrète doit fournir.
 
-Ce pattern (parfois appele **Template Method**) garantit que le comportement de suivi est applique uniformement, quelle que soit l'implementation.
+Ce pattern (parfois appelé **Template Method**) garantit que le comportement de suivi est appliqué uniformément, quelle que soit l'implémentation.
 
 ### L'attribut `seen`
 
-L'ensemble `seen` trace tous les objets qui ont ete ajoutes ou consultes via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au chapitre 6) : il permet de savoir quels agregats ont ete manipules au cours d'une transaction, et donc quels events doivent etre collectes et traites.
+L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au chapitre 6) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels events doivent être collectés et traités.
 
 ```python
-repo.add(product)          # product est ajoute a seen
-product = repo.get("SKU")  # product est ajoute a seen
-# -> self.seen contient tous les agregats touches
+repo.add(product)          # product est ajouté à seen
+product = repo.get("SKU")  # product est ajouté à seen
+# -> self.seen contient tous les agrégats touchés
 ```
 
 ### Le vocabulaire Ports and Adapters
 
-Dans l'architecture **Ports and Adapters** (aussi appelee architecture hexagonale), un **port** est une interface que le domaine definit pour communiquer avec le monde exterieur. `AbstractRepository` est un port : il exprime ce que le domaine **attend** de la couche de persistance, sans dicter comment l'implementer.
+Dans l'architecture **Ports and Adapters** (aussi appelée architecture hexagonale), un **port** est une interface que le domaine définit pour communiquer avec le monde extérieur. `AbstractRepository` est un port : il exprime ce que le domaine **attend** de la couche de persistance, sans dicter comment l'implémenter.
 
-!!! info "Port = interface definie par le domaine"
-    Le port appartient au domaine. C'est le domaine qui dicte le contrat : "Je veux pouvoir ajouter un `Product` et en recuperer un par son SKU." La couche infrastructure doit s'y conformer.
+!!! info "Port = interface définie par le domaine"
+    Le port appartient au domaine. C'est le domaine qui dicte le contrat : "Je veux pouvoir ajouter un `Product` et en récupérer un par son SKU." La couche infrastructure doit s'y conformer.
 
 
 ## L'adapter concret : SQLAlchemy
 
-Un **adapter** est une implementation concrete d'un port. Il fait le lien entre l'abstraction definie par le domaine et une technologie specifique. Dans notre cas, `SqlAlchemyRepository` est l'adapter qui connecte le port `AbstractRepository` a une base de donnees via SQLAlchemy.
+Un **adapter** est une implémentation concrète d'un port. Il fait le lien entre l'abstraction définie par le domaine et une technologie spécifique. Dans notre cas, `SqlAlchemyRepository` est l'adapter qui connecte le port `AbstractRepository` à une base de données via SQLAlchemy.
 
 ```python
 from sqlalchemy.orm import Session
@@ -148,10 +148,10 @@ from allocation.domain import model
 
 class SqlAlchemyRepository(AbstractRepository):
     """
-    Implementation concrete du repository avec SQLAlchemy.
+    Implémentation concrète du repository avec SQLAlchemy.
 
-    Utilise une session SQLAlchemy pour persister et recuperer
-    les agregats Product.
+    Utilise une session SQLAlchemy pour persister et récupérer
+    les agrégats Product.
     """
 
     def __init__(self, session: Session):
@@ -179,25 +179,25 @@ class SqlAlchemyRepository(AbstractRepository):
 
 Quelques observations :
 
-1. **L'appel a `super().__init__()`** initialise le `set` `seen` dans la classe parente.
-2. **`_add`** delegue simplement a `session.add()` de SQLAlchemy. La session se charge du tracking et de l'insertion.
-3. **`_get`** utilise l'API de requetage de SQLAlchemy pour filtrer par SKU.
-4. **`_get_by_batchref`** fait une jointure pour trouver le `Product` a partir d'une reference de batch.
+1. **L'appel à `super().__init__()`** initialise le `set` `seen` dans la classe parente.
+2. **`_add`** délègue simplement à `session.add()` de SQLAlchemy. La session se charge du tracking et de l'insertion.
+3. **`_get`** utilise l'API de requêtage de SQLAlchemy pour filtrer par SKU.
+4. **`_get_by_batchref`** fait une jointure pour trouver le `Product` à partir d'une référence de batch.
 
-!!! note "Adapter = implementation concrete du port"
-    L'adapter traduit les operations abstraites du port en appels concrets a une technologie. Si demain on migre vers MongoDB, on ecrit un `MongoRepository` qui implemente les memes methodes `_add`, `_get`, `_get_by_batchref`. Le reste du code ne change pas.
+!!! note "Adapter = implémentation concrète du port"
+    L'adapter traduit les opérations abstraites du port en appels concrets à une technologie. Si demain on migre vers MongoDB, on écrit un `MongoRepository` qui implémente les mêmes méthodes `_add`, `_get`, `_get_by_batchref`. Le reste du code ne change pas.
 
 
 ## Persistence Ignorance
 
-Un principe fondamental de cette architecture est la **Persistence Ignorance** : le modele de domaine ne sait absolument rien de la base de donnees. Il n'importe pas SQLAlchemy, ne connait pas les tables, n'a pas de methodes `save()`.
+Un principe fondamental de cette architecture est la **Persistence Ignorance** : le modèle de domaine ne sait absolument rien de la base de données. Il n'importe pas SQLAlchemy, ne connaît pas les tables, n'a pas de méthodes `save()`.
 
 Regardez la classe `Product` dans `src/allocation/domain/model.py` :
 
 ```python
 class Product:
     """
-    Agregat racine pour la gestion des produits.
+    Agrégat racine pour la gestion des produits.
     """
 
     def __init__(self, sku: str, batches: list[Batch] | None = None,
@@ -208,14 +208,14 @@ class Product:
         self.events: list[events.Event] = []
 
     def allocate(self, line: OrderLine) -> str:
-        # ... logique metier pure ...
+        # ... logique métier pure ...
 ```
 
-Aucune reference a la BDD. Aucun import de SQLAlchemy. La classe `Product` est un objet Python ordinaire, testable en isolation totale.
+Aucune référence à la BDD. Aucun import de SQLAlchemy. La classe `Product` est un objet Python ordinaire, testable en isolation totale.
 
-### Comment ca marche alors ?
+### Comment ça marche alors ?
 
-C'est le module `src/allocation/adapters/orm.py` qui fait le lien, en utilisant le **classical mapping** de SQLAlchemy. Ce mecanisme permet de definir les tables d'un cote, les classes du domaine de l'autre, et de les associer explicitement :
+C'est le module `src/allocation/adapters/orm.py` qui fait le lien, en utilisant le **classical mapping** de SQLAlchemy. Ce mécanisme permet de définir les tables d'un côté, les classes du domaine de l'autre, et de les associer explicitement :
 
 ```python
 from sqlalchemy import Column, Date, ForeignKey, Integer, MetaData, String, Table
@@ -225,7 +225,7 @@ from allocation.domain import model
 metadata = MetaData()
 mapper_registry = registry(metadata=metadata)
 
-# Definition des tables
+# Définition des tables
 order_lines = Table(
     "order_lines", metadata,
     Column("id", Integer, primary_key=True, autoincrement=True),
@@ -286,53 +286,53 @@ def start_mappers() -> None:
 ```
 
 !!! tip "Classical mapping vs. declarative"
-    L'approche classique de SQLAlchemy (utilisee ici via `map_imperatively`) est plus verbeuse que l'approche declarative (ou les classes heritent de `Base`), mais elle a un avantage crucial : **le modele de domaine reste totalement independant de l'ORM**. Les classes `Product`, `Batch` et `OrderLine` n'heritent d'aucune classe SQLAlchemy.
+    L'approche classique de SQLAlchemy (utilisée ici via `map_imperatively`) est plus verbeuse que l'approche déclarative (où les classes héritent de `Base`), mais elle a un avantage crucial : **le modèle de domaine reste totalement indépendant de l'ORM**. Les classes `Product`, `Batch` et `OrderLine` n'héritent d'aucune classe SQLAlchemy.
 
-La fonction `start_mappers()` est appelee une seule fois au demarrage de l'application. A partir de ce moment, SQLAlchemy sait comment convertir les objets du domaine en lignes de table, et inversement.
+La fonction `start_mappers()` est appelée une seule fois au démarrage de l'application. À partir de ce moment, SQLAlchemy sait comment convertir les objets du domaine en lignes de table, et inversement.
 
 
 ## Dependency Inversion
 
-Le pattern Repository illustre parfaitement le **principe d'inversion des dependances** (le "D" de SOLID). Comparons deux approches :
+Le pattern Repository illustre parfaitement le **principe d'inversion des dépendances** (le "D" de SOLID). Comparons deux approches :
 
-### Approche classique (dependance directe)
+### Approche classique (dépendance directe)
 
 ```
 Domaine ──depends on──> Infrastructure (SQLAlchemy)
 ```
 
-Le domaine importe et utilise directement SQLAlchemy. Il est couple a une technologie specifique.
+Le domaine importe et utilise directement SQLAlchemy. Il est couplé à une technologie spécifique.
 
-### Notre approche (dependance inversee)
+### Notre approche (dépendance inversée)
 
 ```
-Domaine ──definit──> AbstractRepository (port)
+Domaine ──définit──> AbstractRepository (port)
                            ^
                            |
-                       implemente
+                       implémente
                            |
 Infrastructure ────> SqlAlchemyRepository (adapter)
 ```
 
-Le domaine definit l'interface (`AbstractRepository`). L'infrastructure l'implemente (`SqlAlchemyRepository`). Les dependances pointent **vers l'interieur**, vers le domaine.
+Le domaine définit l'interface (`AbstractRepository`). L'infrastructure l'implémente (`SqlAlchemyRepository`). Les dépendances pointent **vers l'intérieur**, vers le domaine.
 
-!!! success "Consequence"
-    Le domaine ne depend de rien. C'est l'infrastructure qui depend du domaine. Si on veut changer de base de donnees, on ne touche pas au domaine -- on ecrit un nouvel adapter.
+!!! success "Conséquence"
+    Le domaine ne dépend de rien. C'est l'infrastructure qui dépend du domaine. Si on veut changer de base de données, on ne touche pas au domaine -- on écrit un nouvel adapter.
 
-Ce principe se generalise a toute communication avec le monde exterieur : envoyer un email, appeler une API, lire un fichier. Le domaine definit le port (ce dont il a besoin), et l'infrastructure fournit l'adapter (comment le faire concretement).
+Ce principe se généralise à toute communication avec le monde extérieur : envoyer un email, appeler une API, lire un fichier. Le domaine définit le port (ce dont il a besoin), et l'infrastructure fournit l'adapter (comment le faire concrètement).
 
 
 ## Fake Repository pour les tests
 
-L'un des benefices les plus immediats du pattern Repository est la possibilite de creer un **fake** pour les tests. Puisque le contrat est defini par l'interface abstraite, on peut ecrire une implementation qui stocke tout en memoire, dans un simple `set` Python.
+L'un des bénéfices les plus immédiats du pattern Repository est la possibilité de créer un **fake** pour les tests. Puisque le contrat est défini par l'interface abstraite, on peut écrire une implémentation qui stocke tout en mémoire, dans un simple `set` Python.
 
-Voici le `FakeRepository` utilise dans `tests/unit/test_handlers.py` :
+Voici le `FakeRepository` utilisé dans `tests/unit/test_handlers.py` :
 
 ```python
 class FakeRepository(AbstractRepository):
     """
-    Fake repository qui stocke les produits en memoire.
-    Utilise pour les tests unitaires.
+    Fake repository qui stocke les produits en mémoire.
+    Utilisé pour les tests unitaires.
     """
 
     def __init__(self, products: list[model.Product] | None = None):
@@ -357,16 +357,16 @@ class FakeRepository(AbstractRepository):
         )
 ```
 
-C'est tout. Pas de base de donnees, pas de fichier de configuration, pas de conteneur Docker. Juste un `set` Python.
+C'est tout. Pas de base de données, pas de fichier de configuration, pas de conteneur Docker. Juste un `set` Python.
 
 ### Pourquoi c'est puissant
 
 Les tests qui utilisent le `FakeRepository` sont :
 
-- **Rapides** -- pas de connexion a une BDD, pas d'I/O. Les tests s'executent en millisecondes.
-- **Isoles** -- chaque test cree son propre fake, sans effet de bord.
-- **Deterministes** -- pas de probleme d'etat partage, de donnees residuelles ou de transactions concurrentes.
-- **Faciles a ecrire** -- pas besoin de fixtures complexes pour initialiser la base.
+- **Rapides** -- pas de connexion à une BDD, pas d'I/O. Les tests s'exécutent en millisecondes.
+- **Isolés** -- chaque test crée son propre fake, sans effet de bord.
+- **Déterministes** -- pas de problème d'état partagé, de données résiduelles ou de transactions concurrentes.
+- **Faciles à écrire** -- pas besoin de fixtures complexes pour initialiser la base.
 
 Voici un exemple de test concret utilisant le fake :
 
@@ -388,21 +388,21 @@ class TestAddBatch:
         assert len(product.batches) == 2
 ```
 
-Le `FakeRepository` est imbrique dans un `FakeUnitOfWork` (que nous detaillerons au chapitre 6), mais le principe est le meme : on remplace l'adapter concret par un fake, et le code metier ne voit pas la difference.
+Le `FakeRepository` est imbriqué dans un `FakeUnitOfWork` (que nous détaillerons au chapitre 6), mais le principe est le même : on remplace l'adapter concret par un fake, et le code métier ne voit pas la différence.
 
 !!! info "Fake vs Mock"
-    Un **fake** est une implementation simplifiee mais fonctionnelle d'une interface. Il a un vrai comportement (ici : stocker et retrouver des objets). Un **mock**, en revanche, se contente de verifier que certaines methodes ont ete appelees avec certains arguments. Les fakes sont generalement preferables car ils testent le **comportement** plutot que l'**implementation**.
+    Un **fake** est une implémentation simplifiée mais fonctionnelle d'une interface. Il a un vrai comportement (ici : stocker et retrouver des objets). Un **mock**, en revanche, se contente de vérifier que certaines méthodes ont été appelées avec certains arguments. Les fakes sont généralement préférables car ils testent le **comportement** plutôt que l'**implémentation**.
 
 
-## Le schema d'ensemble
+## Le schéma d'ensemble
 
-Recapitulons comment les pieces s'assemblent :
+Récapitulons comment les pièces s'assemblent :
 
 ```
 src/allocation/
     domain/
-        model.py              <-- Modele de domaine (Product, Batch, OrderLine)
-                                   Ne connait PAS la BDD
+        model.py              <-- Modèle de domaine (Product, Batch, OrderLine)
+                                   Ne connaît PAS la BDD
     adapters/
         repository.py         <-- AbstractRepository (port)
                                    + SqlAlchemyRepository (adapter)
@@ -413,43 +413,43 @@ tests/unit/
     test_handlers.py          <-- FakeRepository (fake adapter pour les tests)
 ```
 
-Le flux est toujours le meme :
+Le flux est toujours le même :
 
-1. Le code metier manipule un `AbstractRepository` (le port).
-2. En production, c'est un `SqlAlchemyRepository` (l'adapter reel) qui est injecte.
-3. En test, c'est un `FakeRepository` (le fake adapter) qui est injecte.
-4. Le modele de domaine reste ignorant de tout cela.
+1. Le code métier manipule un `AbstractRepository` (le port).
+2. En production, c'est un `SqlAlchemyRepository` (l'adapter réel) qui est injecté.
+3. En test, c'est un `FakeRepository` (le fake adapter) qui est injecté.
+4. Le modèle de domaine reste ignorant de tout cela.
 
 
-## Resume
+## Résumé
 
 ### Tableau des concepts
 
-| Concept | Role | Fichier |
+| Concept | Rôle | Fichier |
 |---------|------|---------|
 | **Repository** | Abstraction de la couche de persistance | `adapters/repository.py` |
-| **Port** (`AbstractRepository`) | Interface definie par le domaine | `adapters/repository.py` |
-| **Adapter** (`SqlAlchemyRepository`) | Implementation concrete du port | `adapters/repository.py` |
+| **Port** (`AbstractRepository`) | Interface définie par le domaine | `adapters/repository.py` |
+| **Adapter** (`SqlAlchemyRepository`) | Implémentation concrète du port | `adapters/repository.py` |
 | **Classical Mapping** | Liaison entre classes du domaine et tables SQL | `adapters/orm.py` |
-| **Persistence Ignorance** | Le domaine ne connait pas la BDD | `domain/model.py` |
-| **Fake** (`FakeRepository`) | Implementation en memoire pour les tests | `tests/unit/test_handlers.py` |
+| **Persistence Ignorance** | Le domaine ne connaît pas la BDD | `domain/model.py` |
+| **Fake** (`FakeRepository`) | Implémentation en mémoire pour les tests | `tests/unit/test_handlers.py` |
 
 ### Avantages
 
-- **Decouplage** -- Le modele de domaine ne depend pas de la technologie de persistance. On peut changer de BDD sans modifier la logique metier.
-- **Testabilite** -- Grace au fake, les tests unitaires sont rapides, isoles et deterministes. Pas besoin de base de donnees pour tester la logique metier.
-- **Lisibilite** -- L'interface `add()` / `get()` est simple et intuitive. Le code metier lit comme du langage naturel.
-- **Extensibilite** -- Ajouter une nouvelle source de donnees revient a ecrire un nouvel adapter. Le reste du systeme n'est pas affecte.
+- **Découplage** -- Le modèle de domaine ne dépend pas de la technologie de persistance. On peut changer de BDD sans modifier la logique métier.
+- **Testabilité** -- Grâce au fake, les tests unitaires sont rapides, isolés et déterministes. Pas besoin de base de données pour tester la logique métier.
+- **Lisibilité** -- L'interface `add()` / `get()` est simple et intuitive. Le code métier lit comme du langage naturel.
+- **Extensibilité** -- Ajouter une nouvelle source de données revient à écrire un nouvel adapter. Le reste du système n'est pas affecté.
 
-### Inconvenients
+### Inconvénients
 
-- **Complexite additionnelle** -- On introduit une couche d'abstraction supplementaire (interface + implementation + mapping ORM). Pour une application tres simple, c'est du sur-engineering.
-- **Courbe d'apprentissage** -- Le classical mapping de SQLAlchemy est moins intuitif que l'approche declarative. Il faut comprendre le concept de ports and adapters pour saisir la motivation.
-- **Code supplementaire** -- Le fake doit etre maintenu en parallele de l'implementation reelle. Si l'interface evolue, il faut mettre a jour les deux.
+- **Complexité additionnelle** -- On introduit une couche d'abstraction supplémentaire (interface + implémentation + mapping ORM). Pour une application très simple, c'est du sur-engineering.
+- **Courbe d'apprentissage** -- Le classical mapping de SQLAlchemy est moins intuitif que l'approche déclarative. Il faut comprendre le concept de ports and adapters pour saisir la motivation.
+- **Code supplémentaire** -- Le fake doit être maintenu en parallèle de l'implémentation réelle. Si l'interface évolue, il faut mettre à jour les deux.
 
-!!! quote "Regle d'or"
-    Le pattern Repository n'est pas necessaire pour toutes les applications. Il prend tout son sens quand la logique metier est suffisamment complexe pour meriter d'etre isolee et testee independamment de la base de donnees.
+!!! quote "Règle d'or"
+    Le pattern Repository n'est pas nécessaire pour toutes les applications. Il prend tout son sens quand la logique métier est suffisamment complexe pour mériter d'être isolée et testée indépendamment de la base de données.
 
 ---
 
-**Prochain chapitre** : [Chapitre 3 -- Couplage et abstractions](chapitre_03_abstractions.md), ou nous approfondirons le principe d'inversion des dependances et les strategies pour introduire des abstractions pertinentes.
+**Prochain chapitre** : [Chapitre 3 -- Couplage et abstractions](chapitre_03_abstractions.md), où nous approfondirons le principe d'inversion des dépendances et les stratégies pour introduire des abstractions pertinentes.

@@ -1,17 +1,17 @@
-# Chapitre 13 -- Injection de dependances et bootstrap
+# Chapitre 13 -- Injection de dépendances et bootstrap
 
-## Le probleme : qui cree les dependances ?
+## Le problème : qui crée les dépendances ?
 
 Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allocate`
-a besoin d'un Unit of Work pour acceder aux produits et persister les changements.
+a besoin d'un Unit of Work pour accéder aux produits et persister les changements.
 Le handler `send_out_of_stock_notification` a besoin d'un adapter de notifications
 pour envoyer un email. D'autres handlers pourraient avoir besoin d'un client Redis,
-d'un logger specifique, ou de n'importe quel autre service d'infrastructure.
+d'un logger spécifique, ou de n'importe quel autre service d'infrastructure.
 
-La question est simple en apparence, mais fondamentale : **qui cree ces objets,
+La question est simple en apparence, mais fondamentale : **qui crée ces objets,
 et qui les passe aux handlers ?**
 
-Examinons nos handlers tels qu'ils sont ecrits :
+Examinons nos handlers tels qu'ils sont écrits :
 
 ```python
 # src/allocation/service_layer/handlers.py
@@ -40,62 +40,62 @@ def send_out_of_stock_notification(
     )
 ```
 
-Chaque handler **declare** ses dependances via ses parametres. Mais il ne les
-cree pas lui-meme. C'est une decision deliberee : si `allocate` instanciait
+Chaque handler **déclare** ses dépendances via ses paramètres. Mais il ne les
+crée pas lui-même. C'est une décision délibérée : si `allocate` instanciait
 directement un `SqlAlchemyUnitOfWork`, on ne pourrait plus le tester avec un
-fake. Si `send_out_of_stock_notification` creait un `EmailNotifications`,
-impossible de verifier les envois sans serveur SMTP.
+fake. Si `send_out_of_stock_notification` créait un `EmailNotifications`,
+impossible de vérifier les envois sans serveur SMTP.
 
-On pourrait etre tente de resoudre cela de maniere ad hoc -- un import ici,
-un singleton la -- mais cela mene rapidement a un reseau de dependances
-implicites, difficile a suivre et encore plus difficile a tester.
+On pourrait être tenté de résoudre cela de manière ad hoc -- un import ici,
+un singleton là -- mais cela mène rapidement à un réseau de dépendances
+implicites, difficile à suivre et encore plus difficile à tester.
 
 ---
 
 ## Dependency Injection (DI)
 
-Le principe de la Dependency Injection est elegant dans sa simplicite :
+Le principe de la Dependency Injection est élégant dans sa simplicité :
 
 !!! note "Dependency Injection"
-    Au lieu qu'un composant **cree** ses dependances, elles lui sont
-    **injectees de l'exterieur**. Le composant declare ce dont il a besoin
-    (via ses parametres), et quelqu'un d'autre fournit les instances concretes.
+    Au lieu qu'un composant **crée** ses dépendances, elles lui sont
+    **injectées de l'extérieur**. Le composant déclare ce dont il a besoin
+    (via ses paramètres), et quelqu'un d'autre fournit les instances concrètes.
 
 C'est l'application directe du Dependency Inversion Principle vu au chapitre 3,
-mais ici on passe a la mecanique : **comment** fournir les bonnes instances
+mais ici on passe à la mécanique : **comment** fournir les bonnes instances
 aux bons handlers ?
 
 Il y a trois approches classiques :
 
-1. **Injection par constructeur** : les dependances sont passees a `__init__`.
-   C'est le cas de notre `MessageBus`, qui recoit le `uow` et les `dependencies`
-   a sa construction.
+1. **Injection par constructeur** : les dépendances sont passées à `__init__`.
+   C'est le cas de notre `MessageBus`, qui reçoit le `uow` et les `dependencies`
+   à sa construction.
 
-2. **Injection par parametre** : les dependances sont passees a chaque appel
+2. **Injection par paramètre** : les dépendances sont passées à chaque appel
    de fonction. C'est le cas de nos handlers : `allocate(cmd, uow=...)`.
 
-3. **Injection par framework** : un conteneur DI resout automatiquement le
-   graphe de dependances. On en parlera en fin de chapitre.
+3. **Injection par framework** : un conteneur DI résout automatiquement le
+   graphe de dépendances. On en parlera en fin de chapitre.
 
-Notre architecture combine les deux premieres approches : le `MessageBus` recoit
-ses dependances par constructeur, puis les **redistribue** aux handlers par
-parametre a chaque appel.
+Notre architecture combine les deux premières approches : le `MessageBus` reçoit
+ses dépendances par constructeur, puis les **redistribue** aux handlers par
+paramètre à chaque appel.
 
 ---
 
 ## La Composition Root : un seul point d'assemblage
 
-Dans toute application, il existe un moment ou il faut **assembler** les pieces :
-creer les instances concretes et les connecter entre elles. Ce lieu s'appelle la
+Dans toute application, il existe un moment où il faut **assembler** les pièces :
+créer les instances concrètes et les connecter entre elles. Ce lieu s'appelle la
 **Composition Root**.
 
 Le principe est strict : **il ne doit y avoir qu'un seul endroit** dans
-l'application ou les dependances concretes sont instanciees et reliees.
+l'application où les dépendances concrètes sont instanciées et reliées.
 Partout ailleurs, le code ne manipule que des abstractions.
 
 ```
    Sans Composition Root :                Avec Composition Root :
-   dependances creees partout             dependances creees en un seul point
+   dépendances créées partout             dépendances créées en un seul point
 
    ┌───────────┐                          ┌───────────────────┐
    │ Handler A │── new UoW()              │   Bootstrap       │
@@ -107,11 +107,11 @@ Partout ailleurs, le code ne manipule que des abstractions.
    │ Handler C │── new Email()            │  bus = MessageBus │
    └───────────┘                          │    (uow, notif)   │
                                           └─────────┬─────────┘
-   Probleme : couplage direct,                      │
+   Problème : couplage direct,                      │
    impossible de remplacer                  ┌───────┴───────┐
-   les implementations.                     │ Handlers A,B,C│
-                                            │ recoivent les │
-                                            │ dependances   │
+   les implémentations.                     │ Handlers A,B,C│
+                                            │ reçoivent les │
+                                            │ dépendances   │
                                             └───────────────┘
 ```
 
@@ -133,7 +133,7 @@ def bootstrap(
     **extra_dependencies: Any,
 ) -> messagebus.MessageBus:
     """
-    Construit et retourne un MessageBus configure.
+    Construit et retourne un MessageBus configuré.
     """
     if start_orm:
         orm.start_mappers()
@@ -157,27 +157,27 @@ def bootstrap(
     )
 ```
 
-Decomposons ce que fait cette fonction :
+Décomposons ce que fait cette fonction :
 
-1. **Initialisation de l'ORM** : si `start_orm` est vrai, on demarre le mapping
-   SQLAlchemy. En production, c'est necessaire. En tests unitaires, on passe
-   `start_orm=False` car on n'a pas besoin de base de donnees.
+1. **Initialisation de l'ORM** : si `start_orm` est vrai, on démarre le mapping
+   SQLAlchemy. En production, c'est nécessaire. En tests unitaires, on passe
+   `start_orm=False` car on n'a pas besoin de base de données.
 
-2. **Creation du UoW** : si aucun `uow` n'est fourni, on cree le concret
-   `SqlAlchemyUnitOfWork`. Si un fake est passe, on l'utilise tel quel.
+2. **Création du UoW** : si aucun `uow` n'est fourni, on crée le concret
+   `SqlAlchemyUnitOfWork`. Si un fake est passé, on l'utilise tel quel.
 
-3. **Creation des notifications** : meme logique. Par defaut, on cree
+3. **Création des notifications** : même logique. Par défaut, on crée
    `EmailNotifications`. En test, on passe un `FakeNotifications`.
 
-4. **Assemblage du dictionnaire de dependances** : toutes les dependances
-   supplementaires (notifications, et potentiellement d'autres) sont regroupees
+4. **Assemblage du dictionnaire de dépendances** : toutes les dépendances
+   supplémentaires (notifications, et potentiellement d'autres) sont regroupées
    dans un dictionnaire.
 
-5. **Construction du MessageBus** : le bus recoit le UoW, les mappings
-   handlers/messages, et le dictionnaire de dependances.
+5. **Construction du MessageBus** : le bus reçoit le UoW, les mappings
+   handlers/messages, et le dictionnaire de dépendances.
 
-Le second element cle est la **configuration des handlers**, definie dans le
-meme module :
+Le second élément clé est la **configuration des handlers**, définie dans le
+même module :
 
 ```python
 # src/allocation/service_layer/bootstrap.py
@@ -196,13 +196,13 @@ COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
 ```
 
 Ces dictionnaires constituent le **routing** de l'application : quel handler
-traite quel message. Ils sont declares de maniere statique et centralisee,
+traite quel message. Ils sont déclarés de manière statique et centralisée,
 ce qui rend le flux de l'application lisible d'un seul coup d'oeil.
 
 ### Utilisation en production
 
-Dans le point d'entree Flask, le bootstrap est appele une seule fois au
-demarrage de l'application :
+Dans le point d'entrée Flask, le bootstrap est appelé une seule fois au
+démarrage de l'application :
 
 ```python
 # src/allocation/entrypoints/flask_app.py
@@ -210,11 +210,11 @@ demarrage de l'application :
 from allocation.service_layer import bootstrap
 
 app = Flask(__name__)
-bus = bootstrap.bootstrap()  # Composition Root -- tout est assemble ici
+bus = bootstrap.bootstrap()  # Composition Root -- tout est assemblé ici
 ```
 
-A partir de la, `bus` est le seul objet dont l'application a besoin. Chaque
-endpoint se contente de creer une command et de la confier au bus :
+À partir de là, `bus` est le seul objet dont l'application a besoin. Chaque
+endpoint se contente de créer une command et de la confier au bus :
 
 ```python
 @app.route("/allocate", methods=["POST"])
@@ -228,27 +228,27 @@ def allocate_endpoint():
     return jsonify({"batchref": batchref}), 201
 ```
 
-L'endpoint ne sait pas quel UoW est utilise, ni comment les notifications sont
-envoyees. Il n'a pas besoin de le savoir. Toute cette mecanique est cachee
-derriere le `MessageBus`, assemble par le bootstrap.
+L'endpoint ne sait pas quel UoW est utilisé, ni comment les notifications sont
+envoyées. Il n'a pas besoin de le savoir. Toute cette mécanique est cachée
+derrière le `MessageBus`, assemblé par le bootstrap.
 
 ---
 
 ## L'injection par introspection
 
-Le mecanisme le plus subtil de notre architecture se trouve dans la methode
-`_call_handler` du `MessageBus`. C'est elle qui realise l'injection de
-dependances a chaque appel de handler.
+Le mécanisme le plus subtil de notre architecture se trouve dans la méthode
+`_call_handler` du `MessageBus`. C'est elle qui réalise l'injection de
+dépendances à chaque appel de handler.
 
 ```python
 # src/allocation/service_layer/messagebus.py
 
 def _call_handler(self, handler: Callable, message: Message) -> Any:
     """
-    Appelle un handler en injectant les dependances necessaires.
+    Appelle un handler en injectant les dépendances nécessaires.
 
-    Introspection des parametres du handler pour determiner
-    quelles dependances injecter.
+    Introspection des paramètres du handler pour déterminer
+    quelles dépendances injecter.
     """
     import inspect
 
@@ -256,7 +256,7 @@ def _call_handler(self, handler: Callable, message: Message) -> Any:
     kwargs: dict[str, Any] = {}
     for name, param in params.items():
         if name == list(params.keys())[0]:
-            # Premier parametre = le message lui-meme
+            # Premier paramètre = le message lui-même
             continue
         if name == "uow":
             kwargs[name] = self.uow
@@ -266,21 +266,21 @@ def _call_handler(self, handler: Callable, message: Message) -> Any:
     return handler(message, **kwargs)
 ```
 
-Voici ce qui se passe, etape par etape :
+Voici ce qui se passe, étape par étape :
 
 1. **Introspection** : `inspect.signature(handler).parameters` examine la
-   signature du handler pour connaitre les noms de ses parametres.
+   signature du handler pour connaître les noms de ses paramètres.
 
-2. **Le premier parametre est saute** : c'est toujours le message lui-meme
-   (la command ou l'event). Il sera passe comme argument positionnel.
+2. **Le premier paramètre est sauté** : c'est toujours le message lui-même
+   (la command ou l'event). Il sera passé comme argument positionnel.
 
-3. **Resolution des dependances** : pour chaque parametre restant, le bus
+3. **Résolution des dépendances** : pour chaque paramètre restant, le bus
    cherche une correspondance par **nom** :
-    - Si le parametre s'appelle `uow`, il recoit le `self.uow`.
+    - Si le paramètre s'appelle `uow`, il reçoit le `self.uow`.
     - Sinon, le bus cherche dans le dictionnaire `self.dependencies`.
 
-4. **Appel du handler** : le message est passe en premier argument positionnel,
-   les dependances en keyword arguments.
+4. **Appel du handler** : le message est passé en premier argument positionnel,
+   les dépendances en keyword arguments.
 
 ### Exemple concret
 
@@ -296,9 +296,9 @@ def send_out_of_stock_notification(
 
 Quand le bus doit appeler ce handler :
 
-- `inspect.signature` detecte deux parametres : `event` et `notifications`.
-- `event` est le premier parametre, il est saute.
-- `notifications` est cherche dans `self.dependencies` -- et trouve, car
+- `inspect.signature` détecte deux paramètres : `event` et `notifications`.
+- `event` est le premier paramètre, il est sauté.
+- `notifications` est cherché dans `self.dependencies` -- et trouvé, car
   le bootstrap a rempli `dependencies = {"notifications": notifications_adapter}`.
 - Le bus appelle : `handler(event, notifications=email_adapter)`.
 
@@ -312,23 +312,23 @@ def allocate(
     ...
 ```
 
-- `cmd` est le premier parametre, saute.
-- `uow` est detecte par son nom et recoit `self.uow`.
+- `cmd` est le premier paramètre, sauté.
+- `uow` est détecté par son nom et reçoit `self.uow`.
 - Le bus appelle : `handler(cmd, uow=sqlalchemy_uow)`.
 
 !!! tip "Convention over configuration"
-    L'injection fonctionne par **convention de nommage** : un parametre
-    nomme `uow` recoit le Unit of Work, un parametre nomme `notifications`
-    recoit l'adapter de notifications. C'est simple, lisible, et ne
-    necessite aucun decorateur ni annotation speciale.
+    L'injection fonctionne par **convention de nommage** : un paramètre
+    nommé `uow` reçoit le Unit of Work, un paramètre nommé `notifications`
+    reçoit l'adapter de notifications. C'est simple, lisible, et ne
+    nécessite aucun décorateur ni annotation spéciale.
 
 ---
 
 ## DI pour les tests
 
-L'un des benefices majeurs de la Dependency Injection est de pouvoir
-remplacer les implementations concretes par des **fakes** dans les tests.
-Le meme code de handler est execute, mais avec des dependances differentes.
+L'un des bénéfices majeurs de la Dependency Injection est de pouvoir
+remplacer les implémentations concrètes par des **fakes** dans les tests.
+Le même code de handler est exécuté, mais avec des dépendances différentes.
 
 ### Le bootstrap de test
 
@@ -358,7 +358,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
 
 
 class FakeNotifications(AbstractNotifications):
-    """Fake pour capturer les notifications envoyees."""
+    """Fake pour capturer les notifications envoyées."""
 
     def __init__(self):
         self.sent: list[tuple[str, str]] = []
@@ -368,7 +368,7 @@ class FakeNotifications(AbstractNotifications):
 
 
 def bootstrap_test_bus(uow: FakeUnitOfWork | None = None) -> messagebus.MessageBus:
-    """Cree un message bus configure pour les tests."""
+    """Crée un message bus configuré pour les tests."""
     from allocation.service_layer.bootstrap import EVENT_HANDLERS, COMMAND_HANDLERS
 
     uow = uow or FakeUnitOfWork()
@@ -381,23 +381,23 @@ def bootstrap_test_bus(uow: FakeUnitOfWork | None = None) -> messagebus.MessageB
     )
 ```
 
-Observez les points cles :
+Observez les points clés :
 
 - **`FakeUnitOfWork`** remplace `SqlAlchemyUnitOfWork`. Les produits sont
-  stockes en memoire dans un `FakeRepository`. Le `_commit` se contente de
-  passer un flag a `True`, ce qui permet de verifier que le commit a eu lieu.
+  stockés en mémoire dans un `FakeRepository`. Le `_commit` se contente de
+  passer un flag à `True`, ce qui permet de vérifier que le commit a eu lieu.
 
 - **`FakeNotifications`** remplace `EmailNotifications`. Au lieu d'envoyer un
-  email, chaque appel a `send` est enregistre dans une liste `self.sent`.
+  email, chaque appel à `send` est enregistré dans une liste `self.sent`.
   Les tests peuvent ensuite inspecter cette liste.
 
-- **`bootstrap_test_bus`** joue le role de Composition Root pour les tests.
-  Elle reutilise les memes `EVENT_HANDLERS` et `COMMAND_HANDLERS` que la
+- **`bootstrap_test_bus`** joue le rôle de Composition Root pour les tests.
+  Elle réutilise les mêmes `EVENT_HANDLERS` et `COMMAND_HANDLERS` que la
   production (les handlers sont identiques), mais injecte des fakes.
 
 ### Les tests en action
 
-Grace a cette architecture, les tests sont simples et expressifs :
+Grâce à cette architecture, les tests sont simples et expressifs :
 
 ```python
 class TestAllocate:
@@ -411,13 +411,13 @@ class TestAllocate:
 
 Ce test traverse toute la pile applicative -- du `MessageBus` au handler,
 du handler au domaine, du domaine au repository -- mais sans aucune
-infrastructure reelle. Il s'execute en quelques millisecondes.
+infrastructure réelle. Il s'exécute en quelques millisecondes.
 
-La cle : **le handler `allocate` ne sait pas qu'il travaille avec un fake**.
-Il recoit un objet qui respecte le contrat `AbstractUnitOfWork`, et c'est
-tout ce qui compte. C'est le polymorphisme au service de la testabilite.
+La clé : **le handler `allocate` ne sait pas qu'il travaille avec un fake**.
+Il reçoit un objet qui respecte le contrat `AbstractUnitOfWork`, et c'est
+tout ce qui compte. C'est le polymorphisme au service de la testabilité.
 
-### Le parallele production / tests
+### Le parallèle production / tests
 
 ```
    Production :                         Tests :
@@ -432,7 +432,7 @@ tout ce qui compte. C'est le polymorphisme au service de la testabilite.
            ├── handlers.add_batch               ├── handlers.add_batch
            └── handlers.send_out_of_...         └── handlers.send_out_of_...
 
-   Memes handlers, dependances differentes.
+   Mêmes handlers, dépendances différentes.
 ```
 
 ---
@@ -441,23 +441,23 @@ tout ce qui compte. C'est le polymorphisme au service de la testabilite.
 
 En Java ou C#, la Dependency Injection passe presque toujours par un
 **framework** : Spring, Guice, Autofac. Ces frameworks maintiennent un
-**conteneur** qui connait toutes les classes de l'application, resout
-automatiquement le graphe de dependances, et gere les cycles de vie
+**conteneur** qui connaît toutes les classes de l'application, résout
+automatiquement le graphe de dépendances, et gère les cycles de vie
 (singleton, scoped, transient).
 
-En Python, la situation est differente. Le langage est suffisamment dynamique
+En Python, la situation est différente. Le langage est suffisamment dynamique
 pour que la DI manuelle soit souvent la meilleure option.
 
 ### Pourquoi la DI manuelle suffit en Python
 
 Notre `bootstrap.py` fait une trentaine de lignes. Il est lisible, explicite,
-et facile a debugger. Quand quelque chose ne va pas, on sait exactement ou
+et facile à débugger. Quand quelque chose ne va pas, on sait exactement où
 regarder : c'est dans le bootstrap.
 
-Comparez avec un framework DI hypothetique :
+Comparez avec un framework DI hypothétique :
 
 ```python
-# Avec un framework DI (hypothetique)
+# Avec un framework DI (hypothétique)
 container = Container()
 container.register(AbstractUnitOfWork, SqlAlchemyUnitOfWork, scope="singleton")
 container.register(AbstractNotifications, EmailNotifications, scope="transient")
@@ -468,57 +468,57 @@ bus = container.resolve(MessageBus)
 ```
 
 C'est plus concis, mais aussi plus **magique**. Le `auto_wire()` cache la
-mecanique de resolution. Quand ca ne fonctionne pas, le message d'erreur
-peut etre cryptique. Et pour un projet de taille raisonnable, le gain
-par rapport au bootstrap manuel est negligeable.
+mécanique de résolution. Quand ça ne fonctionne pas, le message d'erreur
+peut être cryptique. Et pour un projet de taille raisonnable, le gain
+par rapport au bootstrap manuel est négligeable.
 
 ### Quand envisager un framework
 
-Un framework DI devient interessant quand :
+Un framework DI devient intéressant quand :
 
-- Le nombre de dependances depasse la vingtaine et le bootstrap manuel
-  devient penible a maintenir.
-- Vous avez besoin de **scopes** complexes (par requete HTTP, par session,
+- Le nombre de dépendances dépasse la vingtaine et le bootstrap manuel
+  devient pénible à maintenir.
+- Vous avez besoin de **scopes** complexes (par requête HTTP, par session,
   par thread).
-- Plusieurs equipes travaillent sur le meme projet et ont besoin d'un
-  mecanisme standardise pour enregistrer des composants.
+- Plusieurs équipes travaillent sur le même projet et ont besoin d'un
+  mécanisme standardisé pour enregistrer des composants.
 
-Si vous atteignez ce stade, la bibliotheque
+Si vous atteignez ce stade, la bibliothèque
 [dependency-injector](https://python-dependency-injector.ets-labs.org/)
 est le choix le plus mature en Python. Elle offre des conteneurs, du wiring
-automatique, et une bonne integration avec les frameworks web.
+automatique, et une bonne intégration avec les frameworks web.
 
 !!! warning "Ne commencez pas par un framework DI"
-    La DI manuelle via un bootstrap est suffisante pour la grande majorite
+    La DI manuelle via un bootstrap est suffisante pour la grande majorité
     des projets Python. N'ajoutez un framework que quand la douleur du
-    bootstrap manuel devient reelle, pas par anticipation.
+    bootstrap manuel devient réelle, pas par anticipation.
 
 ---
 
-## Resume
+## Résumé
 
-L'injection de dependances et le bootstrap resolvent un probleme fondamental
-de toute architecture propre : **comment assembler les composants sans creer
+L'injection de dépendances et le bootstrap résolvent un problème fondamental
+de toute architecture propre : **comment assembler les composants sans créer
 de couplage entre eux**.
 
-| Concept | Role | Dans notre code |
+| Concept | Rôle | Dans notre code |
 |---------|------|-----------------|
-| **Dependency Injection** | Fournir les dependances de l'exterieur au lieu de les creer en interne | Les handlers declarent `uow`, `notifications` comme parametres |
-| **Composition Root** | Un seul point ou les dependances concretes sont assemblees | `bootstrap.py` |
-| **Bootstrap** | Fonction qui cree toutes les dependances et construit le bus | `bootstrap()` |
-| **Introspection** | Decouvrir automatiquement les dependances requises par un handler | `inspect.signature` dans `_call_handler` |
-| **Fakes pour les tests** | Implementations legeres pour tester sans infrastructure | `FakeUnitOfWork`, `FakeNotifications` |
+| **Dependency Injection** | Fournir les dépendances de l'extérieur au lieu de les créer en interne | Les handlers déclarent `uow`, `notifications` comme paramètres |
+| **Composition Root** | Un seul point où les dépendances concrètes sont assemblées | `bootstrap.py` |
+| **Bootstrap** | Fonction qui crée toutes les dépendances et construit le bus | `bootstrap()` |
+| **Introspection** | Découvrir automatiquement les dépendances requises par un handler | `inspect.signature` dans `_call_handler` |
+| **Fakes pour les tests** | Implémentations légères pour tester sans infrastructure | `FakeUnitOfWork`, `FakeNotifications` |
 
 ### Architecture finale
 
-Voici le schema complet de l'architecture, avec le bootstrap au sommet :
+Voici le schéma complet de l'architecture, avec le bootstrap au sommet :
 
 ```
    ┌──────────────────────────────────────────────────────────────┐
    │                        BOOTSTRAP                            │
    │                   (Composition Root)                        │
    │                                                              │
-   │  Cree :  UoW, Notifications, MessageBus                     │
+   │  Crée :  UoW, Notifications, MessageBus                     │
    │  Configure : routing commands/events -> handlers             │
    └──────────────────────────┬───────────────────────────────────┘
                               │
@@ -527,9 +527,9 @@ Voici le schema complet de l'architecture, avec le bootstrap au sommet :
    ┌──────────────────────────────────────────────────────────────┐
    │                       MESSAGE BUS                            │
    │                                                              │
-   │  - Recoit les commands et events                             │
+   │  - Reçoit les commands et events                             │
    │  - Dispatch vers les handlers                                │
-   │  - Injecte les dependances par introspection                 │
+   │  - Injecte les dépendances par introspection                 │
    │  - Collecte et traite les events en cascade                  │
    └──────┬──────────────────────────────────┬────────────────────┘
           │                                  │
@@ -561,19 +561,19 @@ Voici le schema complet de l'architecture, avec le bootstrap au sommet :
    └──────────────┘                   └──────────────┘
 ```
 
-Le flux est toujours descendant : le bootstrap cree le bus, le bus dispatch
+Le flux est toujours descendant : le bootstrap crée le bus, le bus dispatch
 aux handlers, les handlers utilisent les abstractions, et les abstractions
-cachent l'infrastructure. Nulle part un composant ne remonte pour creer
-ou chercher ses propres dependances.
+cachent l'infrastructure. Nulle part un composant ne remonte pour créer
+ou chercher ses propres dépendances.
 
-!!! tip "A retenir"
-    - Un handler ne cree **jamais** ses dependances. Il les recoit.
-    - Le **bootstrap** est le seul endroit ou les implementations concretes
-      sont instanciees.
+!!! tip "À retenir"
+    - Un handler ne crée **jamais** ses dépendances. Il les reçoit.
+    - Le **bootstrap** est le seul endroit où les implémentations concrètes
+      sont instanciées.
     - L'**introspection** (`inspect.signature`) permet au bus d'injecter
-      automatiquement les bonnes dependances dans chaque handler.
-    - En tests, on remplace les implementations concretes par des **fakes**
-      via le meme mecanisme de bootstrap.
-    - La DI manuelle via un bootstrap explicite est souvent **preferee** en
-      Python a un framework DI. N'ajoutez de la complexite que quand elle
-      est justifiee.
+      automatiquement les bonnes dépendances dans chaque handler.
+    - En tests, on remplace les implémentations concrètes par des **fakes**
+      via le même mécanisme de bootstrap.
+    - La DI manuelle via un bootstrap explicite est souvent **préférée** en
+      Python à un framework DI. N'ajoutez de la complexité que quand elle
+      est justifiée.

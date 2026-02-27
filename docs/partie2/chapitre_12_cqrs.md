@@ -1,19 +1,19 @@
 # Chapitre 12 -- CQRS (Command Query Responsibility Segregation)
 
-## Le probleme de la lecture
+## Le problème de la lecture
 
-Dans les chapitres precedents, nous avons construit un modele de domaine riche :
-des aggregats (`Product`), des entites (`Batch`), des value objects (`OrderLine`),
-des invariants metier, un repository pour la persistance et un message bus pour
-l'orchestration. Tout cela forme un chemin d'ecriture solide et bien protege.
+Dans les chapitres précédents, nous avons construit un modèle de domaine riche :
+des agrégats (`Product`), des entités (`Batch`), des value objects (`OrderLine`),
+des invariants métier, un repository pour la persistance et un message bus pour
+l'orchestration. Tout cela forme un chemin d'écriture solide et bien protégé.
 
 Mais posons-nous une question simple : que se passe-t-il quand un utilisateur
 veut simplement **afficher** les allocations d'une commande ?
 
-Avec notre architecture actuelle, le chemin ressemblerait a ceci :
+Avec notre architecture actuelle, le chemin ressemblerait à ceci :
 
 ```
-   Requete GET /allocations/order-123
+   Requête GET /allocations/order-123
         │
         v
    Repository.get(sku=...)          # Charge un Product entier
@@ -31,42 +31,42 @@ Avec notre architecture actuelle, le chemin ressemblerait a ceci :
    Parcours de toutes les allocations pour trouver celles de "order-123"
         │
         v
-   Serialisation en JSON
+   Sérialisation en JSON
 ```
 
-Pour repondre a une question triviale -- "quels SKUs sont alloues a cette
-commande ?" -- on charge un aggregat complet avec tous ses lots, toutes ses
+Pour répondre à une question triviale -- "quels SKUs sont alloués à cette
+commande ?" -- on charge un agrégat complet avec tous ses lots, toutes ses
 allocations, on reconstruit le graphe d'objets, on traverse les relations...
-C'est comme sortir toute la bibliotheque pour trouver un seul livre.
+C'est comme sortir toute la bibliothèque pour trouver un seul livre.
 
-Le modele de domaine est optimise pour **proteger les invariants en ecriture** :
+Le modèle de domaine est optimisé pour **protéger les invariants en écriture** :
 
-- L'aggregat `Product` garantit qu'on n'alloue pas plus que le stock disponible.
-- Le version number protege contre les acces concurrents.
-- Les events tracent chaque changement d'etat.
+- L'agrégat `Product` garantit qu'on n'alloue pas plus que le stock disponible.
+- Le version number protège contre les accès concurrents.
+- Les events tracent chaque changement d'état.
 
 Mais pour la **lecture**, on n'a besoin d'aucune de ces garanties. Pas
-d'invariants a verifier, pas de concurrence a gerer, pas d'events a emettre.
-On veut juste des donnees, le plus vite possible.
+d'invariants à vérifier, pas de concurrence à gérer, pas d'events à émettre.
+On veut juste des données, le plus vite possible.
 
 !!! note "Le constat fondamental"
-    Les besoins de lecture et d'ecriture sont **fondamentalement differents**.
-    Utiliser le meme modele pour les deux, c'est faire un compromis qui penalise
-    les deux cotes.
+    Les besoins de lecture et d'écriture sont **fondamentalement différents**.
+    Utiliser le même modèle pour les deux, c'est faire un compromis qui pénalise
+    les deux côtés.
 
 ---
 
 ## Le principe CQRS
 
 CQRS -- Command Query Responsibility Segregation -- propose une solution
-radicale : **separer completement les chemins d'ecriture et de lecture**.
+radicale : **séparer complètement les chemins d'écriture et de lecture**.
 
-L'idee vient du principe CQS (Command Query Separation) de Bertrand Meyer,
-applique a l'echelle de l'architecture :
+L'idée vient du principe CQS (Command Query Separation) de Bertrand Meyer,
+appliqué à l'échelle de l'architecture :
 
-- Les **commands** (ecriture) passent par le domaine, le message bus, le
-  repository. Elles modifient l'etat du systeme.
-- Les **queries** (lecture) interrogent directement la base de donnees.
+- Les **commands** (écriture) passent par le domaine, le message bus, le
+  repository. Elles modifient l'état du système.
+- Les **queries** (lecture) interrogent directement la base de données.
   Elles ne modifient rien.
 
 ```
@@ -103,32 +103,32 @@ applique a l'echelle de l'architecture :
    └─────────────────┘
 ```
 
-A gauche, le chemin d'ecriture traverse toute la pile : validation, logique
-metier, persistance via le repository, emission d'events. A droite, le chemin
-de lecture va droit au but : une fonction, une requete SQL, un resultat.
+À gauche, le chemin d'écriture traverse toute la pile : validation, logique
+métier, persistance via le repository, émission d'events. À droite, le chemin
+de lecture va droit au but : une fonction, une requête SQL, un résultat.
 
-La cle de CQRS, c'est qu'on utilise **deux modeles differents** pour deux
-besoins differents :
+La clé de CQRS, c'est qu'on utilise **deux modèles différents** pour deux
+besoins différents :
 
 | Aspect              | Write model                         | Read model                       |
 |---------------------|-------------------------------------|----------------------------------|
-| **Objectif**        | Proteger les invariants metier      | Servir des donnees rapidement    |
-| **Structure**       | Aggregats, entites, value objects   | Tables denormalisees, vues       |
-| **Acces**           | Via repository + domain model       | Via SQL direct                   |
-| **Complexite**      | Riche (logique metier)              | Simple (projection de donnees)   |
-| **Optimise pour**   | Coherence et regles metier          | Performance de lecture            |
+| **Objectif**        | Protéger les invariants métier      | Servir des données rapidement    |
+| **Structure**       | Agrégats, entités, value objects   | Tables dénormalisées, vues       |
+| **Accès**           | Via repository + domain model       | Via SQL direct                   |
+| **Complexité**      | Riche (logique métier)              | Simple (projection de données)   |
+| **Optimisé pour**   | Cohérence et règles métier          | Performance de lecture            |
 
 ---
 
 ## Le read model : `allocations_view`
 
-Le read model est une table **denormalisee** concue specifiquement pour
-repondre a une question de lecture. Contrairement aux tables du write model
-(qui sont normalisees avec des cles etrangeres et des jointures), le read
+Le read model est une table **dénormalisée** conçue spécifiquement pour
+répondre à une question de lecture. Contrairement aux tables du write model
+(qui sont normalisées avec des clés étrangères et des jointures), le read
 model contient exactement les colonnes dont la vue a besoin, dans un format
 directement exploitable.
 
-Dans notre ORM, la table `allocations_view` est definie ainsi :
+Dans notre ORM, la table `allocations_view` est définie ainsi :
 
 ```python
 # src/allocation/adapters/orm.py
@@ -143,11 +143,11 @@ allocations_view = Table(
 )
 ```
 
-Comparons avec les tables du write model, qui necessiteraient des jointures
-pour obtenir la meme information :
+Comparons avec les tables du write model, qui nécessiteraient des jointures
+pour obtenir la même information :
 
 ```
-   WRITE MODEL (normalise)               READ MODEL (denormalise)
+   WRITE MODEL (normalisé)               READ MODEL (dénormalisé)
    ─────────────────────────             ─────────────────────────
 
    order_lines                            allocations_view
@@ -161,7 +161,7 @@ pour obtenir la meme information :
         │  ┌────────────┬──────────┐
         └──│orderline_id│ batch_id │      Pas de jointure. Pas de
            ├────────────┼──────────┤      reconstruction d'objet.
-           │     1      │    3     │      Tout est deja pret a lire.
+           │     1      │    3     │      Tout est déjà prêt à lire.
            └────────────┴──────────┘
                              │
         batches              │
@@ -171,22 +171,22 @@ pour obtenir la meme information :
         │  3 │batch-01  │
         └────┴──────────┘
 
-   Pour obtenir "quels SKUs sont alloues a order-1", le write model
+   Pour obtenir "quels SKUs sont alloués à order-1", le write model
    exige 3 tables et 2 jointures. Le read model : 1 table, 0 jointure.
 ```
 
 Le read model duplique de l'information -- oui, c'est volontaire. En
-denormalisant, on echange de l'espace disque (bon marche) contre de la vitesse
-de lecture (precieuse). C'est un compromis classique et parfaitement justifie
+dénormalisant, on échange de l'espace disque (bon marché) contre de la vitesse
+de lecture (précieuse). C'est un compromis classique et parfaitement justifié
 pour les chemins de lecture.
 
 ---
 
 ## Les views : des fonctions de lecture pure
 
-Le cote query de CQRS est implemente par des **views** : des fonctions simples
-qui executent des requetes SQL directes sur le read model. Pas de domaine, pas
-de repository, pas d'aggregat. Juste une requete et un resultat.
+Le côté query de CQRS est implémenté par des **views** : des fonctions simples
+qui exécutent des requêtes SQL directes sur le read model. Pas de domaine, pas
+de repository, pas d'agrégat. Juste une requête et un résultat.
 
 ```python
 # src/allocation/views/views.py
@@ -219,15 +219,15 @@ def allocations(orderid: str, uow: unit_of_work.SqlAlchemyUnitOfWork) -> list[di
         return [dict(r._mapping) for r in results]
 ```
 
-Remarquez a quel point c'est simple. La fonction `allocations` :
+Remarquez à quel point c'est simple. La fonction `allocations` :
 
 1. Ouvre une session via le unit of work.
-2. Execute une requete SQL brute sur `allocations_view`.
+2. Exécute une requête SQL brute sur `allocations_view`.
 3. Retourne une liste de dictionnaires.
 
 Pas de `Product`, pas de `Batch`, pas de `OrderLine`. Pas de reconstruction
-d'aggregat, pas de traversee de relations. La requete va directement chercher
-les donnees la ou elles sont, dans le format exact dont l'API a besoin.
+d'agrégat, pas de traversée de relations. La requête va directement chercher
+les données là où elles sont, dans le format exact dont l'API a besoin.
 
 Le endpoint Flask qui utilise cette view est tout aussi direct :
 
@@ -249,27 +249,27 @@ def allocations_view_endpoint(orderid: str):
     return jsonify(result), 200
 ```
 
-Le contraste avec les endpoints d'ecriture est frappant :
+Le contraste avec les endpoints d'écriture est frappant :
 
-| Endpoint d'ecriture (`POST /allocate`)          | Endpoint de lecture (`GET /allocations`) |
+| Endpoint d'écriture (`POST /allocate`)          | Endpoint de lecture (`GET /allocations`) |
 |--------------------------------------------------|------------------------------------------|
 | Construit une `Command`                          | Appelle une view directement             |
 | Envoie au message bus                            | Pas de message bus                       |
-| Le handler charge un aggregat via le repository  | La view fait un `SELECT` SQL             |
-| Le domaine verifie les invariants                | Aucune verification metier               |
-| Des events sont emis                             | Aucun event                              |
-| Le resultat est un effet de bord (allocation)    | Le resultat est une projection de donnees |
+| Le handler charge un agrégat via le repository  | La view fait un `SELECT` SQL             |
+| Le domaine vérifie les invariants                | Aucune vérification métier               |
+| Des events sont émis                             | Aucun event                              |
+| Le résultat est un effet de bord (allocation)    | Le résultat est une projection de données |
 
 ---
 
-## Mise a jour du read model par les event handlers
+## Mise à jour du read model par les event handlers
 
-Si le read model est une table separee, comment reste-t-il synchronise avec le
-write model ? Par les **event handlers**. Quand une allocation est effectuee, le
-domaine emet un event `Allocated`. Un handler ecoute cet event et met a jour la
+Si le read model est une table séparée, comment reste-t-il synchronisé avec le
+write model ? Par les **event handlers**. Quand une allocation est effectuée, le
+domaine émet un event `Allocated`. Un handler écoute cet event et met à jour la
 table `allocations_view`.
 
-Voici comment l'event `Allocated` est defini :
+Voici comment l'event `Allocated` est défini :
 
 ```python
 # src/allocation/domain/events.py
@@ -284,11 +284,11 @@ class Allocated(Event):
     batchref: str
 ```
 
-L'event contient toutes les informations necessaires pour mettre a jour le read
+L'event contient toutes les informations nécessaires pour mettre à jour le read
 model : le `orderid`, le `sku` et le `batchref`. C'est exactement ce que la
 table `allocations_view` attend.
 
-Le handler de mise a jour du read model ressemblerait a ceci :
+Le handler de mise à jour du read model ressemblerait à ceci :
 
 ```python
 # src/allocation/service_layer/handlers.py
@@ -307,7 +307,7 @@ def add_allocation_to_read_model(
         uow.commit()
 ```
 
-Et il serait enregistre dans le bootstrap :
+Et il serait enregistré dans le bootstrap :
 
 ```python
 # src/allocation/service_layer/bootstrap.py
@@ -315,7 +315,7 @@ Et il serait enregistre dans le bootstrap :
 EVENT_HANDLERS: dict[type[events.Event], list] = {
     events.Allocated: [
         handlers.publish_allocated_event,
-        handlers.add_allocation_to_read_model,  # <-- mise a jour du read model
+        handlers.add_allocation_to_read_model,  # <-- mise à jour du read model
     ],
     events.Deallocated: [handlers.reallocate],
     events.OutOfStock: [handlers.send_out_of_stock_notification],
@@ -331,13 +331,13 @@ Le flux complet forme une boucle :
    2. Handler allocate() charge le Product via le repository
               │
               v
-   3. Product.allocate() alloue et emet un event Allocated
+   3. Product.allocate() alloue et émet un event Allocated
               │
               v
    4. Message bus collecte l'event Allocated
               │
               v
-   5. Handler add_allocation_to_read_model() met a jour allocations_view
+   5. Handler add_allocation_to_read_model() met à jour allocations_view
               │
               v
    6. GET /allocations/<orderid> lit la table allocations_view
@@ -345,34 +345,34 @@ Le flux complet forme une boucle :
 
 ### Eventual consistency
 
-Le read model n'est pas mis a jour **dans la meme transaction** que le write
-model. Il est mis a jour par un event handler, dans une transaction separee.
-Cela signifie qu'il existe un court instant ou le read model n'est pas encore
-a jour : c'est l'**eventual consistency**.
+Le read model n'est pas mis à jour **dans la même transaction** que le write
+model. Il est mis à jour par un event handler, dans une transaction séparée.
+Cela signifie qu'il existe un court instant où le read model n'est pas encore
+à jour : c'est l'**eventual consistency**.
 
 !!! warning "Eventual consistency"
-    Apres une ecriture, le read model peut avoir un **leger retard** sur le
+    Après une écriture, le read model peut avoir un **léger retard** sur le
     write model. Si un utilisateur alloue une commande puis consulte
-    immediatement ses allocations, il est possible que le resultat n'apparaisse
+    immédiatement ses allocations, il est possible que le résultat n'apparaisse
     pas encore.
 
-    En pratique, ce delai est de l'ordre de quelques millisecondes dans un
-    systeme monolithique. Mais c'est un aspect a garder en tete, surtout
-    si vous evoluez vers un systeme distribue (avec Redis ou Kafka entre
+    En pratique, ce délai est de l'ordre de quelques millisecondes dans un
+    système monolithique. Mais c'est un aspect à garder en tête, surtout
+    si vous évoluez vers un système distribué (avec Redis ou Kafka entre
     les deux).
 
-L'eventual consistency est le prix a payer pour la separation propre des
-responsabilites. Dans la grande majorite des cas, ce compromis est largement
-acceptable. Les utilisateurs ne remarquent pas un delai de quelques
-millisecondes, et le systeme gagne en clarte, en performance de lecture et
-en capacite d'evolution.
+L'eventual consistency est le prix à payer pour la séparation propre des
+responsabilités. Dans la grande majorité des cas, ce compromis est largement
+acceptable. Les utilisateurs ne remarquent pas un délai de quelques
+millisecondes, et le système gagne en clarté, en performance de lecture et
+en capacité d'évolution.
 
 ---
 
 ## Aller plus loin : Deallocated et le read model
 
-Le meme principe s'applique symetriquement aux desallocations. Quand un lot
-change de quantite et que des lignes sont desallouees, le domaine emet des
+Le même principe s'applique symétriquement aux désallocations. Quand un lot
+change de quantité et que des lignes sont désallouées, le domaine émet des
 events `Deallocated`. Un handler peut alors nettoyer le read model :
 
 ```python
@@ -390,10 +390,10 @@ def remove_allocation_from_read_model(
         uow.commit()
 ```
 
-Le read model reste ainsi coherent avec le write model, en reagissant aux
-memes events que le reste du systeme. C'est l'un des grands avantages de
+Le read model reste ainsi cohérent avec le write model, en réagissant aux
+mêmes events que le reste du système. C'est l'un des grands avantages de
 l'architecture event-driven : ajouter un nouveau "consommateur" d'events
-(ici, la mise a jour du read model) ne modifie en rien les producteurs
+(ici, la mise à jour du read model) ne modifie en rien les producteurs
 d'events (le domaine).
 
 ---
@@ -401,54 +401,54 @@ d'events (le domaine).
 ## Quand utiliser CQRS
 
 CQRS n'est pas un pattern qu'il faut appliquer partout. C'est un outil
-puissant, mais qui ajoute de la complexite : une table supplementaire a
-maintenir, des event handlers a ecrire, de l'eventual consistency a gerer.
+puissant, mais qui ajoute de la complexité : une table supplémentaire à
+maintenir, des event handlers à écrire, de l'eventual consistency à gérer.
 
 ### CQRS est utile quand :
 
-- **Les patterns de lecture et d'ecriture divergent fortement.** Si le read
-  model ressemblerait de toute facon au write model, la separation n'apporte
-  pas grand-chose. Mais quand les lectures necessitent des jointures complexes,
-  des agregations, ou des projections specifiques, un read model denormalise
-  simplifie enormement les choses.
+- **Les patterns de lecture et d'écriture divergent fortement.** Si le read
+  model ressemblerait de toute façon au write model, la séparation n'apporte
+  pas grand-chose. Mais quand les lectures nécessitent des jointures complexes,
+  des agrégations, ou des projections spécifiques, un read model dénormalisé
+  simplifie énormément les choses.
 
 - **Les performances de lecture sont critiques.** Un dashboard qui affiche des
-  statistiques en temps reel ne peut pas se permettre de reconstruire des
-  aggregats a chaque requete. Un read model pre-calcule resout ce probleme.
+  statistiques en temps réel ne peut pas se permettre de reconstruire des
+  agrégats à chaque requête. Un read model pré-calculé résout ce problème.
 
-- **Le systeme est deja event-driven.** Si vous avez deja un message bus et
-  des events, ajouter un handler qui met a jour un read model est trivial.
-  L'infrastructure est deja en place.
+- **Le système est déjà event-driven.** Si vous avez déjà un message bus et
+  des events, ajouter un handler qui met à jour un read model est trivial.
+  L'infrastructure est déjà en place.
 
-- **Le ratio lecture/ecriture est fortement desequilibre.** La plupart des
-  systemes font beaucoup plus de lectures que d'ecritures. Optimiser le chemin
-  de lecture a un impact disproportionne sur les performances globales.
+- **Le ratio lecture/écriture est fortement déséquilibré.** La plupart des
+  systèmes font beaucoup plus de lectures que d'écritures. Optimiser le chemin
+  de lecture a un impact disproportionné sur les performances globales.
 
 ### CQRS est superflu quand :
 
-- **L'application est un simple CRUD.** Si les lectures et ecritures portent
-  sur les memes structures, un ORM classique suffit amplement.
+- **L'application est un simple CRUD.** Si les lectures et écritures portent
+  sur les mêmes structures, un ORM classique suffit amplement.
 
-- **Le domaine est simple.** Si vous n'avez ni aggregats ni invariants
-  complexes, vous n'avez probablement pas besoin de separer les chemins.
+- **Le domaine est simple.** Si vous n'avez ni agrégats ni invariants
+  complexes, vous n'avez probablement pas besoin de séparer les chemins.
 
-- **L'equipe est petite et le systeme jeune.** La complexite ajoutee peut
-  ralentir le developpement au debut. Mieux vaut commencer simple et evoluer
+- **L'équipe est petite et le système jeune.** La complexité ajoutée peut
+  ralentir le développement au début. Mieux vaut commencer simple et évoluer
   vers CQRS quand le besoin se fait sentir.
 
 !!! tip "Approche progressive"
-    On peut adopter CQRS de maniere incrementale. Commencez par utiliser le
-    meme ORM pour les lectures et les ecritures, mais dans des modules separes.
+    On peut adopter CQRS de manière incrémentale. Commencez par utiliser le
+    même ORM pour les lectures et les écritures, mais dans des modules séparés.
     Puis, quand les performances l'exigent, introduisez un read model
-    denormalise pour les requetes les plus couteuses. Pas besoin de tout
-    separer d'un coup.
+    dénormalisé pour les requêtes les plus coûteuses. Pas besoin de tout
+    séparer d'un coup.
 
 ---
 
-## Resume
+## Résumé
 
-CQRS separe les responsabilites de lecture et d'ecriture en deux chemins
-distincts, chacun optimise pour son cas d'usage.
+CQRS sépare les responsabilités de lecture et d'écriture en deux chemins
+distincts, chacun optimisé pour son cas d'usage.
 
 ```
    ┌─────────────────────────────────────────────────────────────┐
@@ -461,14 +461,14 @@ distincts, chacun optimise pour son cas d'usage.
    │                                         Repository          │
    │                                              │              │
    │                                              v              │
-   │              Event emis ◄──────────── Tables normalisees    │
+   │              Event émis ◄──────────── Tables normalisées    │
    │                │                      (write model)         │
    │                v                                            │
    │         Event Handler                                       │
    │                │                                            │
    │                v                                            │
    │   ┌─────────────────────────┐                               │
-   │   │  Table denormalisee     │                               │
+   │   │  Table dénormalisée     │                               │
    │   │  (read model)           │                               │
    │   │  ex: allocations_view   │                               │
    │   └────────────┬────────────┘                               │
@@ -482,20 +482,20 @@ distincts, chacun optimise pour son cas d'usage.
    └─────────────────────────────────────────────────────────────┘
 ```
 
-| Concept | Role | Dans notre code |
+| Concept | Rôle | Dans notre code |
 |---------|------|-----------------|
-| **Command** | Intention d'ecriture | `commands.Allocate` |
-| **Write model** | Tables normalisees, protegees par le domaine | `order_lines`, `batches`, `allocations` |
+| **Command** | Intention d'écriture | `commands.Allocate` |
+| **Write model** | Tables normalisées, protégées par le domaine | `order_lines`, `batches`, `allocations` |
 | **Event** | Fait qui s'est produit | `events.Allocated` |
-| **Read model** | Table denormalisee, optimisee pour la lecture | `allocations_view` |
+| **Read model** | Table dénormalisée, optimisée pour la lecture | `allocations_view` |
 | **View** | Fonction de lecture pure, SQL direct | `views.allocations()` |
-| **Event handler** | Met a jour le read model en reaction aux events | `add_allocation_to_read_model()` |
-| **Eventual consistency** | Le read model peut avoir un leger retard | Delai entre commit write et update read |
+| **Event handler** | Met à jour le read model en réaction aux events | `add_allocation_to_read_model()` |
+| **Eventual consistency** | Le read model peut avoir un léger retard | Délai entre commit write et update read |
 
-!!! tip "A retenir"
-    - Le modele de domaine est optimise pour l'ecriture. Ne le forcez pas a servir les lectures.
-    - CQRS separe les chemins : commands vers le domaine, queries vers le read model.
-    - Le read model est une table denormalisee, mise a jour par des event handlers.
-    - Les views sont des fonctions simples : un SELECT SQL, un resultat. Pas de domaine.
-    - L'eventual consistency est le prix a payer. Il est presque toujours acceptable.
-    - Adoptez CQRS quand les besoins de lecture et d'ecriture divergent. Pas avant.
+!!! tip "À retenir"
+    - Le modèle de domaine est optimisé pour l'écriture. Ne le forcez pas à servir les lectures.
+    - CQRS sépare les chemins : commands vers le domaine, queries vers le read model.
+    - Le read model est une table dénormalisée, mise à jour par des event handlers.
+    - Les views sont des fonctions simples : un SELECT SQL, un résultat. Pas de domaine.
+    - L'eventual consistency est le prix à payer. Il est presque toujours acceptable.
+    - Adoptez CQRS quand les besoins de lecture et d'écriture divergent. Pas avant.

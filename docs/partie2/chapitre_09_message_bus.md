@@ -1,22 +1,22 @@
 # Chapitre 9 -- Aller plus loin avec le Message Bus
 
-## Le Message Bus comme coeur de l'architecture
+## Le Message Bus comme cœur de l'architecture
 
-Dans les chapitres precedents, le message bus etait un mecanisme secondaire :
+Dans les chapitres précédents, le message bus était un mécanisme secondaire :
 l'API appelait directement les service layer handlers, et le bus servait
-uniquement a propager les events en tant que side-effects. Cette approche
-fonctionnait, mais elle creait une asymetrie genante : les commands et les
-events empruntaient des chemins differents dans l'application.
+uniquement à propager les events en tant que side-effects. Cette approche
+fonctionnait, mais elle créait une asymétrie gênante : les commands et les
+events empruntaient des chemins différents dans l'application.
 
-L'idee centrale de ce chapitre est simple mais transformatrice : **tout passe
+L'idée centrale de ce chapitre est simple mais transformatrice : **tout passe
 par le bus**. Le message bus n'est plus un outil annexe -- il devient le point
-d'entree unique de l'application. Toute operation transite par le meme
-pipeline, qu'elle soit declenchee par une requete HTTP, un message Redis ou un
-event interne. Consequences :
+d'entrée unique de l'application. Toute opération transite par le même
+pipeline, qu'elle soit déclenchée par une requête HTTP, un message Redis ou un
+event interne. Conséquences :
 
-- **Uniformite** : commands et events suivent le meme chemin de dispatch.
-- **Decouplage** : l'API ne connait plus les handlers, seulement le bus.
-- **Extensibilite** : ajouter un comportement = ajouter un handler.
+- **Uniformité** : commands et events suivent le même chemin de dispatch.
+- **Découplage** : l'API ne connaît plus les handlers, seulement le bus.
+- **Extensibilité** : ajouter un comportement = ajouter un handler.
 
 ```text
                   +-----------+
@@ -35,11 +35,11 @@ event interne. Consequences :
 
 ---
 
-## Avant / Apres : l'evolution du point d'entree
+## Avant / Après : l'évolution du point d'entrée
 
 ### Avant : l'API appelle directement les handlers
 
-Dans une architecture classique, le endpoint Flask aurait ressemble a ceci :
+Dans une architecture classique, le endpoint Flask aurait ressemblé à ceci :
 
 ```python
 @app.route("/allocate", methods=["POST"])
@@ -50,8 +50,8 @@ def allocate_endpoint():
     return jsonify({"batchref": batchref}), 201
 ```
 
-L'API connaissait les fonctions du service layer et instanciait elle-meme les
-dependances. Apres, dans `src/allocation/entrypoints/flask_app.py` :
+L'API connaissait les fonctions du service layer et instanciait elle-même les
+dépendances. Après, dans `src/allocation/entrypoints/flask_app.py` :
 
 ```python
 bus = bootstrap.bootstrap()
@@ -73,23 +73,23 @@ def allocate_endpoint():
     return jsonify({"batchref": batchref}), 201
 ```
 
-Le endpoint ne connait plus aucun handler. Son travail se resume a :
+Le endpoint ne connaît plus aucun handler. Son travail se résume à :
 
-1. Extraire les donnees de la requete HTTP.
+1. Extraire les données de la requête HTTP.
 2. Construire un objet `Command`.
 3. Le soumettre au `MessageBus` via `bus.handle(cmd)`.
-4. Convertir le resultat en reponse HTTP.
+4. Convertir le résultat en réponse HTTP.
 
 C'est un **thin adapter** au sens propre : une fine couche de traduction entre
 le protocole HTTP et le langage interne du domaine (les commands). Toute la
-configuration -- quels handlers repondent a quels messages, quelles dependances
-sont injectees -- est definie dans le bootstrap, pas dans l'API.
+configuration -- quels handlers répondent à quels messages, quelles dépendances
+sont injectées -- est définie dans le bootstrap, pas dans l'API.
 
 ---
 
 ## La file d'attente interne
 
-Le coeur du mecanisme reside dans la methode `handle()` du `MessageBus` et
+Le cœur du mécanisme réside dans la méthode `handle()` du `MessageBus` et
 dans son attribut `self.queue` (`src/allocation/service_layer/messagebus.py`) :
 
 ```python
@@ -125,14 +125,14 @@ class MessageBus:
 
 Le fonctionnement est le suivant :
 
-1. Le message initial (en general une `Command`) est place dans `self.queue`.
-2. La boucle `while self.queue` depile les messages un par un.
-3. Chaque message est dispatche vers le handler correspondant.
-4. Apres l'execution d'un handler, les events emis par les agregats sont
-   collectes via `self.uow.collect_new_events()` et ajoutes a la queue.
-5. La boucle continue jusqu'a ce que la queue soit vide.
+1. Le message initial (en général une `Command`) est placé dans `self.queue`.
+2. La boucle `while self.queue` dépile les messages un par un.
+3. Chaque message est dispatché vers le handler correspondant.
+4. Après l'exécution d'un handler, les events émis par les agrégats sont
+   collectés via `self.uow.collect_new_events()` et ajoutés à la queue.
+5. La boucle continue jusqu'à ce que la queue soit vide.
 
-Ce mecanisme est visible dans `_handle_command` et `_handle_event` :
+Ce mécanisme est visible dans `_handle_command` et `_handle_event` :
 
 ```python
 def _handle_command(self, command: commands.Command) -> Any:
@@ -152,10 +152,10 @@ def _handle_event(self, event: events.Event) -> None:
             logger.exception("Erreur lors du traitement de l'event %s", event)
 ```
 
-**(1)** et **(2)** : apres chaque execution de handler, on collecte les events
-du domaine et on les reinjecte dans la queue. C'est ce qui permet la
-propagation en cascade. La methode `collect_new_events` du Unit of Work
-parcourt tous les agregats observes pendant la transaction :
+**(1)** et **(2)** : après chaque exécution de handler, on collecte les events
+du domaine et on les réinjecte dans la queue. C'est ce qui permet la
+propagation en cascade. La méthode `collect_new_events` du Unit of Work
+parcourt tous les agrégats observés pendant la transaction :
 
 ```python
 def collect_new_events(self):
@@ -164,45 +164,45 @@ def collect_new_events(self):
             yield product.events.pop(0)
 ```
 
-### Difference de traitement entre commands et events
+### Différence de traitement entre commands et events
 
 | Aspect             | Command                          | Event                                                  |
 |--------------------|----------------------------------|--------------------------------------------------------|
 | Nombre de handlers | Exactement 1                     | 0, 1 ou N                                             |
-| En cas d'erreur    | L'exception remonte a l'appelant | L'exception est loggee, les autres handlers continuent |
-| Valeur de retour   | Oui (ajoutee a `results`)        | Non                                                    |
+| En cas d'erreur    | L'exception remonte à l'appelant | L'exception est loggée, les autres handlers continuent |
+| Valeur de retour   | Oui (ajoutée à `results`)        | Non                                                    |
 
-Une command est une intention qui **doit** aboutir ou echouer explicitement.
+Une command est une intention qui **doit** aboutir ou échouer explicitement.
 Un event est une notification qui ne doit pas bloquer le flux principal.
 
 ---
 
 ## Handlers en cascade
 
-Le vrai interet de la queue interne apparait quand les handlers declenchent
-eux-memes de nouveaux events. Prenons un scenario concret.
+Le vrai intérêt de la queue interne apparaît quand les handlers déclenchent
+eux-mêmes de nouveaux events. Prenons un scénario concret.
 
-### Scenario : reduction de la quantite d'un lot
+### Scénario : réduction de la quantité d'un lot
 
-Un fournisseur nous informe qu'un lot de 50 unites ne contiendra finalement
-que 25 unites. Certaines lignes de commande deja allouees a ce lot doivent
-etre desallouees puis reallouees a d'autres lots.
+Un fournisseur nous informe qu'un lot de 50 unités ne contiendra finalement
+que 25 unités. Certaines lignes de commande déjà allouées à ce lot doivent
+être désallouées puis réallouées à d'autres lots.
 
 ```text
 1. ChangeBatchQuantity (command)
    --> change_batch_quantity handler
        --> Product.change_batch_quantity()
-           --> emet Deallocated event(s)
-2. Deallocated (event) ajoute a la queue
+           --> émet Deallocated event(s)
+2. Deallocated (event) ajouté à la queue
    --> reallocate handler
        --> Product.allocate()
-           --> peut emettre OutOfStock
-3. (optionnel) OutOfStock (event) ajoute a la queue
+           --> peut émettre OutOfStock
+3. (optionnel) OutOfStock (event) ajouté à la queue
    --> send_out_of_stock_notification handler
        --> envoie un email via l'adapter de notifications
 ```
 
-Dans le domaine (`src/allocation/domain/model.py`), le modele emet les events
+Dans le domaine (`src/allocation/domain/model.py`), le modèle émet les events
 sans savoir ce qui va se passer ensuite :
 
 ```python
@@ -216,8 +216,8 @@ def change_batch_quantity(self, ref: str, qty: int) -> None:
         )
 ```
 
-Cote handlers (`src/allocation/service_layer/handlers.py`), `reallocate`
-reagit a l'event `Deallocated` :
+Côté handlers (`src/allocation/service_layer/handlers.py`), `reallocate`
+réagit à l'event `Deallocated` :
 
 ```python
 def reallocate(event: events.Deallocated, uow: AbstractUnitOfWork) -> None:
@@ -227,8 +227,8 @@ def reallocate(event: events.Deallocated, uow: AbstractUnitOfWork) -> None:
     )
 ```
 
-Et si `allocate()` echoue par manque de stock, le domaine emet un `OutOfStock`
-event, dispatche vers `send_out_of_stock_notification` :
+Et si `allocate()` échoue par manque de stock, le domaine émet un `OutOfStock`
+event, dispatché vers `send_out_of_stock_notification` :
 
 ```python
 def send_out_of_stock_notification(
@@ -240,18 +240,18 @@ def send_out_of_stock_notification(
     )
 ```
 
-Personne n'a eu besoin d'orchestrer cette cascade. **Le comportement emerge de
+Personne n'a eu besoin d'orchestrer cette cascade. **Le comportement émerge de
 la composition des handlers**, pas d'un code d'orchestration central.
 
 ---
 
-## L'injection de dependances dans le bus
+## L'injection de dépendances dans le bus
 
-Les handlers ont besoin de dependances (`uow`, `notifications`, etc.), mais on
-ne veut pas que l'appelant ait a les fournir. La solution : le bus les injecte
+Les handlers ont besoin de dépendances (`uow`, `notifications`, etc.), mais on
+ne veut pas que l'appelant ait à les fournir. La solution : le bus les injecte
 automatiquement en inspectant la signature de chaque handler.
 
-### La methode `_call_handler`
+### La méthode `_call_handler`
 
 ```python
 def _call_handler(self, handler: Callable, message: Message) -> Any:
@@ -261,7 +261,7 @@ def _call_handler(self, handler: Callable, message: Message) -> Any:
     kwargs: dict[str, Any] = {}
     for name, param in params.items():
         if name == list(params.keys())[0]:
-            continue  # Premier parametre = le message lui-meme
+            continue  # Premier paramètre = le message lui-même
         if name == "uow":
             kwargs[name] = self.uow
         elif name in self.dependencies:
@@ -272,18 +272,18 @@ def _call_handler(self, handler: Callable, message: Message) -> Any:
 
 La logique est la suivante :
 
-1. `inspect.signature(handler).parameters` extrait les parametres du handler.
-2. Le premier parametre est toujours le message -- on le saute.
-3. Pour chaque parametre suivant, le bus cherche une correspondance :
+1. `inspect.signature(handler).parameters` extrait les paramètres du handler.
+2. Le premier paramètre est toujours le message -- on le saute.
+3. Pour chaque paramètre suivant, le bus cherche une correspondance :
     - `"uow"` : on injecte le Unit of Work.
     - Autre nom : on cherche dans `self.dependencies`.
-4. Le handler est appele avec le message en premier et les dependances en
+4. Le handler est appelé avec le message en premier et les dépendances en
    keyword arguments.
 
 Prenons `send_out_of_stock_notification(event, notifications)`. Le bus
 inspecte la signature, trouve `"notifications"` dans `self.dependencies`, et
 appelle `handler(event, notifications=email_adapter)`. Le handler n'a jamais
-besoin de savoir d'ou viennent ses dependances.
+besoin de savoir d'où viennent ses dépendances.
 
 ### Le bootstrap : la composition root
 
@@ -315,9 +315,9 @@ def bootstrap(
     )
 ```
 
-La cle `"notifications"` dans le dictionnaire doit correspondre exactement au
-nom du parametre dans la signature du handler. **Le nom du parametre fait
-office de contrat**. Le mapping handlers/messages est declare explicitement :
+La clé `"notifications"` dans le dictionnaire doit correspondre exactement au
+nom du paramètre dans la signature du handler. **Le nom du paramètre fait
+office de contrat**. Le mapping handlers/messages est déclaré explicitement :
 
 ```python
 EVENT_HANDLERS = {
@@ -345,7 +345,7 @@ bus.handle(commands.CreateBatch(ref="batch-001", sku="TABLE", qty=100))
 
 ---
 
-## Resume : le nouveau schema d'architecture
+## Résumé : le nouveau schéma d'architecture
 
 ```text
   Entrypoints             Service Layer              Domain
@@ -360,41 +360,41 @@ bus.handle(commands.CreateBatch(ref="batch-001", sku="TABLE", qty=100))
                       +--------------------+
 ```
 
-### Principes cles
+### Principes clés
 
-1. **Un seul point d'entree** : tout passe par `bus.handle(message)`. Que
+1. **Un seul point d'entrée** : tout passe par `bus.handle(message)`. Que
    l'appelant soit un endpoint Flask, un subscriber Redis ou un test unitaire,
    le chemin est identique.
 
-2. **Propagation automatique** : les events emis par le domaine sont collectes
-   et traites sans intervention. Aucun code d'orchestration n'est necessaire.
+2. **Propagation automatique** : les events émis par le domaine sont collectés
+   et traités sans intervention. Aucun code d'orchestration n'est nécessaire.
 
-3. **Injection par introspection** : le bus injecte les dependances dans les
-   handlers en inspectant leurs signatures. Les handlers declarent ce dont ils
+3. **Injection par introspection** : le bus injecte les dépendances dans les
+   handlers en inspectant leurs signatures. Les handlers déclarent ce dont ils
    ont besoin, le bus fournit.
 
-4. **Separation des responsabilites** :
-    - Les **entrypoints** traduisent les entrees externes en commands.
+4. **Séparation des responsabilités** :
+    - Les **entrypoints** traduisent les entrées externes en commands.
     - Le **bus** dispatche et orchestre.
     - Les **handlers** contiennent la logique applicative.
-    - Le **domaine** contient les regles metier et emet des events.
+    - Le **domaine** contient les règles métier et émet des events.
 
-5. **Testabilite** : le bootstrap accepte des fakes pour chaque dependance,
-   rendant les tests rapides et isoles.
+5. **Testabilité** : le bootstrap accepte des fakes pour chaque dépendance,
+   rendant les tests rapides et isolés.
 
-### Ce que nous avons gagne
+### Ce que nous avons gagné
 
-| Avant                                            | Apres                                                  |
+| Avant                                            | Après                                                  |
 |--------------------------------------------------|--------------------------------------------------------|
 | L'API appelle les handlers directement           | L'API envoie des commands au bus                       |
-| Les dependances sont passees manuellement        | Les dependances sont injectees automatiquement         |
-| Les side-effects sont geres a part               | Tout transite par le bus, commands comme events        |
+| Les dépendances sont passées manuellement        | Les dépendances sont injectées automatiquement         |
+| Les side-effects sont gérés à part               | Tout transite par le bus, commands comme events        |
 | Ajouter un comportement = modifier du code       | Ajouter un handler + l'enregistrer dans le bootstrap   |
-| Tests couples aux details d'implementation       | Tests via le bus avec des fakes injectees              |
+| Tests couplés aux détails d'implémentation       | Tests via le bus avec des fakes injectées              |
 
-Le message bus est devenu la colonne vertebrale de l'application. Toute
+Le message bus est devenu la colonne vertébrale de l'application. Toute
 l'intelligence est dans les handlers et le domaine ; le bus ne fait que
-distribuer les messages et injecter les dependances. Cette simplicite apparente
+distribuer les messages et injecter les dépendances. Cette simplicité apparente
 cache une grande puissance : on peut ajouter des comportements complexes
 (cascades d'events, notifications, publication externe) sans jamais modifier
 le code existant.

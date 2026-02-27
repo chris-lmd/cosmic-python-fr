@@ -4,55 +4,55 @@
 
     - Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask
     - Ce qu'est une Service Layer et ce qu'elle contient (et ne contient **pas**)
-    - Comment ecrire des handlers fins et proceduraux
+    - Comment écrire des handlers fins et procéduraux
     - Comment transformer Flask en thin adapter qui ne fait que traduire HTTP
-    - Comment tester l'orchestration sans framework web ni base de donnees
+    - Comment tester l'orchestration sans framework web ni base de données
 
 ---
 
-## Le probleme : des routes Flask qui grossissent
+## Le problème : des routes Flask qui grossissent
 
-Dans les chapitres precedents, nous avons construit un modele de domaine (`Product`, `Batch`, `OrderLine`) et un Repository pour persister nos agregats. Imaginons maintenant une premiere route Flask pour allouer du stock :
+Dans les chapitres précédents, nous avons construit un modèle de domaine (`Product`, `Batch`, `OrderLine`) et un Repository pour persister nos agrégats. Imaginons maintenant une première route Flask pour allouer du stock :
 
 ```python
-# Version naive -- toute la logique dans la route
+# Version naïve -- toute la logique dans la route
 @app.route("/allocate", methods=["POST"])
 def allocate_endpoint():
     data = request.json
     # 1. Ouvrir une session / transaction
     session = get_session()
-    # 2. Recuperer l'agregat
+    # 2. Récupérer l'agrégat
     product = repo.get(data["sku"])
     if product is None:
         return jsonify({"message": "SKU inconnu"}), 400
     # 3. Construire le value object
     line = OrderLine(data["orderid"], data["sku"], data["qty"])
-    # 4. Appeler la logique metier
+    # 4. Appeler la logique métier
     batchref = product.allocate(line)
     # 5. Committer
     session.commit()
     return jsonify({"batchref": batchref}), 201
 ```
 
-Ce code fonctionne, mais il pose plusieurs problemes :
+Ce code fonctionne, mais il pose plusieurs problèmes :
 
-**Duplication.** Si demain on ajoute une CLI, un worker Celery ou un consumer Redis, il faudra recopier toute cette sequence (recuperer le produit, construire la ligne, allouer, committer). Chaque point d'entree reimplementera le meme workflow.
+**Duplication.** Si demain on ajoute une CLI, un worker Celery ou un consumer Redis, il faudra recopier toute cette séquence (récupérer le produit, construire la ligne, allouer, committer). Chaque point d'entrée réimplémentera le même workflow.
 
-**Testabilite.** Pour tester cette logique, on doit demarrer Flask, envoyer de vraies requetes HTTP et souvent brancher une base de donnees. Les tests deviennent lents et fragiles.
+**Testabilité.** Pour tester cette logique, on doit démarrer Flask, envoyer de vraies requêtes HTTP et souvent brancher une base de données. Les tests deviennent lents et fragiles.
 
-**Responsabilite mal placee.** Flask est un framework de presentation. Son role est de convertir des requetes HTTP en appels applicatifs, pas d'orchestrer un workflow metier.
+**Responsabilité mal placée.** Flask est un framework de présentation. Son rôle est de convertir des requêtes HTTP en appels applicatifs, pas d'orchestrer un workflow métier.
 
 ---
 
 ## La Service Layer : une couche d'orchestration
 
-La Service Layer est une couche mince qui se place **entre** les points d'entree (Flask, CLI...) et le modele de domaine. Son role est precis :
+La Service Layer est une couche mince qui se place **entre** les points d'entrée (Flask, CLI...) et le modèle de domaine. Son rôle est précis :
 
-1. Recuperer les objets necessaires via le Repository
-2. Appeler les methodes du domaine
+1. Récupérer les objets nécessaires via le Repository
+2. Appeler les méthodes du domaine
 3. Committer la transaction
 
-Elle **ne contient pas** de logique metier. La logique metier reste dans le modele de domaine (c'est `Product.allocate()` qui decide quel batch choisir, pas le handler). La Service Layer se contente de **coordonner**.
+Elle **ne contient pas** de logique métier. La logique métier reste dans le modèle de domaine (c'est `Product.allocate()` qui décide quel batch choisir, pas le handler). La Service Layer se contente de **coordonner**.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -70,19 +70,19 @@ Elle **ne contient pas** de logique metier. La logique metier reste dans le mode
                    │
                    ▼
 ┌──────────────────────────────────────────────┐
-│          Modele de domaine                    │
+│          Modèle de domaine                    │
 │  (Product, Batch, OrderLine)                  │
-│  Contient TOUTE la logique metier             │
+│  Contient TOUTE la logique métier             │
 └──────────────────────────────────────────────┘
 ```
 
 ---
 
-## Les handlers : fins et proceduraux
+## Les handlers : fins et procéduraux
 
-Nos handlers vivent dans `src/allocation/service_layer/handlers.py`. Chaque handler prend une command (un simple dataclass decrivant l'intention) et un Unit of Work, puis orchestre le workflow en quelques lignes.
+Nos handlers vivent dans `src/allocation/service_layer/handlers.py`. Chaque handler prend une command (un simple dataclass décrivant l'intention) et un Unit of Work, puis orchestre le workflow en quelques lignes.
 
-### `add_batch` -- creer un lot de stock
+### `add_batch` -- créer un lot de stock
 
 ```python
 def add_batch(
@@ -100,7 +100,7 @@ def add_batch(
         uow.commit()
 ```
 
-Le handler est **procedural** : il ouvre le Unit of Work, recupere ou cree le produit, ajoute le batch, puis committe. Pas de boucle complexe, pas de logique conditionnelle metier.
+Le handler est **procédural** : il ouvre le Unit of Work, récupère ou crée le produit, ajoute le batch, puis committe. Pas de boucle complexe, pas de logique conditionnelle métier.
 
 ### `allocate` -- allouer une ligne de commande
 
@@ -119,19 +119,19 @@ def allocate(
     return batchref
 ```
 
-Observez que **toute la logique d'allocation** (trier les batches par ETA, verifier la quantite disponible, choisir le meilleur lot) est dans `product.allocate()`. Le handler ne fait que preparer les donnees et declencher l'appel.
+Observez que **toute la logique d'allocation** (trier les batches par ETA, vérifier la quantité disponible, choisir le meilleur lot) est dans `product.allocate()`. Le handler ne fait que préparer les données et déclencher l'appel.
 
-### La ligne de demarcation
+### La ligne de démarcation
 
-Un bon test pour savoir si la logique est au bon endroit : si vous enlevez le handler et appelez directement `product.allocate()` dans un test unitaire, la regle metier fonctionne-t-elle toujours ? Si oui, la logique est bien dans le domaine. Le handler ne fait que du "plumbing".
+Un bon test pour savoir si la logique est au bon endroit : si vous enlevez le handler et appelez directement `product.allocate()` dans un test unitaire, la règle métier fonctionne-t-elle toujours ? Si oui, la logique est bien dans le domaine. Le handler ne fait que du "plumbing".
 
 ---
 
 ## Flask comme thin adapter
 
-Maintenant que la Service Layer existe, Flask n'a plus qu'un seul role : **traduire le protocole HTTP** en objets que la couche service comprend, puis convertir le resultat en reponse HTTP.
+Maintenant que la Service Layer existe, Flask n'a plus qu'un seul rôle : **traduire le protocole HTTP** en objets que la couche service comprend, puis convertir le résultat en réponse HTTP.
 
-Voici le code reel de `src/allocation/entrypoints/flask_app.py` :
+Voici le code réel de `src/allocation/entrypoints/flask_app.py` :
 
 ```python
 app = Flask(__name__)
@@ -172,23 +172,23 @@ def allocate_endpoint():
     return jsonify({"batchref": batchref}), 201
 ```
 
-Chaque endpoint suit la meme structure en trois temps :
+Chaque endpoint suit la même structure en trois temps :
 
-1. **Extraire** les donnees de la requete HTTP (`request.json`)
+1. **Extraire** les données de la requête HTTP (`request.json`)
 2. **Construire** une command (un dataclass immuable)
-3. **Deleguer** au bus (qui dispatch vers le handler)
+3. **Déléguer** au bus (qui dispatch vers le handler)
 
-Il n'y a **aucune logique metier** dans ces fonctions. Pas de `if` sur la disponibilite du stock, pas de tri des batches, pas d'acces direct au Repository. Flask ne sait meme pas que des batches existent.
+Il n'y a **aucune logique métier** dans ces fonctions. Pas de `if` sur la disponibilité du stock, pas de tri des batches, pas d'accès direct au Repository. Flask ne sait même pas que des batches existent.
 
 !!! tip "Adaptateurs et ports"
 
-    Flask est un **adapter** au sens de l'architecture hexagonale. Il adapte le port HTTP vers l'interface de la Service Layer. Si demain vous remplacez Flask par FastAPI, seul cet adaptateur change -- ni les handlers, ni le domaine ne sont touches.
+    Flask est un **adapter** au sens de l'architecture hexagonale. Il adapte le port HTTP vers l'interface de la Service Layer. Si demain vous remplacez Flask par FastAPI, seul cet adaptateur change -- ni les handlers, ni le domaine ne sont touchés.
 
 ---
 
-## Testabilite : des fakes plutot que des mocks
+## Testabilité : des fakes plutôt que des mocks
 
-L'un des gains majeurs de la Service Layer est la **testabilite**. On peut tester toute l'orchestration sans demarrer Flask et sans toucher a la base de donnees, en remplacant les adaptateurs concrets par des fakes.
+L'un des gains majeurs de la Service Layer est la **testabilité**. On peut tester toute l'orchestration sans démarrer Flask et sans toucher à la base de données, en remplaçant les adaptateurs concrets par des fakes.
 
 ### FakeRepository et FakeUnitOfWork
 
@@ -230,7 +230,7 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 ```
 
-Ces fakes sont des implementations **en memoire** des abstractions. Le `FakeRepository` stocke les produits dans un `set` Python au lieu de SQLAlchemy, et le `FakeUnitOfWork` trace les commits sans toucher a aucune base de donnees.
+Ces fakes sont des implémentations **en mémoire** des abstractions. Le `FakeRepository` stocke les produits dans un `set` Python au lieu de SQLAlchemy, et le `FakeUnitOfWork` trace les commits sans toucher à aucune base de données.
 
 ### Les tests des handlers
 
@@ -272,54 +272,54 @@ class TestAllocate:
 
 Remarquez ce que ces tests **ne font pas** :
 
-- Pas de `app.test_client()` -- aucune requete HTTP
-- Pas de `session` SQLAlchemy -- aucune base de donnees
+- Pas de `app.test_client()` -- aucune requête HTTP
+- Pas de `session` SQLAlchemy -- aucune base de données
 - Pas de `mock.patch` -- on injecte de vrais objets (les fakes)
 
-Les tests sont rapides (millisecondes), isoles et lisibles. Ils verifient le **comportement metier** (est-ce que le batch est bien cree ? est-ce que l'allocation retourne la bonne reference ?) sans etre couples a aucune infrastructure.
+Les tests sont rapides (millisecondes), isolés et lisibles. Ils vérifient le **comportement métier** (est-ce que le batch est bien créé ? est-ce que l'allocation retourne la bonne référence ?) sans être couplés à aucune infrastructure.
 
 ### Et les tests de l'API ?
 
-Les tests de l'API Flask deviennent des **tests d'integration legers** : ils verifient uniquement que Flask parse correctement le JSON, appelle le bon handler, et retourne le bon code HTTP. La logique metier, elle, est deja couverte par les tests unitaires des handlers.
+Les tests de l'API Flask deviennent des **tests d'intégration légers** : ils vérifient uniquement que Flask parse correctement le JSON, appelle le bon handler, et retourne le bon code HTTP. La logique métier, elle, est déjà couverte par les tests unitaires des handlers.
 
 ---
 
 ## La pyramide des tests
 
-Avec la Service Layer en place, la repartition des tests evolue :
+Avec la Service Layer en place, la répartition des tests évolue :
 
 | Couche | Type de test | Vitesse | Ce qu'on teste |
 |--------|-------------|---------|----------------|
-| Domaine | Unitaire | Tres rapide | Regles metier pures |
+| Domaine | Unitaire | Très rapide | Règles métier pures |
 | Service Layer | Unitaire (avec fakes) | Rapide | Orchestration, workflows |
-| Entrypoints | Integration | Plus lent | Traduction HTTP, serialisation |
-| End-to-end | Systeme | Lent | Le systeme complet |
+| Entrypoints | Intégration | Plus lent | Traduction HTTP, sérialisation |
+| End-to-end | Système | Lent | Le système complet |
 
-La majorite des tests se concentre sur les deux premieres couches. Les tests d'integration de l'API sont peu nombreux car ils ne verifient que le "cablage".
+La majorité des tests se concentre sur les deux premières couches. Les tests d'intégration de l'API sont peu nombreux car ils ne vérifient que le "câblage".
 
 ---
 
-## Resume
+## Résumé
 
-La Service Layer est le ciment entre le monde exterieur et le modele de domaine. Elle applique le **principe de responsabilite unique** a l'echelle des couches :
+La Service Layer est le ciment entre le monde extérieur et le modèle de domaine. Elle applique le **principe de responsabilité unique** à l'échelle des couches :
 
-| Couche | Responsabilite | Exemple |
+| Couche | Responsabilité | Exemple |
 |--------|---------------|---------|
-| **Entrypoints** | Traduire un protocole externe en commands | Flask parse le JSON, construit `commands.Allocate`, delegue au bus |
-| **Service Layer** | Orchestrer le workflow applicatif | Le handler ouvre le UoW, recupere le produit, appelle `product.allocate()`, committe |
-| **Domaine** | Implementer les regles metier | `Product.allocate()` trie les batches, verifie la disponibilite, choisit le lot |
+| **Entrypoints** | Traduire un protocole externe en commands | Flask parse le JSON, construit `commands.Allocate`, délègue au bus |
+| **Service Layer** | Orchestrer le workflow applicatif | Le handler ouvre le UoW, récupère le produit, appelle `product.allocate()`, committe |
+| **Domaine** | Implémenter les règles métier | `Product.allocate()` trie les batches, vérifie la disponibilité, choisit le lot |
 
-Quelques principes a retenir :
+Quelques principes à retenir :
 
-- **Les handlers sont fins.** Quelques lignes de code procedural. Si un handler depasse 15 lignes, de la logique metier s'est probablement glissee au mauvais endroit.
-- **Le domaine ne sait rien de la persistance.** Il ne connait ni le Repository, ni le Unit of Work. C'est le handler qui fait le lien.
-- **Les entrypoints ne savent rien du domaine.** Flask ne manipule jamais directement un `Product` ou un `Batch`. Il envoie des commands et recoit des resultats.
-- **Les fakes sont preferes aux mocks.** En implementant les interfaces abstraites (`AbstractRepository`, `AbstractUnitOfWork`), on obtient des doubles de test fiables et maintenables.
+- **Les handlers sont fins.** Quelques lignes de code procédural. Si un handler dépasse 15 lignes, de la logique métier s'est probablement glissée au mauvais endroit.
+- **Le domaine ne sait rien de la persistance.** Il ne connaît ni le Repository, ni le Unit of Work. C'est le handler qui fait le lien.
+- **Les entrypoints ne savent rien du domaine.** Flask ne manipule jamais directement un `Product` ou un `Batch`. Il envoie des commands et reçoit des résultats.
+- **Les fakes sont préférés aux mocks.** En implémentant les interfaces abstraites (`AbstractRepository`, `AbstractUnitOfWork`), on obtient des doubles de test fiables et maintenables.
 
-!!! quote "Regle d'or"
+!!! quote "Règle d'or"
 
-    Si vous ne savez pas ou placer un bout de code, posez-vous la question : "Est-ce une **regle metier** (domaine), une **etape du workflow** (service layer), ou une **traduction de protocole** (entrypoint) ?"
+    Si vous ne savez pas où placer un bout de code, posez-vous la question : "Est-ce une **règle métier** (domaine), une **étape du workflow** (service layer), ou une **traduction de protocole** (entrypoint) ?"
 
 ---
 
-*Prochain chapitre : [TDD a haute et basse vitesse](chapitre_05_tdd.md) -- comment exploiter cette architecture en couches pour ecrire des tests a la fois rapides et fiables.*
+*Prochain chapitre : [TDD à haute et basse vitesse](chapitre_05_tdd.md) -- comment exploiter cette architecture en couches pour écrire des tests à la fois rapides et fiables.*

@@ -81,7 +81,9 @@ class Batch:
 
 ## Crédits
 
-Ce guide s'inspire des concepts présentés dans *Architecture Patterns with Python* de Harry Percival et Bob Gregory (disponible sur [cosmicpython.com](https://www.cosmicpython.com/)), ainsi que des travaux fondateurs d'Eric Evans (Domain-Driven Design) et de Martin Fowler (Patterns of Enterprise Application Architecture). Le contenu, les explications et les exemples de code sont originaux.
+Ce guide s'inspire des concepts présentés dans *Architecture Patterns with Python* de Harry Percival et Bob Gregory (disponible sur [cosmicpython.com](https://www.cosmicpython.com/)), ainsi que des travaux fondateurs d'Eric Evans (Domain-Driven Design) et de Martin Fowler (Patterns of Enterprise Application Architecture).
+
+Ce guide a été rédigé avec l'assistance de l'IA générative Claude (Anthropic). Le contenu, les explications et les exemples de code sont originaux mais ont été générés et structurés à l'aide de cet outil.
 
 ## Licence
 

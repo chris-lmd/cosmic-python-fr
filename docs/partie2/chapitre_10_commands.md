@@ -3,7 +3,7 @@
 Jusqu'ici, notre message bus traite des messages. Mais tous les messages ne se
 valent pas. Quand l'API envoie une demande d'allocation, c'est une **instruction
 explicite** : "alloue cette ligne de commande". Quand le domaine signale qu'un
-produit est en rupture de stock, c'est un **constat** : "le stock est epuise".
+produit est en rupture de stock, c'est un **constat** : "le stock est épuisé".
 
 Cette distinction n'est pas cosmétique. Elle a des conséquences concrètes sur la
 manière dont le système traite ces messages, sur la gestion des erreurs, et sur
@@ -173,7 +173,7 @@ Le nom d'une command exprime ce que l'on veut que le système fasse :
 | `Allocate`             | "Alloue cette ligne de commande"      |
 | `ChangeBatchQuantity`  | "Modifie la quantité de ce lot"       |
 
-On parle au système comme on parlerait a un collègue : *"Fais ceci."*
+On parle au système comme on parlerait à un collègue : *"Fais ceci."*
 
 ### 2. Exactement un handler
 
@@ -242,7 +242,7 @@ except handlers.InvalidSku as e:
 
 Une command a un **destinataire clair**. `Allocate` est destinée au handler
 `allocate`. Il n'y a pas d'ambiguité, pas de broadcast. C'est une communication
-point-a-point.
+point-à-point.
 
 ---
 
@@ -260,7 +260,7 @@ Un event décrit quelque chose qui s'est *déjà* produit :
 | `Deallocated`  | "Une ligne a été désallouée"             |
 | `OutOfStock`   | "Le stock est épuisé"                    |
 
-On ne dit pas *"Désalloue"* (ce serait une command), on dit *"Ca a été
+On ne dit pas *"Désalloue"* (ce serait une command), on dit *"Ça a été
 désalloué"*.
 
 ### 2. Zéro, un ou N handlers
@@ -278,7 +278,7 @@ EVENT_HANDLERS: dict[type[events.Event], list] = {
 
 Remarquez le type : `dict[type[events.Event], list[Callable]]` -- une **liste**
 de handlers par event. Demain, si l'on veut aussi envoyer un SMS en cas de
-rupture de stock, il suffit d'ajouter un handler a la liste de `OutOfStock` :
+rupture de stock, il suffit d'ajouter un handler à la liste de `OutOfStock` :
 
 ```python
 events.OutOfStock: [
@@ -297,12 +297,12 @@ autres handlers continuent de s'exécuter. C'est fondamental : un fait s'est
 produit, et toutes les parties intéressées doivent avoir la chance d'en être
 informées, même si l'une d'elles rencontre un problème.
 
-Si l'envoi du SMS échoue, ca ne doit pas empêcher la notification par email.
+Si l'envoi du SMS échoue, ça ne doit pas empêcher la notification par email.
 
 ### 4. Broadcast
 
 L'émetteur d'un event ne choisit pas ses destinataires. Il se contente de dire
-*"Voila ce qui s'est passé"* et le message bus se charge de distribuer
+*"Voilà ce qui s'est passé"* et le message bus se charge de distribuer
 l'information. N'importe quel composant peut s'abonner.
 
 ---
@@ -331,8 +331,8 @@ class MessageBus:
         return results
 ```
 
-1. Les events sont délégués a `_handle_event`.
-2. Les commands sont déléguées a `_handle_command`, et leur **résultat** est
+1. Les events sont délégués à `_handle_event`.
+2. Les commands sont déléguées à `_handle_command`, et leur **résultat** est
    collecté.
 
 ### `_handle_command` : strict et direct
@@ -354,7 +354,7 @@ Points clés :
 - **Un seul handler** est recherché (pas une liste).
 - Si le handler est absent, une `ValueError` est levée.
 - Les exceptions du handler **ne sont pas attrapées** : elles remontent
-  naturellement a l'appelant.
+  naturellement à l'appelant.
 - Le résultat du handler est **retourné** (utile pour `allocate` qui retourne
   le `batchref`).
 
@@ -402,7 +402,7 @@ retourne un résultat               ne retourne rien
 Pour bien comprendre comment les deux types de messages coopèrent, suivons le
 parcours d'un changement de quantité de lot.
 
-**Etape 1 -- L'API recoit une requête HTTP et crée une command.**
+**Étape 1 -- L'API reçoit une requête HTTP et crée une command.**
 
 ```python
 cmd = commands.ChangeBatchQuantity(ref="batch-001", qty=5)
@@ -412,7 +412,7 @@ bus.handle(cmd)
 C'est une **command** : quelqu'un demande au système de modifier une quantité.
 Si le lot n'existe pas, on veut une erreur.
 
-**Etape 2 -- Le command handler s'exécute.**
+**Étape 2 -- Le command handler s'exécute.**
 
 ```python
 def change_batch_quantity(cmd, uow):
@@ -425,9 +425,9 @@ def change_batch_quantity(cmd, uow):
 Le modèle de domaine ajuste la quantité. Si des lignes doivent être désallouées,
 il émet un event `Deallocated` sur l'agrégat.
 
-**Etape 3 -- Le message bus collecte les events et les traite.**
+**Étape 3 -- Le message bus collecte les events et les traite.**
 
-L'event `Deallocated(orderid="o1", sku="SMALL-TABLE", qty=10)` est ajouté a la
+L'event `Deallocated(orderid="o1", sku="SMALL-TABLE", qty=10)` est ajouté à la
 queue. Le bus le dispatche vers son handler :
 
 ```python
@@ -446,7 +446,7 @@ Notez que le handler d'event **crée une command** (`Allocate`) pour réallouer.
 C'est un pattern courant : un event déclenche une action, et cette action est
 formulée comme une command.
 
-**Etape 4 -- L'allocation réussit ou émet un `OutOfStock`.**
+**Étape 4 -- L'allocation réussit ou émet un `OutOfStock`.**
 
 Si le stock est insuffisant, le domaine émet `OutOfStock(sku="SMALL-TABLE")`,
 ce qui déclenche l'envoi d'une notification. Si un handler de notification
@@ -478,17 +478,17 @@ Quelques exemples pour illustrer :
 
 | Situation                                           | Type    | Pourquoi                                                |
 |-----------------------------------------------------|---------|---------------------------------------------------------|
-| L'API recoit `POST /allocate`                       | Command | Demande explicite d'un acteur extérieur                 |
+| L'API reçoit `POST /allocate`                       | Command | Demande explicite d'un acteur extérieur                 |
 | Un fichier CSV contient de nouveaux lots             | Command | Le fichier *demande* la création des lots               |
-| Le domaine constate qu'une ligne a été allouée       | Event   | Fait interne, broadcast a qui veut l'entendre           |
+| Le domaine constate qu'une ligne a été allouée       | Event   | Fait interne, broadcast à qui veut l'entendre           |
 | La quantité d'un lot diminue et des lignes débordent | Event   | Le domaine constate la désallocation                    |
 | Un autre service demande de modifier un lot          | Command | Demande explicite, même si elle vient d'un service      |
-| Le stock tombe a zéro                               | Event   | Constat, les intéressés réagissent comme ils l'entendent |
+| Le stock tombe à zéro                               | Event   | Constat, les intéressés réagissent comme ils l'entendent |
 
 ### Cas particulier : les réactions en chaîne
 
 Comme on l'a vu dans le parcours ci-dessus, un event handler peut lui-même
-émettre des commands ou des events. Le handler `reallocate` réagit a un event
+émettre des commands ou des events. Le handler `reallocate` réagit à un event
 `Deallocated` en créant une command `Allocate`. C'est parfaitement normal :
 
 - L'event `Deallocated` est un **fait** : "cette ligne a été désallouée".
@@ -505,13 +505,13 @@ Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
 
 | Aspect              | Command                          | Event                               |
 |---------------------|----------------------------------|--------------------------------------|
-| **Sémantique**      | Intention (quelque chose a faire) | Fait (quelque chose s'est produit)   |
+| **Sémantique**      | Intention (quelque chose à faire) | Fait (quelque chose s'est produit)   |
 | **Nommage**         | Impératif : `Allocate`           | Passé : `Allocated`                  |
 | **Nombre de handlers** | Exactement 1                  | 0, 1 ou N                           |
-| **Erreur du handler** | Propagée a l'appelant           | Logguée, les autres continuent       |
+| **Erreur du handler** | Propagée à l'appelant           | Logguée, les autres continuent       |
 | **Résultat**        | Peut retourner une valeur        | Pas de valeur de retour              |
 | **Origine**         | Extérieure (API, CLI, service)   | Interne (domaine, handler)           |
-| **Communication**   | Point-a-point                    | Broadcast                            |
+| **Communication**   | Point-à-point                    | Broadcast                            |
 | **Handler absent**  | `ValueError`                     | Silencieux (liste vide)              |
 
 ### Ce que nous avons appris
@@ -521,7 +521,7 @@ Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
   académique : cela détermine la gestion des erreurs, le couplage entre
   composants, et l'extensibilité du système.
 
-- Les commands sont des **demandes explicites**, nommées a l'impératif, avec un
+- Les commands sont des **demandes explicites**, nommées à l'impératif, avec un
   handler unique qui peut échouer bruyamment. Elles viennent de l'extérieur du
   domaine.
 

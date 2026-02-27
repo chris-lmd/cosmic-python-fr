@@ -1,41 +1,41 @@
 # Chapitre 6 -- Le pattern Unit of Work
 
-> **Comment garantir que les operations en base de donnees sont atomiques, sans coupler nos handlers a SQLAlchemy ?**
+> **Comment garantir que les opérations en base de données sont atomiques, sans coupler nos handlers à SQLAlchemy ?**
 
-Jusqu'ici, notre architecture repose sur un repository qui abstrait l'acces a la base de donnees, et une service layer qui orchestre les cas d'usage. Mais une question reste ouverte : **qui gere la transaction ?**
+Jusqu'ici, notre architecture repose sur un repository qui abstrait l'accès à la base de données, et une service layer qui orchestre les cas d'usage. Mais une question reste ouverte : **qui gère la transaction ?**
 
-Dans ce chapitre, nous introduisons le pattern **Unit of Work** -- un context manager qui encapsule la session, le repository et la transaction dans un seul objet coherent.
+Dans ce chapitre, nous introduisons le pattern **Unit of Work** -- un context manager qui encapsule la session, le repository et la transaction dans un seul objet cohérent.
 
 ---
 
-## Le probleme : qui controle la transaction ?
+## Le problème : qui contrôle la transaction ?
 
 Notre handler `allocate` doit faire plusieurs choses dans une seule transaction :
 
 1. Lire un `Product` depuis la base
 2. Appeler la logique d'allocation sur le domaine
-3. Persister le resultat en base
+3. Persister le résultat en base
 4. Commiter la transaction
 
-La question est : **ou vit la gestion de la session et du commit ?**
+La question est : **où vit la gestion de la session et du commit ?**
 
-### Option 1 : le repository gere la session
+### Option 1 : le repository gère la session
 
-Si le repository cree et commite lui-meme sa session, chaque operation (`add`, `get`) est independante. On perd **l'atomicite** : si l'allocation reussit mais que le commit echoue, on se retrouve dans un etat incoherent.
+Si le repository crée et commite lui-même sa session, chaque opération (`add`, `get`) est indépendante. On perd **l'atomicité** : si l'allocation réussit mais que le commit échoue, on se retrouve dans un état incohérent.
 
 ```python
-# Probleme : chaque appel est une transaction separee
+# Problème : chaque appel est une transaction séparée
 product = repo.get("CHAISE-COMFY")       # transaction 1
-batchref = product.allocate(line)         # en memoire
-repo.save(product)                        # transaction 2 -- et si ca echoue ?
+batchref = product.allocate(line)         # en mémoire
+repo.save(product)                        # transaction 2 -- et si ça échoue ?
 ```
 
-### Option 2 : le handler gere la session
+### Option 2 : le handler gère la session
 
-Si le handler cree la session SQLAlchemy et la passe au repository, on retrouve l'atomicite. Mais le handler devient **couple a SQLAlchemy** -- exactement ce qu'on voulait eviter avec le repository.
+Si le handler crée la session SQLAlchemy et la passe au repository, on retrouve l'atomicité. Mais le handler devient **couplé à SQLAlchemy** -- exactement ce qu'on voulait éviter avec le repository.
 
 ```python
-# Probleme : le handler connait SQLAlchemy
+# Problème : le handler connaît SQLAlchemy
 def allocate(cmd, session_factory):
     session = session_factory()
     repo = SqlAlchemyRepository(session)
@@ -46,22 +46,22 @@ def allocate(cmd, session_factory):
 
 ### La solution : un nouvel objet qui encapsule la transaction
 
-Le **Unit of Work** resout ce dilemme. C'est un objet qui :
+Le **Unit of Work** résout ce dilemme. C'est un objet qui :
 
-- **Cree la session** a l'entree du context manager
-- **Fournit le repository** configure avec cette session
-- **Expose `commit()` et `rollback()`** sans reveler l'implementation
-- **Ferme la session** a la sortie, avec rollback automatique si `commit()` n'a pas ete appele
+- **Crée la session** à l'entrée du context manager
+- **Fournit le repository** configuré avec cette session
+- **Expose `commit()` et `rollback()`** sans révéler l'implémentation
+- **Ferme la session** à la sortie, avec rollback automatique si `commit()` n'a pas été appelé
 
-Le handler n'a plus besoin de connaitre SQLAlchemy. Il travaille avec une **abstraction**.
+Le handler n'a plus besoin de connaître SQLAlchemy. Il travaille avec une **abstraction**.
 
 ---
 
 ## Le pattern Unit of Work
 
-Le Unit of Work represente une **unite de travail atomique**. C'est un concept formalise par Martin Fowler dans *Patterns of Enterprise Application Architecture* : un objet qui suit les modifications faites pendant une transaction et coordonne leur ecriture en base.
+Le Unit of Work représente une **unité de travail atomique**. C'est un concept formalisé par Martin Fowler dans *Patterns of Enterprise Application Architecture* : un objet qui suit les modifications faites pendant une transaction et coordonne leur écriture en base.
 
-Dans notre implementation, le Unit of Work est un **context manager** Python. Voici comment un handler l'utilise :
+Dans notre implémentation, le Unit of Work est un **context manager** Python. Voici comment un handler l'utilise :
 
 ```python
 def allocate(cmd: Allocate, uow: AbstractUnitOfWork) -> str:
@@ -75,27 +75,27 @@ def allocate(cmd: Allocate, uow: AbstractUnitOfWork) -> str:
     return batchref
 ```
 
-Les regles sont simples :
+Les règles sont simples :
 
 - `with uow:` ouvre la transaction et initialise le repository
-- `uow.products` donne acces au repository (sans savoir comment il est construit)
+- `uow.products` donne accès au repository (sans savoir comment il est construit)
 - `uow.commit()` valide la transaction
-- Si une exception survient avant le commit, `__exit__` declenche un **rollback automatique**
-- La session est fermee dans tous les cas
+- Si une exception survient avant le commit, `__exit__` déclenche un **rollback automatique**
+- La session est fermée dans tous les cas
 
 ---
 
 ## L'interface abstraite : `AbstractUnitOfWork`
 
-L'interface est definie comme une classe abstraite qui implemente le **context manager protocol** de Python -- c'est-a-dire les methodes `__enter__` et `__exit__`.
+L'interface est définie comme une classe abstraite qui implémente le **context manager protocol** de Python -- c'est-à-dire les méthodes `__enter__` et `__exit__`.
 
 ```python title="src/allocation/service_layer/unit_of_work.py" hl_lines="5 8 11 14 19"
 class AbstractUnitOfWork(abc.ABC):
     """
     Interface abstraite du Unit of Work.
 
-    Definit le contrat : un repository products,
-    et les methodes commit/rollback.
+    Définit le contrat : un repository products,
+    et les méthodes commit/rollback.
     """
 
     products: repository.AbstractRepository
@@ -120,23 +120,23 @@ class AbstractUnitOfWork(abc.ABC):
 
 ### Anatomie du context manager protocol
 
-Le protocol `with` de Python repose sur deux methodes speciales :
+Le protocol `with` de Python repose sur deux méthodes spéciales :
 
-| Methode       | Quand ?                                 | Role dans le UoW                          |
+| Méthode       | Quand ?                                 | Rôle dans le UoW                          |
 |---------------|----------------------------------------|-------------------------------------------|
-| `__enter__`   | A l'entree du bloc `with`              | Retourne `self` pour le `as`              |
-| `__exit__`    | A la sortie du bloc `with` (toujours)  | Rollback automatique en cas d'erreur      |
+| `__enter__`   | À l'entrée du bloc `with`              | Retourne `self` pour le `as`              |
+| `__exit__`    | À la sortie du bloc `with` (toujours)  | Rollback automatique en cas d'erreur      |
 
-Le point crucial est que `__exit__` est **toujours appele**, meme si une exception a lieu. C'est ce qui garantit le rollback automatique : si `commit()` n'a pas ete appele explicitement, `__exit__` appelle `rollback()`.
+Le point crucial est que `__exit__` est **toujours appelé**, même si une exception a lieu. C'est ce qui garantit le rollback automatique : si `commit()` n'a pas été appelé explicitement, `__exit__` appelle `rollback()`.
 
 !!! note "Pourquoi `_commit` avec un underscore ?"
-    La methode publique `commit()` est definie dans la classe abstraite. Elle delègue a `_commit()`, la methode abstraite que les sous-classes implementent. Ce decoupage permet d'ajouter de la logique commune dans `commit()` (par exemple collecter les events) sans que chaque implementation doive y penser.
+    La méthode publique `commit()` est définie dans la classe abstraite. Elle délègue à `_commit()`, la méthode abstraite que les sous-classes implémentent. Ce découpage permet d'ajouter de la logique commune dans `commit()` (par exemple collecter les events) sans que chaque implémentation doive y penser.
 
 ---
 
-## L'implementation SQLAlchemy
+## L'implémentation SQLAlchemy
 
-Voici l'implementation concrète qui utilise SQLAlchemy :
+Voici l'implémentation concrète qui utilise SQLAlchemy :
 
 ```python title="src/allocation/service_layer/unit_of_work.py"
 DEFAULT_SESSION_FACTORY = sessionmaker(
@@ -149,9 +149,9 @@ DEFAULT_SESSION_FACTORY = sessionmaker(
 
 class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     """
-    Implementation concrète du UoW avec SQLAlchemy.
+    Implémentation concrète du UoW avec SQLAlchemy.
 
-    Gère la session SQLAlchemy et le repository associe.
+    Gère la session SQLAlchemy et le repository associé.
     """
 
     def __init__(self, session_factory: sessionmaker = DEFAULT_SESSION_FACTORY):
@@ -175,47 +175,47 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
 ### Le cycle de vie de la session
 
-Voici ce qui se passe concretement lors de l'execution d'un handler :
+Voici ce qui se passe concrètement lors de l'exécution d'un handler :
 
 ```
-with uow:                          # (1) __enter__ est appele
+with uow:                          # (1) __enter__ est appelé
     |                              #     -> session = session_factory()
     |                              #     -> products = SqlAlchemyRepository(session)
     product = uow.products.get()   # (2) lecture via la session
-    product.allocate(line)         # (3) logique metier pure
+    product.allocate(line)         # (3) logique métier pure
     uow.commit()                   # (4) session.commit()
-                                   # (5) __exit__ est appele
-                                   #     -> rollback() (sans effet apres commit)
+                                   # (5) __exit__ est appelé
+                                   #     -> rollback() (sans effet après commit)
                                    #     -> session.close()
 ```
 
 Trois points importants :
 
-1. **La session est creee a l'entree** (`__enter__`), pas dans le constructeur. Cela signifie qu'on peut reutiliser un UoW pour plusieurs transactions successives.
+1. **La session est créée à l'entrée** (`__enter__`), pas dans le constructeur. Cela signifie qu'on peut réutiliser un UoW pour plusieurs transactions successives.
 
-2. **Le rollback dans `__exit__` est un filet de securite.** Apres un `commit()` reussi, le `rollback()` n'a aucun effet. Mais si une exception survient avant le commit, il annule toutes les modifications.
+2. **Le rollback dans `__exit__` est un filet de sécurité.** Après un `commit()` réussi, le `rollback()` n'a aucun effet. Mais si une exception survient avant le commit, il annule toutes les modifications.
 
-3. **La session est toujours fermee** a la sortie, que la transaction ait reussi ou non. Pas de fuite de connexion.
+3. **La session est toujours fermée** à la sortie, que la transaction ait réussi ou non. Pas de fuite de connexion.
 
 !!! warning "Isolation level `SERIALIZABLE`"
-    La session factory utilise le niveau d'isolation `SERIALIZABLE`, le plus strict. Cela garantit que deux transactions concurrentes ne peuvent pas modifier le meme produit simultanement. C'est essentiel pour l'allocation de stock ou les conditions de course (race conditions) pourraient mener a de la surallocation.
+    La session factory utilise le niveau d'isolation `SERIALIZABLE`, le plus strict. Cela garantit que deux transactions concurrentes ne peuvent pas modifier le même produit simultanément. C'est essentiel pour l'allocation de stock où les conditions de course (race conditions) pourraient mener à de la surallocation.
 
 ---
 
 ## La collecte des events : `collect_new_events`
 
-Le Unit of Work joue un role supplementaire dans notre architecture : il sert de **pont entre les agrégats et le message bus**.
+Le Unit of Work joue un rôle supplémentaire dans notre architecture : il sert de **pont entre les agrégats et le message bus**.
 
-Quand un agrégat effectue une operation metier, il peut emettre des domain events. Par exemple, `Product.allocate()` emet un event `OutOfStock` si le stock est epuise, et `Product.change_batch_quantity()` emet des events `Deallocated` pour les lignes a reallouer.
+Quand un agrégat effectue une opération métier, il peut émettre des domain events. Par exemple, `Product.allocate()` émet un event `OutOfStock` si le stock est épuisé, et `Product.change_batch_quantity()` émet des events `Deallocated` pour les lignes à réallouer.
 
-Le probleme est : **comment le message bus recupere-t-il ces events ?**
+Le problème est : **comment le message bus récupère-t-il ces events ?**
 
-C'est la methode `collect_new_events()` du UoW qui s'en charge :
+C'est la méthode `collect_new_events()` du UoW qui s'en charge :
 
 ```python title="src/allocation/service_layer/unit_of_work.py"
 def collect_new_events(self):
     """
-    Collecte tous les events emis par les agrégats vus
+    Collecte tous les events émis par les agrégats vus
     au cours de cette transaction.
     """
     for product in self.products.seen:
@@ -223,15 +223,15 @@ def collect_new_events(self):
             yield product.events.pop(0)
 ```
 
-### Comment ca fonctionne
+### Comment ça fonctionne
 
-Le mecanisme repose sur la collaboration entre le repository et le UoW :
+Le mécanisme repose sur la collaboration entre le repository et le UoW :
 
 1. Le repository garde une trace de tous les agrégats qu'il a **vus** (via `add` ou `get`), dans son attribut `seen`.
-2. Chaque agrégat `Product` maintient une liste `events` ou il accumule ses domain events.
-3. Apres chaque handler, le message bus appelle `uow.collect_new_events()`.
-4. Cette methode itère sur les agrégats vus et **vide** leur liste d'events (avec `pop`).
-5. Les events recuperes sont reinjectes dans la queue du message bus pour etre traites a leur tour.
+2. Chaque agrégat `Product` maintient une liste `events` où il accumule ses domain events.
+3. Après chaque handler, le message bus appelle `uow.collect_new_events()`.
+4. Cette méthode itère sur les agrégats vus et **vide** leur liste d'events (avec `pop`).
+5. Les events récupérés sont réinjectés dans la queue du message bus pour être traités à leur tour.
 
 ```python title="src/allocation/service_layer/messagebus.py (extrait)"
 def _handle_command(self, command: commands.Command) -> Any:
@@ -241,21 +241,21 @@ def _handle_command(self, command: commands.Command) -> Any:
     return result
 ```
 
-1. Apres chaque command, le bus collecte les events emis et les ajoute a sa queue.
+1. Après chaque command, le bus collecte les events émis et les ajoute à sa queue.
 
-C'est un mecanisme elegant : les agrégats n'ont pas besoin de connaitre le message bus, le bus n'a pas besoin de connaitre le domaine, et le UoW fait le lien entre les deux.
+C'est un mécanisme élégant : les agrégats n'ont pas besoin de connaître le message bus, le bus n'a pas besoin de connaître le domaine, et le UoW fait le lien entre les deux.
 
 ---
 
 ## Le Fake Unit of Work pour les tests
 
-L'un des avantages majeurs du pattern est la **testabilite**. Puisque les handlers dependent de `AbstractUnitOfWork` (une abstraction), on peut facilement le remplacer par un fake dans les tests unitaires. Le `FakeUnitOfWork` utilise un `FakeRepository` qui stocke les produits en memoire (un simple `set`) :
+L'un des avantages majeurs du pattern est la **testabilité**. Puisque les handlers dépendent de `AbstractUnitOfWork` (une abstraction), on peut facilement le remplacer par un fake dans les tests unitaires. Le `FakeUnitOfWork` utilise un `FakeRepository` qui stocke les produits en mémoire (un simple `set`) :
 
 ```python title="tests/unit/test_handlers.py"
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """
     Fake Unit of Work utilisant le FakeRepository.
-    Permet de tester sans base de donnees.
+    Permet de tester sans base de données.
     """
 
     def __init__(self):
@@ -275,12 +275,12 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
         pass
 ```
 
-1. L'attribut `committed` est initialise a `False`.
-2. Quand `commit()` est appele (via `_commit`), il passe a `True`.
+1. L'attribut `committed` est initialisé à `False`.
+2. Quand `commit()` est appelé (via `_commit`), il passe à `True`.
 
-### L'attribut `committed` : verifier l'atomicite
+### L'attribut `committed` : vérifier l'atomicité
 
-L'attribut `committed` est un outil de test simple mais puissant. Il permet de **verifier que le handler a bien commite la transaction** :
+L'attribut `committed` est un outil de test simple mais puissant. Il permet de **vérifier que le handler a bien commité la transaction** :
 
 ```python
 class TestAddBatch:
@@ -289,17 +289,17 @@ class TestAddBatch:
         bus.handle(commands.CreateBatch("b1", "COUSSIN-CARRE", 100, None))
 
         assert bus.uow.products.get("COUSSIN-CARRE") is not None
-        assert bus.uow.committed  # on verifie que le commit a eu lieu
+        assert bus.uow.committed  # on vérifie que le commit a eu lieu
 ```
 
 Sans cet attribut, on ne pourrait pas distinguer un handler qui modifie le repository sans commiter (ce qui serait un bug) d'un handler qui commite correctement.
 
 ### Le `FakeRepository` et l'attribut `seen`
 
-Le `FakeRepository` herite de `AbstractRepository`, qui definit l'attribut `seen`. Cela signifie que `collect_new_events()` fonctionne **exactement de la meme maniere** avec le fake qu'avec l'implementation reelle. Les tests unitaires verifient donc le comportement complet, y compris la propagation des events.
+Le `FakeRepository` hérite de `AbstractRepository`, qui définit l'attribut `seen`. Cela signifie que `collect_new_events()` fonctionne **exactement de la même manière** avec le fake qu'avec l'implémentation réelle. Les tests unitaires vérifient donc le comportement complet, y compris la propagation des events.
 
-!!! tip "Le pattern general des fakes"
-    Un bon fake implemente la meme interface que le composant reel, avec un stockage en memoire. Il peut aussi exposer des attributs supplementaires (comme `committed`) pour les assertions. C'est plus fiable qu'un mock car on teste le **comportement** reel de l'interface, pas juste les appels de methodes.
+!!! tip "Le pattern général des fakes"
+    Un bon fake implémente la même interface que le composant réel, avec un stockage en mémoire. Il peut aussi exposer des attributs supplémentaires (comme `committed`) pour les assertions. C'est plus fiable qu'un mock car on teste le **comportement** réel de l'interface, pas juste les appels de méthodes.
 
 ---
 
@@ -314,12 +314,12 @@ MessageBus.handle(Allocate)
 handler: allocate(cmd, uow)
     |
     +---> with uow:                          # UoW.__enter__
-    |         |                               #   cree session + repository
+    |         |                               #   crée session + repository
     |         +---> uow.products.get(sku)     # Repository.get()
     |         |         |                     #   marque le Product comme "seen"
     |         |         v
-    |         +---> product.allocate(line)     # Logique metier pure
-    |         |         |                     #   peut emettre des events
+    |         +---> product.allocate(line)     # Logique métier pure
+    |         |         |                     #   peut émettre des events
     |         |         v
     |         +---> uow.commit()              # UoW.commit()
     |                   |                     #   session.commit()
@@ -328,7 +328,7 @@ handler: allocate(cmd, uow)
               |                               #   rollback() + session.close()
               v
 MessageBus: uow.collect_new_events()          # Collecte les events
-    |                                         #   emis par les agregats "seen"
+    |                                         #   émis par les agrégats "seen"
     v
 Traitement des events suivants...
 ```
@@ -356,7 +356,7 @@ Le diagramme en couches correspondant :
           |                          ^
           v                          |
 +------------------------------------------------------+
-|               Modele de Domaine                       |
+|               Modèle de Domaine                       |
 |   Product -> Batch -> OrderLine                       |
 |   events: [OutOfStock, Deallocated, ...]             |
 +------------------------------------------------------+
@@ -364,36 +364,36 @@ Le diagramme en couches correspondant :
 
 ---
 
-## Resume
+## Résumé
 
-Le pattern **Unit of Work** resout le probleme de la gestion des transactions en introduisant un objet qui encapsule la session, le repository et la logique de commit/rollback.
+Le pattern **Unit of Work** résout le problème de la gestion des transactions en introduisant un objet qui encapsule la session, le repository et la logique de commit/rollback.
 
 ### Ce que le Unit of Work apporte
 
 | Aspect                | Sans UoW                              | Avec UoW                                |
 |-----------------------|---------------------------------------|------------------------------------------|
-| Transaction           | Geree par le handler ou le repository | Encapsulee dans le context manager       |
-| Atomicite             | Difficile a garantir                  | Garantie par `__enter__`/`__exit__`      |
-| Couplage              | Handler couple a SQLAlchemy           | Handler depend d'une abstraction         |
-| Testabilite           | Necessite une base de donnees         | Fake UoW en memoire                      |
-| Collecte des events   | Pas de mecanisme standard             | `collect_new_events()` centralise        |
+| Transaction           | Gérée par le handler ou le repository | Encapsulée dans le context manager       |
+| Atomicité             | Difficile à garantir                  | Garantie par `__enter__`/`__exit__`      |
+| Couplage              | Handler couplé à SQLAlchemy           | Handler dépend d'une abstraction         |
+| Testabilité           | Nécessite une base de données         | Fake UoW en mémoire                      |
+| Collecte des events   | Pas de mécanisme standard             | `collect_new_events()` centralisé        |
 
-### Les fichiers cles
+### Les fichiers clés
 
-| Fichier | Role |
+| Fichier | Rôle |
 |---------|------|
-| `src/allocation/service_layer/unit_of_work.py` | Interface abstraite et implementation SQLAlchemy |
-| `src/allocation/adapters/repository.py` | Repository avec tracking des agregats vus (`seen`) |
+| `src/allocation/service_layer/unit_of_work.py` | Interface abstraite et implémentation SQLAlchemy |
+| `src/allocation/adapters/repository.py` | Repository avec tracking des agrégats vus (`seen`) |
 | `src/allocation/service_layer/handlers.py` | Handlers qui utilisent le UoW comme context manager |
 | `tests/unit/test_handlers.py` | `FakeUnitOfWork` et `FakeRepository` pour les tests |
 
-### Les principes a retenir
+### Les principes à retenir
 
-1. **Le UoW est un context manager** qui gere le cycle de vie de la transaction : ouverture, commit, rollback, fermeture.
-2. **Le handler ne connait que l'abstraction** (`AbstractUnitOfWork`), jamais SQLAlchemy directement.
-3. **Le rollback est automatique** : si `commit()` n'est pas appele explicitement, `__exit__` annule tout.
-4. **Le UoW collecte les events** emis par les agregats au cours de la transaction, servant de pont vers le message bus.
-5. **Le `FakeUnitOfWork` rend les tests rapides** et deterministes, sans base de donnees.
+1. **Le UoW est un context manager** qui gère le cycle de vie de la transaction : ouverture, commit, rollback, fermeture.
+2. **Le handler ne connaît que l'abstraction** (`AbstractUnitOfWork`), jamais SQLAlchemy directement.
+3. **Le rollback est automatique** : si `commit()` n'est pas appelé explicitement, `__exit__` annule tout.
+4. **Le UoW collecte les events** émis par les agrégats au cours de la transaction, servant de pont vers le message bus.
+5. **Le `FakeUnitOfWork` rend les tests rapides** et déterministes, sans base de données.
 
 !!! abstract "Dans le prochain chapitre"
-    Nous verrons le pattern **Aggregate** et la notion de **frontiere de coherence**. L'agregat `Product` definit le perimetre a l'interieur duquel les invariants metier sont garantis -- et le Unit of Work commite exactement un agregat par transaction.
+    Nous verrons le pattern **Aggregate** et la notion de **frontière de cohérence**. L'agrégat `Product` définit le périmètre à l'intérieur duquel les invariants métier sont garantis -- et le Unit of Work commite exactement un agrégat par transaction.
