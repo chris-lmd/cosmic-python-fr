@@ -1,15 +1,5 @@
 # Chapitre 7 -- Agrégats et frontières de cohérence
 
-!!! info "Ce que vous allez apprendre"
-    - Pourquoi un modèle de domaine sans frontières claires mène à des incohérences
-    - Ce qu'est un **Agrégat** et comment il protège les invariants métier
-    - Le rôle de l'**Aggregate Root** comme point d'entrée unique
-    - Comment choisir les frontières d'un agrégat
-    - Comment le **numéro_version** et l'**optimistic locking** protègent contre les accès concurrents
-    - Comment `Produit` devient l'agrégat qui contient les `Lot`
-
----
-
 ## Le problème : un domaine sans frontières
 
 Au chapitre 1, nous avons défini une fonction libre `allouer(ligne, lots)` qui prend une liste de lots et choisit le meilleur. C'est simple et lisible, mais cela pose un problème fondamental : **qui est responsable de fournir la bonne liste de lots ?** Rien n'empêche du code extérieur de manipuler directement un `Lot`, de modifier sa quantité, ou d'allouer une ligne sans passer par cette stratégie.

@@ -1,14 +1,5 @@
 # Chapitre 11 -- Events externes et communication entre services
 
-!!! abstract "Ce que vous allez apprendre"
-    - La différence entre events internes et events externes
-    - Comment publier des events vers un message broker (Redis Pub/Sub)
-    - Comment consommer des events externes et les convertir en commands internes
-    - Le pattern Outbox pour garantir la publication fiable des events
-    - L'importance de l'idempotence dans les consumers
-
----
-
 ## Events internes vs events externes
 
 Jusqu'ici, nos events circulent uniquement **à l'intérieur** de notre application.

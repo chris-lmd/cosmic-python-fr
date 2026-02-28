@@ -1,15 +1,5 @@
 # Chapitre 4 -- La Service Layer
 
-!!! abstract "Ce que vous allez apprendre"
-
-    - Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask
-    - Ce qu'est une Service Layer et ce qu'elle contient (et ne contient **pas**)
-    - Comment écrire des handlers fins et procéduraux
-    - Comment transformer Flask en thin adapter qui ne fait que traduire HTTP
-    - Comment tester l'orchestration sans framework web ni base de données
-
----
-
 ## Le problème : des routes Flask qui grossissent
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine (`Lot`, `LigneDeCommande`, `allouer()`) et un Repository pour persister nos objets dans un conteneur `Produit`. La logique d'allocation que nous avions écrite comme fonction libre au chapitre 1 est maintenant une **méthode** de `Produit` -- c'est lui qui possède les lots et qui sait comment les trier. Imaginons maintenant une première route Flask pour allouer du stock :
