@@ -74,6 +74,9 @@ allocations_view = Table(
 )
 
 
+_mappers_started = False
+
+
 def start_mappers() -> None:
     """
     Configure le mapping entre les classes du domaine et les tables SQL.
@@ -81,7 +84,14 @@ def start_mappers() -> None:
     Utilise le classical mapping : les classes du domaine ne connaissent
     pas SQLAlchemy. C'est ici qu'on fait le pont entre les attributs
     français du domaine et les colonnes de la base de données.
+
+    Idempotent : ne fait rien si le mapping est déjà configuré.
     """
+    global _mappers_started
+    if _mappers_started:
+        return
+    _mappers_started = True
+
     lines_mapper = mapper_registry.map_imperatively(
         model.LigneDeCommande,
         order_lines,

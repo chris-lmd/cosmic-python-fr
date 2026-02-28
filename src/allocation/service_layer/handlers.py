@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from sqlalchemy import text
+
 from allocation.domain import commands, events, model
 
 if TYPE_CHECKING:
@@ -124,8 +126,10 @@ def ajouter_allocation_vue(
     """
     with uow:
         uow.session.execute(
-            "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
-            " VALUES (:id_commande, :sku, :réf_lot)",
+            text(
+                "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
+                " VALUES (:id_commande, :sku, :réf_lot)"
+            ),
             dict(
                 id_commande=event.id_commande,
                 sku=event.sku,
@@ -142,8 +146,10 @@ def supprimer_allocation_vue(
     """Supprime une entrée du read model après une désallocation."""
     with uow:
         uow.session.execute(
-            "DELETE FROM allocations_view"
-            " WHERE id_commande = :id_commande AND sku = :sku",
+            text(
+                "DELETE FROM allocations_view"
+                " WHERE id_commande = :id_commande AND sku = :sku"
+            ),
             dict(id_commande=event.id_commande, sku=event.sku),
         )
         uow.commit()

@@ -1,5 +1,12 @@
 # Chapitre 11 -- Events externes et communication entre services
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Service isolé, communications HTTP directes |
+    | **Après** | Events via Redis Pub/Sub, Consumer convertit en commands |
+
 !!! abstract "Ce que vous allez apprendre"
     - La différence entre events internes et events externes
     - Comment publier des events vers un message broker (Redis Pub/Sub)
@@ -391,6 +398,19 @@ Le domaine ne sait pas d'où viennent les commands ni où partent les events.
   c'est possible (quantités absolues plutôt que deltas).
 - Grâce aux abstractions, les tests restent rapides et ne nécessitent
   pas d'infrastructure externe.
+
+## Exercices
+
+!!! example "Exercice 1 -- FakeEventPublisher"
+    Implémentez un `FakeEventPublisher` qui stocke les events publiés dans une liste. Écrivez un test qui vérifie que quand une allocation réussit, un event est publié sur le bon channel avec les bonnes données.
+
+!!! example "Exercice 2 -- Consumer robuste"
+    Le consumer actuel ne gère pas les erreurs de parsing JSON. Ajoutez un `try/except` et un logging. Que devrait-il faire si le message est invalide : l'ignorer, le republier, ou le mettre dans une dead letter queue ?
+
+!!! example "Exercice 3 -- Schéma d'events"
+    Les events externes sont des contrats entre services. Proposez un mécanisme pour versionner les events (ex: `Alloué_v1`, `Alloué_v2`). Comment gérer la rétrocompatibilité ?
+
+---
 
 !!! quote "À retenir"
     Les events externes transforment notre service en **bon citoyen** d'une

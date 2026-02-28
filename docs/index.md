@@ -60,6 +60,12 @@ Les patterns présentés ici résolvent ces problèmes en :
 | [12. CQRS](partie2/chapitre_12_cqrs.md) | CQRS | Comment optimiser lectures et écritures séparément ? |
 | [13. Injection de dépendances](partie2/chapitre_13_injection_dependances.md) | Dependency Injection | Comment assembler les composants proprement ? |
 
+### Épilogue
+
+| | |
+|--|--|
+| [Épilogue -- Pièges, compromis et conseils pragmatiques](epilogue.md) | Quand utiliser (et ne pas utiliser) ces patterns |
+
 ## Le domaine métier : l'allocation de stock
 
 Imaginons une entreprise de e-commerce qui doit gérer son stock. Quand un client passe commande, le système doit **allouer** les produits commandés à des **lots de stock** (batches).
@@ -72,7 +78,7 @@ Les règles métier :
 - On ne peut pas allouer plus que la quantité disponible
 
 ```python
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class LigneDeCommande:
     """Value Object : une ligne de commande."""
     id_commande: str

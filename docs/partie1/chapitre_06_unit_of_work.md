@@ -1,5 +1,12 @@
 # Chapitre 6 -- Le pattern Unit of Work
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Handler instancie la session SQLAlchemy |
+    | **Après** | `AbstractUnitOfWork` context manager encapsule la transaction |
+
 > **Comment garantir que les opérations en base de données sont atomiques, sans coupler nos handlers à SQLAlchemy ?**
 
 Jusqu'ici, notre architecture repose sur un repository qui abstrait l'accès à la base de données, et une service layer qui orchestre les cas d'usage. Mais une question reste ouverte : **qui gère la transaction ?**
@@ -394,6 +401,19 @@ Le pattern **Unit of Work** résout le problème de la gestion des transactions 
 3. **Le rollback est automatique** : si `commit()` n'est pas appelé explicitement, `__exit__` annule tout.
 4. **Le UoW collecte les events** émis par les agrégats au cours de la transaction, servant de pont vers le message bus.
 5. **Le `FakeUnitOfWork` rend les tests rapides** et déterministes, sans base de données.
+
+## Exercices
+
+!!! example "Exercice 1 -- UoW avec rollback explicite"
+    Modifiez le `FakeUnitOfWork` pour que `rollback()` vide le `FakeRepository`. Écrivez un test qui vérifie qu'après un rollback, les produits ajoutés pendant la transaction ont disparu.
+
+!!! example "Exercice 2 -- Double commit"
+    Que se passe-t-il si un handler appelle `uow.commit()` deux fois ? Et si `commit()` n'est jamais appelé ? Écrivez des tests pour vérifier chaque scénario.
+
+!!! example "Exercice 3 -- UoW sans context manager"
+    Essayez d'utiliser le `SqlAlchemyUnitOfWork` sans `with` (en appelant manuellement `__enter__` et `__exit__`). Quels risques cela crée-t-il ? Pourquoi le context manager est-il préférable ?
+
+---
 
 !!! abstract "Dans le prochain chapitre"
     Nous verrons le pattern **Aggregate** et la notion de **frontière de cohérence**. L'agrégat `Produit` définit le périmètre à l'intérieur duquel les invariants métier sont garantis -- et le Unit of Work commite exactement un agrégat par transaction.

@@ -1,5 +1,12 @@
 # Chapitre 7 -- Agrégats et frontières de cohérence
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Fonction libre `allouer(ligne, lots)` sans garantie |
+    | **Après** | `Produit` Aggregate Root + `numéro_version` (optimistic locking) |
+
 !!! info "Ce que vous allez apprendre"
     - Pourquoi un modèle de domaine sans frontières claires mène à des incohérences
     - Ce qu'est un **Agrégat** et comment il protège les invariants métier
@@ -12,7 +19,7 @@
 
 ## Le problème : un domaine sans frontières
 
-Jusqu'ici, notre modèle de domaine contient des `LigneDeCommande`, des `Lot` et des règles métier d'allocation. Mais rien n'empêche du code extérieur de manipuler directement un `Lot`, de modifier sa quantité, ou d'allouer une ligne sans passer par une logique centralisée.
+Au chapitre 1, nous avons défini une fonction libre `allouer(ligne, lots)` qui prend une liste de lots et choisit le meilleur. C'est simple et lisible, mais cela pose un problème fondamental : **qui est responsable de fournir la bonne liste de lots ?** Rien n'empêche du code extérieur de manipuler directement un `Lot`, de modifier sa quantité, ou d'allouer une ligne sans passer par cette stratégie.
 
 Imaginons deux requêtes HTTP simultanées qui tentent d'allouer la même quantité de stock :
 
@@ -80,6 +87,8 @@ Cette règle a une conséquence directe sur le **Repository** : il manipule des 
 ---
 
 ## La classe `Produit` : notre Aggregate Root
+
+La fonction libre `allouer(ligne, lots)` du chapitre 1 va maintenant **devenir une méthode** de `Produit`. L'agrégat possède les lots et prend la responsabilité de la stratégie d'allocation. La différence clé : au lieu de lever une exception `RuptureDeStock`, l'agrégat **émet un événement** (nous verrons pourquoi au chapitre 8).
 
 Voici la classe `Produit` telle qu'elle apparaît dans notre code source
 (`src/allocation/domain/model.py`) :
@@ -372,6 +381,19 @@ Les **Agrégats** sont la réponse du Domain-Driven Design au problème de la co
 | **Optimistic Locking** | Le `numéro_version` détecte les conflits entre transactions concurrentes. |
 | **Repository** | Il travaille au niveau de l'agrégat, pas de ses composants internes. |
 | **Domain Events** | L'agrégat émet des événements pour signaler ce qui s'est passé. |
+
+## Exercices
+
+!!! example "Exercice 1 -- Frontières alternatives"
+    Imaginez que chaque `Lot` soit son propre agrégat (pas de `Produit` englobant). Quels invariants ne pourraient plus être garantis ? Que se passerait-il en cas d'accès concurrent ?
+
+!!! example "Exercice 2 -- Verrouillage pessimiste"
+    Remplacez l'optimistic locking par un `SELECT ... FOR UPDATE` dans le repository SQLAlchemy. Quels sont les avantages et inconvénients de chaque approche ?
+
+!!! example "Exercice 3 -- Nouvel invariant"
+    Ajoutez la règle métier : "un produit ne peut pas avoir plus de 10 lots actifs". Où cette règle doit-elle vivre ? Implémentez-la dans `Produit` et écrivez le test correspondant.
+
+---
 
 !!! quote "À retenir"
     L'agrégat est la réponse à la question : **"quels objets doivent être cohérents entre eux ?"**. Dans notre domaine, tous les lots d'un même produit doivent être cohérents, donc `Produit` est l'agrégat qui contient les `Lot`. Le `numéro_version` garantit qu'une seule transaction à la fois peut modifier un `Produit` donné.

@@ -1,5 +1,12 @@
 # Chapitre 8 -- Events et le Message Bus
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Handler appelle `send_email()`, `publish()` directement |
+    | **Après** | Domaine émet events, handlers réagissent via Message Bus |
+
 > **Pattern** : Domain Events + Message Bus
 > **Problème résolu** : Comment réagir aux changements du domaine sans coupler la logique métier aux effets de bord ?
 
@@ -320,6 +327,26 @@ class AbstractUnitOfWork(abc.ABC):
 Le UoW itère sur tous les agrégats **vus** pendant la transaction, vide leur liste
 d'events, et les transmet au bus. C'est le pont entre le domaine et l'infrastructure.
 
+### Diagramme de séquence : émission et collecte des events
+
+Le cycle complet, de la requête HTTP jusqu'au traitement des events :
+
+```
+Flask ──► MessageBus ──► handler(cmd) ──► Produit.allouer()
+                                               │
+                                               ▼
+                                          événements.append(Alloué)
+                                               │
+               ◄── collect_new_events() ◄── uow.commit()
+               │
+               ▼
+          handler(Alloué) ──► ajouter_allocation_vue()
+```
+
+**Point clé** : les events remontent du domaine via le UoW, puis sont re-dispatchés
+par le bus. Le domaine n'appelle jamais directement un handler d'event — il se
+contente d'accumuler des faits, et l'infrastructure les achemine.
+
 ---
 
 ## Les Event Handlers concrets
@@ -528,6 +555,19 @@ Les Domain Events et le Message Bus résolvent le problème des effets de bord e
                     |  publish, ...)   |
                     +------------------+
 ```
+
+## Exercices
+
+!!! example "Exercice 1 -- Nouvel event"
+    Créez un event `StockBas(sku, quantité_restante)` émis quand la quantité disponible d'un lot tombe sous un seuil (par exemple 10). Ajoutez un handler qui envoie une notification. Écrivez le test.
+
+!!! example "Exercice 2 -- Boucle infinie"
+    Que se passerait-il si un event handler émettait le même event qu'il traite ? Comment le message bus gère-t-il ce cas ? Proposez une protection.
+
+!!! example "Exercice 3 -- Event vs exception"
+    Dans le code actuel, `Produit.allouer()` émet un event `RuptureDeStock` au lieu de lever une exception. Quels sont les avantages de chaque approche ? Dans quels cas préférer l'exception ?
+
+---
 
 Avec les Domain Events et le Message Bus, notre architecture gagne en **extensibilité**
 (ajouter des réactions sans modifier le domaine), en **testabilité** (chaque handler se

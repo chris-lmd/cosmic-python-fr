@@ -1,5 +1,12 @@
 # Chapitre 10 -- Commands et Events : distinguer les intentions des faits
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Commands et events traités identiquement |
+    | **Après** | Commands (1 handler, exception) vs Events (N handlers, silencieux) |
+
 Jusqu'ici, notre message bus traite des messages. Mais tous les messages ne se
 valent pas. Quand l'API envoie une demande d'allocation, c'est une **instruction
 explicite** : "alloue cette ligne de commande". Quand le domaine signale qu'un
@@ -401,6 +408,32 @@ exception = propagée               exception = logguée, on continue
 retourne un résultat               ne retourne rien
 ```
 
+### Diagrammes de séquence : deux chemins asymétriques
+
+**Command (strict)** — un handler, exceptions remontées :
+
+```
+bus.handle(Allouer)
+  └─► lookup 1 handler → allouer()
+       ├─► succès → return réf_lot → résultat au caller
+       └─► échec → raise SkuInconnu → exception remonte
+```
+
+**Event (tolérant)** — N handlers, erreurs capturées :
+
+```
+bus.handle(Alloué)
+  └─► lookup N handlers
+       ├─► publier_événement_allocation() → OK
+       ├─► ajouter_allocation_vue() → OK
+       └─► (si erreur) → logger.exception() → continue
+```
+
+**Point clé** : l'asymétrie entre les deux types de messages est au cœur du design.
+Une command est une promesse de traitement (succès ou échec explicite). Un event
+est une notification best-effort (tous les handlers sont essayés, aucun ne bloque
+les autres).
+
 ---
 
 ## De l'API au domaine : le parcours d'un message
@@ -539,6 +572,19 @@ Le fait déclenche l'intention. L'intention peut réussir ou échouer. Si elle
 
 - La **règle pratique** : si c'est une demande venue de l'extérieur, c'est une
   command. Si c'est une réaction interne au domaine, c'est un event.
+
+## Exercices
+
+!!! example "Exercice 1 -- Nouvelle command"
+    Créez une command `AnnulerCommande(id_commande)` qui désalloue toutes les lignes d'une commande donnée. Quel(s) event(s) devrait-elle émettre ? Implémentez le handler et les tests.
+
+!!! example "Exercice 2 -- Valider les commands"
+    Les commands sont actuellement de simples dataclasses sans validation. Ajoutez une méthode `valider()` à `Allouer` qui vérifie que `quantité > 0` et que `sku` n'est pas vide. Où cette validation devrait-elle être appelée : dans le handler ou dans le bus ?
+
+!!! example "Exercice 3 -- Event ou Command ?"
+    Pour chaque situation, déterminez s'il faut une command ou un event : (a) Un utilisateur annule sa commande. (b) Le stock d'un produit atteint zéro. (c) Un service externe demande un rapport d'inventaire. (d) Une allocation vient de réussir.
+
+---
 
 ### Structure des fichiers
 

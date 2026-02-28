@@ -1,5 +1,12 @@
 # Chapitre 5 -- TDD à haute et basse vitesse
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Tests unitaires OU tests E2E coûteux |
+    | **Après** | Stratégie 2 vitesses : haute (fakes) + basse (domaine pur) |
+
 ## Où en sommes-nous ?
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine (`Lot`, `LigneDeCommande`, `Produit`), un Repository pour le persister, et une Service Layer pour orchestrer les cas d'utilisation. Nous avons également écrit des tests à différents niveaux.
@@ -45,39 +52,7 @@ La raison est économique. Plus un test est haut dans la pyramide :
 
 Les tests **high gear** sont ceux qui passent par la **service layer**. Ils ne connaissent pas les détails internes du domaine. Ils envoient des commands et vérifient les résultats.
 
-C'est notre fichier `tests/unit/test_handlers.py` :
-
-```python
-class FakeRepository(AbstractRepository):
-    """Fake repository qui stocke les produits en mémoire."""
-
-    def __init__(self, produits: list[model.Produit] | None = None):
-        super().__init__()
-        self._produits = set(produits or [])
-
-    def _add(self, produit: model.Produit) -> None:
-        self._produits.add(produit)
-
-    def _get(self, sku: str) -> model.Produit | None:
-        return next((p for p in self._produits if p.sku == sku), None)
-```
-
-```python
-class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
-    """Fake Unit of Work utilisant le FakeRepository."""
-
-    def __init__(self):
-        self.produits = FakeRepository([])
-        self.committed = False
-
-    def _commit(self):
-        self.committed = True
-
-    def rollback(self):
-        pass
-```
-
-Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
+C'est notre fichier `tests/unit/test_handlers.py`, qui utilise les fakes définis aux chapitres précédents : le `FakeRepository` ([chapitre 2](chapitre_02_repository.md)) et le `FakeUnitOfWork` ([chapitre 6](chapitre_06_unit_of_work.md)). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
 
 ### Des tests qui expriment le "quoi"
 
@@ -331,6 +306,19 @@ Voici les signes d'alerte :
 Pour un test high gear, les inputs sont des **commands** et les outputs sont les **effets observables** (valeurs de retour, état du repository, events émis).
 
 Pour un test low gear, les inputs sont des **appels de méthodes** sur le domaine et les outputs sont les **propriétés publiques** (`quantité_disponible`, `référence`, etc.).
+
+## Exercices
+
+!!! example "Exercice 1 -- Classer vos tests"
+    Prenez un projet existant (le vôtre ou un projet open source). Classez chaque test en "low gear" ou "high gear". Quel est le ratio ? Est-il conforme à la pyramide ?
+
+!!! example "Exercice 2 -- Refactoring sans casser les tests"
+    Dans le modèle de domaine, remplacez le `set` `_allocations` de `Lot` par une `list` (en gérant l'unicité manuellement). Les tests high gear doivent-ils changer ? Et les tests low gear ?
+
+!!! example "Exercice 3 -- Supprimer un test redondant"
+    Identifiez un test low gear qui est déjà couvert par un test high gear. Supprimez-le et vérifiez que la couverture fonctionnelle n'a pas diminué. Êtes-vous à l'aise avec cette suppression ? Pourquoi ?
+
+---
 
 ## Résumé
 

@@ -1,5 +1,12 @@
 # Chapitre 1 -- Le Domain Model
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Logique métier dispersée dans des transaction scripts |
+    | **Après** | Classes pures `Lot`, `LigneDeCommande` + fonction `allouer()` |
+
 ## Pourquoi un modèle de domaine ?
 
 Imaginons un système d'allocation de stock. Un client passe une commande, et le système doit décider quel lot de marchandise utiliser pour honorer cette commande. Simple en apparence, mais les règles s'accumulent vite : on préfère puiser dans le stock déjà en entrepôt plutôt que dans une livraison à venir, on choisit la livraison la plus proche si tout le stock en entrepôt est épuisé, on ne peut pas allouer plus que ce qui est disponible, on ne peut pas allouer un SKU différent de celui commandé...
@@ -39,7 +46,7 @@ def allouer(id_commande, sku, quantité, session):
             lot.quantité_allouée += quantité
             session.commit()
             return lot.référence
-    raise RuptureDeStock(sku)
+    raise Exception(f"Rupture de stock pour {sku}")
 ```
 
 Dans un Domain Model, la logique vit dans les objets du domaine eux-mêmes. Le handler ne fait que les orchestrer. C'est cette séparation qui rend le code testable, lisible et maintenable.
@@ -54,14 +61,14 @@ Voici notre Value Object `LigneDeCommande` :
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class LigneDeCommande:
     """
     Value Object représentant une ligne de commande.
 
-    Un value object est immuable et défini par ses attributs,
-    pas par une identité. Deux LigneDeCommande avec les mêmes
-    attributs sont considérées comme identiques.
+    Un value object est défini par ses attributs, pas par une identité.
+    Deux LigneDeCommande avec les mêmes attributs sont considérées
+    comme identiques.
     """
 
     id_commande: str
@@ -69,14 +76,17 @@ class LigneDeCommande:
     quantité: int
 ```
 
-Le décorateur `@dataclass(frozen=True)` fait deux choses essentielles :
+Le décorateur `@dataclass(unsafe_hash=True)` fait deux choses essentielles :
 
-1. **Immutabilité** -- On ne peut pas modifier les attributs après création. Un `ligne.quantité = 5` lèvera une `FrozenInstanceError`. C'est voulu : un Value Object ne change pas, on en crée un nouveau si besoin.
+1. **Égalité structurelle** -- `@dataclass` génère automatiquement `__eq__` en comparant tous les attributs. Deux `LigneDeCommande` avec les mêmes valeurs sont considérées comme identiques.
 
-2. **Hashabilité** -- Un objet `frozen` est automatiquement hashable, ce qui permet de l'utiliser dans des `set` et comme clé de `dict`. C'est indispensable pour notre modèle, car `Lot` stocke ses allocations dans un `set[LigneDeCommande]`.
+2. **Hashabilité** -- `unsafe_hash=True` génère `__hash__` à partir des attributs, ce qui permet d'utiliser l'objet dans des `set` et comme clé de `dict`. C'est indispensable pour notre modèle, car `Lot` stocke ses allocations dans un `set[LigneDeCommande]`.
+
+!!! warning "Pourquoi `unsafe_hash` et pas `frozen` ?"
+    On pourrait utiliser `@dataclass(frozen=True)` pour rendre l'objet strictement immuable. Mais `frozen=True` entre en conflit avec le **mapping ORM** de SQLAlchemy : quand l'ORM charge un objet depuis la base de données, il a besoin de lui assigner un attribut interne (`_sa_instance_state`), ce que `frozen` interdit. `unsafe_hash=True` offre le même comportement d'égalité et de hashabilité, tout en restant compatible avec l'ORM. La convention dans l'équipe est de ne **jamais modifier** une `LigneDeCommande` après création -- c'est une discipline plutôt qu'une contrainte technique.
 
 ??? note "Pourquoi `@dataclass` et pas `NamedTuple` ?"
-    Les deux sont des choix valables. `@dataclass(frozen=True)` offre un peu plus de flexibilité (héritage, méthodes, valeurs par défaut mutables via `field`). `NamedTuple` est légèrement plus performant en mémoire. Pour un Domain Model, la différence est négligeable. L'important, c'est l'immutabilité et l'égalité structurelle.
+    Les deux sont des choix valables. `@dataclass` offre plus de flexibilité (héritage, méthodes, valeurs par défaut mutables via `field`). `NamedTuple` est légèrement plus performant en mémoire. Pour un Domain Model, la différence est négligeable. L'important, c'est l'égalité structurelle et la hashabilité.
 
 On peut vérifier le comportement d'égalité :
 
@@ -218,35 +228,43 @@ La logique est la suivante :
 - Un lot **avec ETA** est toujours "plus grand" qu'un lot sans ETA.
 - Entre deux lots avec ETA, le tri se fait par date.
 
-Cela permet d'utiliser simplement `sorted()` pour obtenir les lots dans l'ordre de préférence :
+Cela permet d'écrire une **fonction d'allocation** qui utilise simplement `sorted()` :
 
 ```python
-class Produit:
-    def allouer(self, ligne: LigneDeCommande) -> str:
-        """
-        Alloue une ligne de commande au lot le plus approprié.
+def allouer(ligne: LigneDeCommande, lots: list[Lot]) -> str:
+    """
+    Alloue une ligne de commande au lot le plus approprié.
 
-        La stratégie d'allocation privilégie les lots en stock
-        (sans ETA) puis les lots avec l'ETA la plus proche.
-        """
-        try:
-            lot = next(
-                l for l in sorted(self.lots)
-                if l.peut_allouer(ligne)
-            )
-        except StopIteration:
-            self.événements.append(events.RuptureDeStock(sku=ligne.sku))
-            return ""
+    La stratégie d'allocation privilégie les lots en stock
+    (sans ETA) puis les lots avec l'ETA la plus proche.
 
-        lot.allouer(ligne)
-        self.numéro_version += 1
-        return lot.référence
+    Retourne la référence du lot choisi.
+    Lève une exception si aucun lot ne convient.
+    """
+    try:
+        lot = next(
+            l for l in sorted(lots)
+            if l.peut_allouer(ligne)
+        )
+    except StopIteration:
+        raise RuptureDeStock(f"Rupture de stock pour {ligne.sku}")
+
+    lot.allouer(ligne)
+    return lot.référence
+
+
+class RuptureDeStock(Exception):
+    """Levée quand il n'y a plus de stock disponible."""
+    pass
 ```
 
-`sorted(self.lots)` trie les lots grâce à `__gt__`. Puis on prend le premier qui peut accueillir la ligne (`peut_allouer`). Si aucun lot ne convient, on émet un événement `RuptureDeStock`.
+`sorted(lots)` trie les lots grâce à `__gt__`. Puis on prend le premier qui peut accueillir la ligne (`peut_allouer`). Si aucun lot ne convient, on lève une exception `RuptureDeStock`.
 
 !!! tip "Pourquoi `__gt__` et pas `__lt__` ?"
     Python a besoin d'un seul opérateur de comparaison pour que `sorted()` fonctionne. On aurait pu définir `__lt__` à la place, avec la logique inversée. Le choix de `__gt__` est une convention : on considère que les lots les "plus grands" sont ceux qui arrivent le plus tard, ce qui est naturel quand on pense aux dates.
+
+!!! note "Et ensuite ?"
+    Cette fonction libre `allouer()` fonctionne bien, mais elle a un défaut : rien ne garantit qu'on lui passe les bons lots, ni qu'on ne manipule pas un lot directement sans passer par la stratégie. Au [chapitre 7](chapitre_07_aggregats.md), nous introduirons le concept d'**Agrégat** avec la classe `Produit`, qui regroupera les lots d'un même SKU et servira de **point d'entrée unique** pour toutes les opérations d'allocation. Cette évolution n'est pas nécessaire pour l'instant -- concentrons-nous d'abord sur les fondamentaux.
 
 ## Tester le modèle de domaine
 
@@ -255,8 +273,9 @@ L'avantage majeur d'un Domain Model pur, c'est la testabilité. Les tests sont s
 ### Tests du Lot
 
 ```python
+import pytest
 from datetime import date, timedelta
-from allocation.domain.model import Lot, LigneDeCommande, Produit
+from allocation.domain.model import Lot, LigneDeCommande, allouer, RuptureDeStock
 
 
 def make_lot_et_ligne(
@@ -305,7 +324,7 @@ Remarquez la structure : chaque test crée ses objets, exécute une action et v�
 ### Tests de la stratégie d'allocation
 
 ```python
-class TestProduit:
+class TestAllouer:
     def test_prefere_lots_en_stock_aux_livraisons(self):
         """Les lots en stock (sans ETA) sont préférés aux livraisons."""
         lot_en_stock = Lot("lot-en-stock", "HORLOGE-RETRO", 100, eta=None)
@@ -313,13 +332,9 @@ class TestProduit:
             "lot-en-livraison", "HORLOGE-RETRO", 100,
             eta=date.today() + timedelta(days=1)
         )
-        produit = Produit(
-            sku="HORLOGE-RETRO",
-            lots=[lot_en_stock, lot_en_livraison]
-        )
         ligne = LigneDeCommande("réf-cmd", "HORLOGE-RETRO", 10)
 
-        produit.allouer(ligne)
+        allouer(ligne, [lot_en_stock, lot_en_livraison])
 
         assert lot_en_stock.quantité_disponible == 90
         assert lot_en_livraison.quantité_disponible == 100
@@ -335,22 +350,39 @@ class TestProduit:
             "lot-lent", "LAMPE-MINIMALE", 100,
             eta=date.today() + timedelta(days=10)
         )
-        produit = Produit(
-            sku="LAMPE-MINIMALE",
-            lots=[moyen, le_plus_tot, le_plus_tard]
-        )
         ligne = LigneDeCommande("commande1", "LAMPE-MINIMALE", 10)
 
-        produit.allouer(ligne)
+        allouer(ligne, [moyen, le_plus_tot, le_plus_tard])
 
         assert le_plus_tot.quantité_disponible == 90
         assert moyen.quantité_disponible == 100
         assert le_plus_tard.quantité_disponible == 100
+
+    def test_leve_rupture_de_stock_si_impossible(self):
+        """RuptureDeStock est levée quand aucun lot ne convient."""
+        lot = Lot("lot-001", "PETITE-FOURCHETTE", 10, eta=date.today())
+        ligne = LigneDeCommande("commande1", "PETITE-FOURCHETTE", 20)
+
+        with pytest.raises(RuptureDeStock, match="PETITE-FOURCHETTE"):
+            allouer(ligne, [lot])
 ```
 
-Le test `test_prefere_lots_en_stock_aux_livraisons` passe les lots dans l'ordre inverse (le lot en livraison avant celui en stock) pour vérifier que le tri fonctionne. Le test `test_prefere_lots_plus_proches` mélange volontairement l'ordre (`moyen, le_plus_tot, le_plus_tard`) pour la même raison.
+Notez comment les tests appellent directement la fonction `allouer()` avec une ligne et une liste de lots. Le test `test_prefere_lots_en_stock_aux_livraisons` passe les lots dans un ordre qui ne correspond pas à la priorité attendue, pour vérifier que le tri fonctionne. Le test `test_prefere_lots_plus_proches` mélange volontairement l'ordre (`moyen, le_plus_tot, le_plus_tard`) pour la même raison. Le test `test_leve_rupture_de_stock_si_impossible` vérifie que l'exception `RuptureDeStock` est bien levée quand aucun lot ne peut satisfaire la demande.
 
 Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines sans que la suite de tests ne ralentisse. C'est un avantage considérable par rapport aux tests d'intégration qui nécessitent une base de données.
+
+## Exercices
+
+!!! example "Exercice 1 -- Ajouter une règle métier"
+    Ajoutez une règle : on ne peut pas allouer une quantité de **zéro ou négative**. Modifiez la méthode `peut_allouer()` de `Lot` et écrivez un test unitaire qui vérifie ce comportement.
+
+!!! example "Exercice 2 -- Nouveau Value Object"
+    Créez un Value Object `Sku` qui encapsule la validation du SKU (non vide, uniquement des caractères alphanumériques et des tirets). Remplacez les `str` par `Sku` dans le modèle. Quels tests changent ?
+
+!!! example "Exercice 3 -- Comparer avec un transaction script"
+    Écrivez la logique d'allocation complète sous forme de transaction script (une seule fonction procédurale sans classes). Comparez la lisibilité et la testabilité avec le Domain Model.
+
+---
 
 ## Résumé
 
@@ -361,7 +393,7 @@ Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines
 | **Domain Model** | Couche de code pur qui représente les règles métier, sans dépendance technique. | Le module `model.py` |
 | **Value Object** | Objet défini par ses attributs, immuable, sans identité propre. | `LigneDeCommande` |
 | **Entity** | Objet avec une identité persistante, même si ses attributs changent. | `Lot` |
-| **Aggregate** | Entité racine qui garantit la cohérence d'un groupe d'objets. | `Produit` |
+| **Fonction de domaine** | Logique métier encapsulée dans une fonction libre, opérant sur les objets du domaine. | `allouer()` |
 
 ### Avantages du pattern
 

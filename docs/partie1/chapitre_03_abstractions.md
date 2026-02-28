@@ -1,5 +1,12 @@
 # Chapitre 3 -- Couplage et abstractions
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Service Layer dépend de SQLAlchemy et `smtplib` |
+    | **Après** | Service Layer dépend d'abstractions (ports) |
+
 ## Le problème du couplage
 
 Imaginez un système d'allocation de stock où chaque composant connaît directement
@@ -286,50 +293,14 @@ bout sans infrastructure réelle, en remplaçant les adapters par des **fakes**.
 
 ### Le FakeRepository
 
-Voici comment on crée un fake pour le repository :
-
-```python
-# tests/unit/test_handlers.py
-
-class FakeRepository(AbstractRepository):
-    """
-    Fake repository qui stocke les produits en mémoire.
-    Utilisé pour les tests unitaires.
-    """
-
-    def __init__(self, produits: list[model.Produit] | None = None):
-        super().__init__()
-        self._produits = set(produits or [])
-
-    def _add(self, produit: model.Produit) -> None:
-        self._produits.add(produit)
-
-    def _get(self, sku: str) -> model.Produit | None:
-        return next((p for p in self._produits if p.sku == sku), None)
-
-    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
-        return next(
-            (p for p in self._produits
-             for l in p.lots if l.référence == réf_lot),
-            None,
-        )
-```
-
-Le `FakeRepository` respecte exactement le même contrat que le
-`SqlAlchemyRepository`, mais il stocke tout dans un simple `set` Python.
-Pas de base de données, pas de connexion, pas de migration. Les tests
-s'exécutent en millisecondes.
+On réutilise le `FakeRepository` défini au [chapitre 2](chapitre_02_repository.md) : une implémentation en mémoire qui stocke les produits dans un simple `set` Python, respectant exactement le même contrat que `SqlAlchemyRepository`. Pas de base de données, pas de connexion, pas de migration. Les tests s'exécutent en millisecondes.
 
 ### Le FakeNotifications
 
-Même principe pour les notifications :
+Le même principe s'applique aux notifications. Le `FakeNotifications` stocke les appels dans une liste au lieu d'envoyer de vrais emails :
 
 ```python
-# tests/unit/test_handlers.py
-
 class FakeNotifications(AbstractNotifications):
-    """Fake pour capturer les notifications envoyées."""
-
     def __init__(self):
         self.envoyées: list[tuple[str, str]] = []
 
@@ -337,7 +308,6 @@ class FakeNotifications(AbstractNotifications):
         self.envoyées.append((destination, message))
 ```
 
-Au lieu d'envoyer un vrai email, le fake stocke les appels dans une liste.
 Dans les tests, on peut alors vérifier :
 
 ```python
@@ -363,6 +333,19 @@ Les tests avec fakes traversent toute la pile applicative -- du handler jusqu'au
 repository -- mais sans jamais toucher à une vraie base de données. On teste
 le **comportement réel** du système, pas un mock fragile qui simule un
 scénario idéalisé.
+
+---
+
+## Exercices
+
+!!! example "Exercice 1 -- Identifier les abstractions manquantes"
+    Imaginez que votre système doit générer des fichiers PDF pour les bons de livraison. Dessinez le port (interface abstraite) et deux adapters (un réel avec une bibliothèque PDF, un fake pour les tests). Quels paramètres la méthode du port prend-elle ?
+
+!!! example "Exercice 2 -- Mesurer le couplage"
+    Listez tous les `import` de `handlers.py`. Combien pointent vers le domaine ? Combien vers l'infrastructure ? Si un import pointe vers l'infrastructure, est-ce un problème ? Pourquoi ?
+
+!!! example "Exercice 3 -- YAGNI vs DIP"
+    Votre application n'envoie des emails que via SMTP et n'aura jamais besoin d'autre chose. Faut-il quand même créer une `AbstractNotifications` ? Argumentez pour et contre.
 
 ---
 

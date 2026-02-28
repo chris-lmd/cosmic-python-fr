@@ -1,5 +1,12 @@
 # Chapitre 9 -- Aller plus loin avec le Message Bus
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | API appelle handlers, side-effects dispersés |
+    | **Après** | Tout passe par `bus.handle()`, propagation en cascade |
+
 ## Le Message Bus comme cœur de l'architecture
 
 Dans les chapitres précédents, le message bus était un mécanisme secondaire :
@@ -61,16 +68,16 @@ def allocate_endpoint():
     data = request.json
     try:
         cmd = commands.Allouer(
-            id_commande=data["id_commande"],
+            id_commande=data["orderid"],
             sku=data["sku"],
-            quantité=data["quantité"],
+            quantité=data["qty"],
         )
         results = bus.handle(cmd)
         réf_lot = results.pop(0)
     except handlers.SkuInconnu as e:
         return jsonify({"message": str(e)}), 400
 
-    return jsonify({"réf_lot": réf_lot}), 201
+    return jsonify({"batchref": réf_lot}), 201
 ```
 
 Le endpoint ne connaît plus aucun handler. Son travail se résume à :
@@ -243,6 +250,31 @@ def envoyer_notification_rupture_stock(
 Personne n'a eu besoin d'orchestrer cette cascade. **Le comportement émerge de
 la composition des handlers**, pas d'un code d'orchestration central.
 
+### Diagramme de séquence : la boucle de la queue
+
+Voici le déroulé complet de la queue interne pour le scénario ci-dessus :
+
+```
+queue = [ModifierQuantitéLot]
+  │
+  ├─► modifier_quantité_lot() → Produit émet [Désalloué]
+  │   collect_new_events() → queue = [Désalloué]
+  │
+  ├─► réallouer() → appelle allouer(Allouer)
+  │   → Produit émet [Alloué]
+  │   collect_new_events() → queue = [Alloué]
+  │
+  ├─► publier_événement_allocation()
+  ├─► ajouter_allocation_vue()
+  │
+  └─► queue vide, fin
+```
+
+**Point clé** : un seul message initial (`ModifierQuantitéLot`) peut déclencher
+toute une cascade. Le bus dépile les messages un par un, et chaque handler peut
+en produire de nouveaux. La boucle `while queue:` continue tant qu'il reste des
+messages à traiter.
+
 ---
 
 ## L'injection de dépendances dans le bus
@@ -397,6 +429,19 @@ bus.handle(commands.CréerLot(réf="batch-001", sku="TABLE", quantité=100))
 | Les side-effects sont gérés à part               | Tout transite par le bus, commands comme events        |
 | Ajouter un comportement = modifier du code       | Ajouter un handler + l'enregistrer dans le bootstrap   |
 | Tests couplés aux détails d'implémentation       | Tests via le bus avec des fakes injectées              |
+
+## Exercices
+
+!!! example "Exercice 1 -- Ajouter un middleware"
+    Modifiez `_call_handler` pour logger le temps d'exécution de chaque handler. Vérifiez que les tests passent toujours.
+
+!!! example "Exercice 2 -- Handler asynchrone"
+    Comment adapteriez-vous le message bus pour supporter des handlers `async` ? Quelles parties de l'architecture changeraient ?
+
+!!! example "Exercice 3 -- Compteur de messages"
+    Ajoutez un attribut `self.messages_processed: int` au `MessageBus` qui compte le nombre total de messages (commands + events) traités. Écrivez un test qui vérifie que le compteur est correct après une cascade command → event → handler.
+
+---
 
 Le message bus est devenu la colonne vertébrale de l'application. Toute
 l'intelligence est dans les handlers et le domaine ; le bus ne fait que

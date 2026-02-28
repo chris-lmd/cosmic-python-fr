@@ -1,5 +1,12 @@
 # Chapitre 12 -- CQRS (Command Query Responsibility Segregation)
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Même modèle pour lecture et écriture |
+    | **Après** | Write model normalisé + Read model dénormalisé |
+
 ## Le problème de la lecture
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine riche :
@@ -293,6 +300,8 @@ Le handler de mise à jour du read model ressemblerait à ceci :
 ```python
 # src/allocation/service_layer/handlers.py
 
+from sqlalchemy import text
+
 def ajouter_allocation_vue(
     event: events.Alloué,
     uow: AbstractUnitOfWork,
@@ -300,8 +309,10 @@ def ajouter_allocation_vue(
     """Met à jour le read model quand une allocation est effectuée."""
     with uow:
         uow.session.execute(
-            "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
-            " VALUES (:id_commande, :sku, :réf_lot)",
+            text(
+                "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
+                " VALUES (:id_commande, :sku, :réf_lot)"
+            ),
             dict(id_commande=event.id_commande, sku=event.sku, réf_lot=event.réf_lot),
         )
         uow.commit()
@@ -383,8 +394,10 @@ def supprimer_allocation_vue(
     """Supprime une allocation du read model quand une désallocation se produit."""
     with uow:
         uow.session.execute(
-            "DELETE FROM allocations_view"
-            " WHERE id_commande = :id_commande AND sku = :sku",
+            text(
+                "DELETE FROM allocations_view"
+                " WHERE id_commande = :id_commande AND sku = :sku"
+            ),
             dict(id_commande=event.id_commande, sku=event.sku),
         )
         uow.commit()
@@ -491,6 +504,19 @@ distincts, chacun optimisé pour son cas d'usage.
 | **View** | Fonction de lecture pure, SQL direct | `views.allocations()` |
 | **Event handler** | Met à jour le read model en réaction aux events | `ajouter_allocation_vue()` |
 | **Eventual consistency** | Le read model peut avoir un léger retard | Délai entre commit write et update read |
+
+## Exercices
+
+!!! example "Exercice 1 -- Nouvelle vue"
+    Créez un read model `stock_view` qui montre la quantité disponible par SKU. Définissez la table, l'event handler qui la met à jour (sur `Alloué` et `Désalloué`), et la fonction de lecture.
+
+!!! example "Exercice 2 -- Rebuild du read model"
+    Si la table `allocations_view` est corrompue, comment la reconstruire à partir des tables du write model ? Écrivez un script SQL qui le fait.
+
+!!! example "Exercice 3 -- Tester l'eventual consistency"
+    Écrivez un test qui vérifie que après un `bus.handle(commands.Allouer(...))`, la vue `allocations` retourne bien l'allocation. Ce test prouve-t-il la consistency ou l'eventual consistency ?
+
+---
 
 !!! tip "À retenir"
     - Le modèle de domaine est optimisé pour l'écriture. Ne le forcez pas à servir les lectures.

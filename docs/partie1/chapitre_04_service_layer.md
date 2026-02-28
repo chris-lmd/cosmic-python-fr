@@ -1,5 +1,12 @@
 # Chapitre 4 -- La Service Layer
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Toute la logique dans les routes Flask |
+    | **Après** | Handlers fins orchestrent, Flask ne fait que traduire HTTP |
+
 !!! abstract "Ce que vous allez apprendre"
 
     - Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask
@@ -12,7 +19,7 @@
 
 ## Le problème : des routes Flask qui grossissent
 
-Dans les chapitres précédents, nous avons construit un modèle de domaine (`Produit`, `Lot`, `LigneDeCommande`) et un Repository pour persister nos agrégats. Imaginons maintenant une première route Flask pour allouer du stock :
+Dans les chapitres précédents, nous avons construit un modèle de domaine (`Lot`, `LigneDeCommande`, `allouer()`) et un Repository pour persister nos objets dans un conteneur `Produit`. La logique d'allocation que nous avions écrite comme fonction libre au chapitre 1 est maintenant une **méthode** de `Produit` -- c'est lui qui possède les lots et qui sait comment les trier. Imaginons maintenant une première route Flask pour allouer du stock :
 
 ```python
 # Version naïve -- toute la logique dans la route
@@ -194,45 +201,7 @@ L'un des gains majeurs de la Service Layer est la **testabilité**. On peut test
 
 ### FakeRepository et FakeUnitOfWork
 
-```python
-class FakeRepository(AbstractRepository):
-    def __init__(self, produits: list[model.Produit] | None = None):
-        super().__init__()
-        self._produits = set(produits or [])
-
-    def _add(self, produit: model.Produit) -> None:
-        self._produits.add(produit)
-
-    def _get(self, sku: str) -> model.Produit | None:
-        return next((p for p in self._produits if p.sku == sku), None)
-
-    def _get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
-        return next(
-            (p for p in self._produits for l in p.lots
-             if l.référence == réf_lot),
-            None,
-        )
-
-
-class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
-    def __init__(self):
-        self.produits = FakeRepository([])
-        self.committed = False
-
-    def __enter__(self):
-        return super().__enter__()
-
-    def __exit__(self, *args):
-        pass
-
-    def _commit(self):
-        self.committed = True
-
-    def rollback(self):
-        pass
-```
-
-Ces fakes sont des implémentations **en mémoire** des abstractions. Le `FakeRepository` stocke les produits dans un `set` Python au lieu de SQLAlchemy, et le `FakeUnitOfWork` trace les commits sans toucher à aucune base de données.
+On utilise le `FakeRepository` défini au [chapitre 2](chapitre_02_repository.md) et un `FakeUnitOfWork` qui l'encapsule (détaillé au [chapitre 6](chapitre_06_unit_of_work.md)). Ces fakes sont des implémentations **en mémoire** des abstractions : le `FakeRepository` stocke les produits dans un `set` Python, et le `FakeUnitOfWork` trace les commits via un booléen `self.committed` sans toucher à aucune base de données.
 
 ### Les tests des handlers
 
@@ -298,6 +267,19 @@ Avec la Service Layer en place, la répartition des tests évolue :
 | End-to-end | Système | Lent | Le système complet |
 
 La majorité des tests se concentre sur les deux premières couches. Les tests d'intégration de l'API sont peu nombreux car ils ne vérifient que le "câblage".
+
+---
+
+## Exercices
+
+!!! example "Exercice 1 -- Nouvelle command"
+    Ajoutez un handler `désallouer` qui prend une command `Désallouer(id_commande, sku, quantité)` et retire une allocation. Écrivez le test correspondant avec le `FakeUnitOfWork`. Où devrait vivre la logique de désallocation ?
+
+!!! example "Exercice 2 -- Handler trop gros"
+    Un collègue écrit un handler de 30 lignes qui vérifie le stock disponible, applique des promotions, calcule les frais de port et envoie un email. Quels principes sont violés ? Comment le refactorer ?
+
+!!! example "Exercice 3 -- Ajouter un endpoint CLI"
+    Écrivez un point d'entrée CLI (avec `argparse` ou `click`) qui appelle `bus.handle(commands.Allouer(...))`. Vérifiez que vous n'avez rien changé dans les handlers ni le domaine.
 
 ---
 

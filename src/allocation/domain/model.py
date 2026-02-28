@@ -15,22 +15,18 @@ from typing import Optional
 from allocation.domain import events
 
 
-class RuptureDeStock(Exception):
-    """Levée quand il n'y a plus de stock disponible pour un SKU donné."""
-    pass
-
-
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True)
 class LigneDeCommande:
     """
     Value Object représentant une ligne de commande.
 
-    Un value object est immuable et défini par ses attributs,
-    pas par une identité. Deux LigneDeCommande avec les mêmes
-    attributs sont considérées comme identiques.
+    Un value object est défini par ses attributs, pas par une identité.
+    Deux LigneDeCommande avec les mêmes attributs sont considérées
+    comme identiques.
 
-    frozen=True rend la dataclass immuable et hashable,
-    ce qui permet de l'utiliser dans un set (pour les allocations).
+    unsafe_hash=True génère __hash__ à partir des attributs, ce qui
+    permet de l'utiliser dans un set (pour les allocations) tout en
+    restant compatible avec le mapping ORM de SQLAlchemy.
     """
 
     id_commande: str
@@ -56,7 +52,7 @@ class Lot:
         self.eta = eta
         self._quantité_achetée = quantité
         # Un set garantit l'idempotence : allouer deux fois la même ligne
-        # n'a aucun effet (car LigneDeCommande est frozen/hashable).
+        # n'a aucun effet (car LigneDeCommande est hashable via unsafe_hash).
         self._allocations: set[LigneDeCommande] = set()
 
     def __repr__(self) -> str:

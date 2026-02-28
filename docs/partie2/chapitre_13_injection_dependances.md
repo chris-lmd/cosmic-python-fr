@@ -1,5 +1,12 @@
 # Chapitre 13 -- Injection de dépendances et bootstrap
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Handlers créent leurs dépendances |
+    | **Après** | `bootstrap()` Composition Root, injection par introspection |
+
 ## Le problème : qui crée les dépendances ?
 
 Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allouer`
@@ -565,6 +572,19 @@ Le flux est toujours descendant : le bootstrap crée le bus, le bus dispatch
 aux handlers, les handlers utilisent les abstractions, et les abstractions
 cachent l'infrastructure. Nulle part un composant ne remonte pour créer
 ou chercher ses propres dépendances.
+
+## Exercices
+
+!!! example "Exercice 1 -- Nouvelle dépendance"
+    Ajoutez un `AbstractLogger` injectable dans les handlers. Modifiez le bootstrap pour injecter un `FakeLogger` en test et un vrai `logging.Logger` en production. Vérifiez que l'introspection de `_call_handler` le résout correctement.
+
+!!! example "Exercice 2 -- Tester l'injection"
+    Écrivez un test qui vérifie que si un handler déclare un paramètre `inconnu` qui n'est pas dans les dépendances, le bus le gère proprement (que se passe-t-il actuellement ?).
+
+!!! example "Exercice 3 -- Container DI"
+    Installez `dependency-injector` et réécrivez le bootstrap en utilisant un container. Comparez le nombre de lignes, la lisibilité et la facilité de debug avec le bootstrap manuel.
+
+---
 
 !!! tip "À retenir"
     - Un handler ne crée **jamais** ses dépendances. Il les reçoit.

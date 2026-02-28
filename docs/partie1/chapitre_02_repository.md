@@ -1,8 +1,17 @@
 # Chapitre 2 -- Le pattern Repository
 
+!!! info "Avant / Après"
+
+    | | |
+    |---|---|
+    | **Avant** | Domaine couplé à SQLAlchemy (`save()`, `load()`) |
+    | **Après** | `AbstractRepository` + `SqlAlchemyRepository`, domaine indépendant |
+
 ## Le problème de la persistance
 
-Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, un agrégat `Produit` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
+Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, une fonction `allouer()` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
+
+Pour persister ces objets, nous avons besoin d'un **conteneur** qui regroupe les lots d'un même SKU. C'est le rôle de la classe `Produit` : un objet simple qui possède un `sku` et une liste de `lots`. Nous verrons au [chapitre 7](chapitre_07_aggregats.md) pourquoi ce conteneur est en réalité un **Agrégat** au sens du DDD, mais pour l'instant, il suffit de le voir comme un regroupement pratique.
 
 Mais une application réelle doit **sauvegarder ses données**. Les objets du domaine doivent être persistés dans une base de données, puis rechargées plus tard. Et c'est là que les ennuis commencent.
 
@@ -427,6 +436,19 @@ Le flux est toujours le même :
 3. En test, c'est un `FakeRepository` (le fake adapter) qui est injecté.
 4. Le modèle de domaine reste ignorant de tout cela.
 
+
+## Exercices
+
+!!! example "Exercice 1 -- FileRepository"
+    Implémentez un `FileRepository` qui persiste les produits dans un fichier JSON. Il doit respecter le contrat de `AbstractRepository` (méthodes `_add`, `_get`, `_get_par_réf_lot`). Écrivez un test pour vérifier qu'on peut ajouter un produit, puis le retrouver après avoir recréé le repository.
+
+!!! example "Exercice 2 -- Méthode `list_all`"
+    Ajoutez une méthode `list_all() -> list[Produit]` à l'`AbstractRepository`. Implémentez-la dans `SqlAlchemyRepository` et `FakeRepository`. Réfléchissez : cette méthode devrait-elle ajouter les produits à `seen` ?
+
+!!! example "Exercice 3 -- Vérifier le mapping ORM"
+    Écrivez un test d'intégration qui crée un `Produit` avec un `Lot`, le persiste via `SqlAlchemyRepository`, puis le recharge et vérifie que tous les attributs sont corrects. Utilisez une base SQLite en mémoire (`sqlite://`).
+
+---
 
 ## Résumé
 

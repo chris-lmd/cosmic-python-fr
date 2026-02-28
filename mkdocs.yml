@@ -18,6 +18,7 @@ theme:
 
 nav:
   - Accueil: index.md
+  - "Chapitre 0 - Mise en route": chapitre_00_mise_en_route.md
   - "Partie 1 - Construire une architecture pour le Domain Modeling":
     - "Chapitre 1 - Le modèle de domaine": partie1/chapitre_01_modele_domaine.md
     - "Chapitre 2 - Le pattern Repository": partie1/chapitre_02_repository.md
@@ -33,6 +34,7 @@ nav:
     - "Chapitre 11 - Events externes": partie2/chapitre_11_events_externes.md
     - "Chapitre 12 - CQRS": partie2/chapitre_12_cqrs.md
     - "Chapitre 13 - Injection de dépendances": partie2/chapitre_13_injection_dependances.md
+  - "Épilogue": epilogue.md
 
 markdown_extensions:
   - pymdownx.highlight:
