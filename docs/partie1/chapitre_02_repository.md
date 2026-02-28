@@ -1,12 +1,5 @@
 # Chapitre 2 -- Le pattern Repository
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Domaine couplé à SQLAlchemy (`save()`, `load()`) |
-    | **Après** | `AbstractRepository` + `SqlAlchemyRepository`, domaine indépendant |
-
 ## Le problème de la persistance
 
 Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, une fonction `allouer()` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.

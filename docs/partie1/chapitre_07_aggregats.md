@@ -1,12 +1,5 @@
 # Chapitre 7 -- Agrégats et frontières de cohérence
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Fonction libre `allouer(ligne, lots)` sans garantie |
-    | **Après** | `Produit` Aggregate Root + `numéro_version` (optimistic locking) |
-
 !!! info "Ce que vous allez apprendre"
     - Pourquoi un modèle de domaine sans frontières claires mène à des incohérences
     - Ce qu'est un **Agrégat** et comment il protège les invariants métier

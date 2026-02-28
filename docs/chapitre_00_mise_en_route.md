@@ -14,7 +14,7 @@ Avant de commencer, assurez-vous d'avoir installé :
 
 ```bash
 # 1. Cloner le dépôt
-git clone <url-du-dépôt> cosmic-python-fr
+git clone https://github.com/chris-lmd/cosmic-python-fr.git cosmic-python-fr
 cd cosmic-python-fr
 
 # 2. Installer les dépendances
@@ -98,4 +98,4 @@ Le guide est organisé en **deux parties** qui se lisent dans l'ordre :
     - **Lisez dans l'ordre.** Chaque chapitre s'appuie sur le précédent.
     - **Regardez le code.** Les fichiers dans `src/allocation/` correspondent exactement à l'état final décrit dans le guide.
     - **Lancez les tests.** Après chaque chapitre, identifiez les tests correspondants dans `tests/` et exécutez-les pour vérifier votre compréhension.
-    - **Chaque chapitre commence par un tableau "Avant/Après"** qui résume la transformation d'un coup d'œil.
+    - **L'épilogue** résume les compromis de chaque pattern et donne des conseils pragmatiques.

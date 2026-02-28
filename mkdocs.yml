@@ -1,6 +1,8 @@
 site_name: "Patterns d'Architecture en Python"
 site_description: "Guide francophone des patterns d'architecture logicielle en Python"
 site_url: ""
+repo_url: https://github.com/chris-lmd/cosmic-python-fr
+repo_name: chris-lmd/cosmic-python-fr
 
 theme:
   name: material

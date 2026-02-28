@@ -1,12 +1,5 @@
 # Chapitre 1 -- Le Domain Model
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Logique métier dispersée dans des transaction scripts |
-    | **Après** | Classes pures `Lot`, `LigneDeCommande` + fonction `allouer()` |
-
 ## Pourquoi un modèle de domaine ?
 
 Imaginons un système d'allocation de stock. Un client passe une commande, et le système doit décider quel lot de marchandise utiliser pour honorer cette commande. Simple en apparence, mais les règles s'accumulent vite : on préfère puiser dans le stock déjà en entrepôt plutôt que dans une livraison à venir, on choisit la livraison la plus proche si tout le stock en entrepôt est épuisé, on ne peut pas allouer plus que ce qui est disponible, on ne peut pas allouer un SKU différent de celui commandé...

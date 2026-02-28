@@ -1,12 +1,5 @@
 # Chapitre 13 -- Injection de dépendances et bootstrap
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Handlers créent leurs dépendances |
-    | **Après** | `bootstrap()` Composition Root, injection par introspection |
-
 ## Le problème : qui crée les dépendances ?
 
 Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allouer`

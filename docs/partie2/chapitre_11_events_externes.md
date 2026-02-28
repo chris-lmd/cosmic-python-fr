@@ -1,12 +1,5 @@
 # Chapitre 11 -- Events externes et communication entre services
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Service isolé, communications HTTP directes |
-    | **Après** | Events via Redis Pub/Sub, Consumer convertit en commands |
-
 !!! abstract "Ce que vous allez apprendre"
     - La différence entre events internes et events externes
     - Comment publier des events vers un message broker (Redis Pub/Sub)

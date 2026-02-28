@@ -1,12 +1,5 @@
 # Chapitre 3 -- Couplage et abstractions
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Service Layer dépend de SQLAlchemy et `smtplib` |
-    | **Après** | Service Layer dépend d'abstractions (ports) |
-
 ## Le problème du couplage
 
 Imaginez un système d'allocation de stock où chaque composant connaît directement

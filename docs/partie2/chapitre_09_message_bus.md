@@ -1,12 +1,5 @@
 # Chapitre 9 -- Aller plus loin avec le Message Bus
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | API appelle handlers, side-effects dispersés |
-    | **Après** | Tout passe par `bus.handle()`, propagation en cascade |
-
 ## Le Message Bus comme cœur de l'architecture
 
 Dans les chapitres précédents, le message bus était un mécanisme secondaire :

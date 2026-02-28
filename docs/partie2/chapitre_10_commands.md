@@ -1,12 +1,5 @@
 # Chapitre 10 -- Commands et Events : distinguer les intentions des faits
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Commands et events traités identiquement |
-    | **Après** | Commands (1 handler, exception) vs Events (N handlers, silencieux) |
-
 Jusqu'ici, notre message bus traite des messages. Mais tous les messages ne se
 valent pas. Quand l'API envoie une demande d'allocation, c'est une **instruction
 explicite** : "alloue cette ligne de commande". Quand le domaine signale qu'un

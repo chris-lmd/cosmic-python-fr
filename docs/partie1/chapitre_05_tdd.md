@@ -1,12 +1,5 @@
 # Chapitre 5 -- TDD à haute et basse vitesse
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Tests unitaires OU tests E2E coûteux |
-    | **Après** | Stratégie 2 vitesses : haute (fakes) + basse (domaine pur) |
-
 ## Où en sommes-nous ?
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine (`Lot`, `LigneDeCommande`, `Produit`), un Repository pour le persister, et une Service Layer pour orchestrer les cas d'utilisation. Nous avons également écrit des tests à différents niveaux.

@@ -1,12 +1,5 @@
 # Chapitre 8 -- Events et le Message Bus
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Handler appelle `send_email()`, `publish()` directement |
-    | **Après** | Domaine émet events, handlers réagissent via Message Bus |
-
 > **Pattern** : Domain Events + Message Bus
 > **Problème résolu** : Comment réagir aux changements du domaine sans coupler la logique métier aux effets de bord ?
 

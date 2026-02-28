@@ -1,12 +1,5 @@
 # Chapitre 12 -- CQRS (Command Query Responsibility Segregation)
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Même modèle pour lecture et écriture |
-    | **Après** | Write model normalisé + Read model dénormalisé |
-
 ## Le problème de la lecture
 
 Dans les chapitres précédents, nous avons construit un modèle de domaine riche :

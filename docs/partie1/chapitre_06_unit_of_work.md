@@ -1,12 +1,5 @@
 # Chapitre 6 -- Le pattern Unit of Work
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Handler instancie la session SQLAlchemy |
-    | **Après** | `AbstractUnitOfWork` context manager encapsule la transaction |
-
 > **Comment garantir que les opérations en base de données sont atomiques, sans coupler nos handlers à SQLAlchemy ?**
 
 Jusqu'ici, notre architecture repose sur un repository qui abstrait l'accès à la base de données, et une service layer qui orchestre les cas d'usage. Mais une question reste ouverte : **qui gère la transaction ?**

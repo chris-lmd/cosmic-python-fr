@@ -1,12 +1,5 @@
 # Chapitre 4 -- La Service Layer
 
-!!! info "Avant / Après"
-
-    | | |
-    |---|---|
-    | **Avant** | Toute la logique dans les routes Flask |
-    | **Après** | Handlers fins orchestrent, Flask ne fait que traduire HTTP |
-
 !!! abstract "Ce que vous allez apprendre"
 
     - Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask
