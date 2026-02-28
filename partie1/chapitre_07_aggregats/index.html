@@ -1274,18 +1274,6 @@
 
 
 <h1 id="chapitre-7-agregats-et-frontieres-de-coherence">Chapitre 7 -- Agrégats et frontières de cohérence<a class="headerlink" href="#chapitre-7-agregats-et-frontieres-de-coherence" title="Permanent link">&para;</a></h1>
-<div class="admonition info">
-<p class="admonition-title">Ce que vous allez apprendre</p>
-<ul>
-<li>Pourquoi un modèle de domaine sans frontières claires mène à des incohérences</li>
-<li>Ce qu'est un <strong>Agrégat</strong> et comment il protège les invariants métier</li>
-<li>Le rôle de l'<strong>Aggregate Root</strong> comme point d'entrée unique</li>
-<li>Comment choisir les frontières d'un agrégat</li>
-<li>Comment le <strong>numéro_version</strong> et l'<strong>optimistic locking</strong> protègent contre les accès concurrents</li>
-<li>Comment <code>Produit</code> devient l'agrégat qui contient les <code>Lot</code></li>
-</ul>
-</div>
-<hr />
 <h2 id="le-probleme-un-domaine-sans-frontieres">Le problème : un domaine sans frontières<a class="headerlink" href="#le-probleme-un-domaine-sans-frontieres" title="Permanent link">&para;</a></h2>
 <p>Au chapitre 1, nous avons défini une fonction libre <code>allouer(ligne, lots)</code> qui prend une liste de lots et choisit le meilleur. C'est simple et lisible, mais cela pose un problème fondamental : <strong>qui est responsable de fournir la bonne liste de lots ?</strong> Rien n'empêche du code extérieur de manipuler directement un <code>Lot</code>, de modifier sa quantité, ou d'allouer une ligne sans passer par cette stratégie.</p>
 <p>Imaginons deux requêtes HTTP simultanées qui tentent d'allouer la même quantité de stock :</p>

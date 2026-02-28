@@ -1230,17 +1230,6 @@
 
 
 <h1 id="chapitre-4-la-service-layer">Chapitre 4 -- La Service Layer<a class="headerlink" href="#chapitre-4-la-service-layer" title="Permanent link">&para;</a></h1>
-<div class="admonition abstract">
-<p class="admonition-title">Ce que vous allez apprendre</p>
-<ul>
-<li>Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask</li>
-<li>Ce qu'est une Service Layer et ce qu'elle contient (et ne contient <strong>pas</strong>)</li>
-<li>Comment écrire des handlers fins et procéduraux</li>
-<li>Comment transformer Flask en thin adapter qui ne fait que traduire HTTP</li>
-<li>Comment tester l'orchestration sans framework web ni base de données</li>
-</ul>
-</div>
-<hr />
 <h2 id="le-probleme-des-routes-flask-qui-grossissent">Le problème : des routes Flask qui grossissent<a class="headerlink" href="#le-probleme-des-routes-flask-qui-grossissent" title="Permanent link">&para;</a></h2>
 <p>Dans les chapitres précédents, nous avons construit un modèle de domaine (<code>Lot</code>, <code>LigneDeCommande</code>, <code>allouer()</code>) et un Repository pour persister nos objets dans un conteneur <code>Produit</code>. La logique d'allocation que nous avions écrite comme fonction libre au chapitre 1 est maintenant une <strong>méthode</strong> de <code>Produit</code> -- c'est lui qui possède les lots et qui sait comment les trier. Imaginons maintenant une première route Flask pour allouer du stock :</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Version naïve -- toute la logique dans la route</span>

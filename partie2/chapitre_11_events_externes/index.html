@@ -1176,17 +1176,6 @@
 
 
 <h1 id="chapitre-11-events-externes-et-communication-entre-services">Chapitre 11 -- Events externes et communication entre services<a class="headerlink" href="#chapitre-11-events-externes-et-communication-entre-services" title="Permanent link">&para;</a></h1>
-<div class="admonition abstract">
-<p class="admonition-title">Ce que vous allez apprendre</p>
-<ul>
-<li>La différence entre events internes et events externes</li>
-<li>Comment publier des events vers un message broker (Redis Pub/Sub)</li>
-<li>Comment consommer des events externes et les convertir en commands internes</li>
-<li>Le pattern Outbox pour garantir la publication fiable des events</li>
-<li>L'importance de l'idempotence dans les consumers</li>
-</ul>
-</div>
-<hr />
 <h2 id="events-internes-vs-events-externes">Events internes vs events externes<a class="headerlink" href="#events-internes-vs-events-externes" title="Permanent link">&para;</a></h2>
 <p>Jusqu'ici, nos events circulent uniquement <strong>à l'intérieur</strong> de notre application.
 Quand un <code>Produit</code> émet un event <code>Alloué</code>, le message bus le dispatch vers
