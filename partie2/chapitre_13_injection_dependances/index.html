@@ -1,0 +1,1948 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_12_cqrs/">
+      
+      
+        <link rel="next" href="../../epilogue/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 13 - Injection de dépendances - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-13-injection-de-dependances-et-bootstrap" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 13 - Injection de dépendances
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-qui-cree-les-dependances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème : qui crée les dépendances ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-injection-di" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Injection (DI)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-composition-root-un-seul-point-dassemblage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La Composition Root : un seul point d'assemblage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-module-bootstrappy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le module bootstrap.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le module bootstrap.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#utilisation-en-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utilisation en production
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linjection-par-introspection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L'injection par introspection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L&#39;injection par introspection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-concret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemple concret
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#di-pour-les-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DI pour les tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DI pour les tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-bootstrap-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bootstrap de test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-tests-en-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les tests en action
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-parallele-production-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le parallèle production / tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#framework-di-vs-di-manuelle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Framework DI vs DI manuelle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Framework DI vs DI manuelle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-la-di-manuelle-suffit-en-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi la DI manuelle suffit en Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-envisager-un-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand envisager un framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture-finale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture finale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-qui-cree-les-dependances" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème : qui crée les dépendances ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependency-injection-di" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependency Injection (DI)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-composition-root-un-seul-point-dassemblage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La Composition Root : un seul point d'assemblage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-module-bootstrappy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le module bootstrap.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le module bootstrap.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#utilisation-en-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utilisation en production
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linjection-par-introspection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L'injection par introspection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L&#39;injection par introspection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-concret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemple concret
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#di-pour-les-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DI pour les tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="DI pour les tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-bootstrap-de-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bootstrap de test
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-tests-en-action" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les tests en action
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-parallele-production-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le parallèle production / tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#framework-di-vs-di-manuelle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Framework DI vs DI manuelle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Framework DI vs DI manuelle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-la-di-manuelle-suffit-en-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi la DI manuelle suffit en Python
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-envisager-un-framework" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand envisager un framework
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture-finale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture finale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-13-injection-de-dependances-et-bootstrap">Chapitre 13 -- Injection de dépendances et bootstrap<a class="headerlink" href="#chapitre-13-injection-de-dependances-et-bootstrap" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Handlers créent leurs dépendances</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td><code>bootstrap()</code> Composition Root, injection par introspection</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="le-probleme-qui-cree-les-dependances">Le problème : qui crée les dépendances ?<a class="headerlink" href="#le-probleme-qui-cree-les-dependances" title="Permanent link">&para;</a></h2>
+<p>Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler <code>allouer</code>
+a besoin d'un Unit of Work pour accéder aux produits et persister les changements.
+Le handler <code>envoyer_notification_rupture_stock</code> a besoin d'un adapter de notifications
+pour envoyer un email. D'autres handlers pourraient avoir besoin d'un client Redis,
+d'un logger spécifique, ou de n'importe quel autre service d'infrastructure.</p>
+<p>La question est simple en apparence, mais fondamentale : <strong>qui crée ces objets,
+et qui les passe aux handlers ?</strong></p>
+<p>Examinons nos handlers tels qu'ils sont écrits :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># src/allocation/service_layer/handlers.py</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">cmd</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>        <span class="c1"># &lt;-- besoin d&#39;un UoW</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">LigneDeCommande</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">quantité</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="k">if</span> <span class="n">produit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="k">raise</span> <span class="n">SkuInconnu</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SKU inconnu : </span><span class="si">{</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="k">return</span> <span class="n">réf_lot</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">envoyer_notification_rupture_stock</span><span class="p">(</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">,</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">notifications</span><span class="p">:</span> <span class="n">AbstractNotifications</span><span class="p">,</span>  <span class="c1"># &lt;-- besoin de notifications</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="n">notifications</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="n">destination</span><span class="o">=</span><span class="s2">&quot;stock@example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Rupture de stock pour le SKU </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Chaque handler <strong>déclare</strong> ses dépendances via ses paramètres. Mais il ne les
+crée pas lui-même. C'est une décision délibérée : si <code>allouer</code> instanciait
+directement un <code>SqlAlchemyUnitOfWork</code>, on ne pourrait plus le tester avec un
+fake. Si <code>envoyer_notification_rupture_stock</code> créait un <code>EmailNotifications</code>,
+impossible de vérifier les envois sans serveur SMTP.</p>
+<p>On pourrait être tenté de résoudre cela de manière ad hoc -- un import ici,
+un singleton là -- mais cela mène rapidement à un réseau de dépendances
+implicites, difficile à suivre et encore plus difficile à tester.</p>
+<hr />
+<h2 id="dependency-injection-di">Dependency Injection (DI)<a class="headerlink" href="#dependency-injection-di" title="Permanent link">&para;</a></h2>
+<p>Le principe de la Dependency Injection est élégant dans sa simplicité :</p>
+<div class="admonition note">
+<p class="admonition-title">Dependency Injection</p>
+<p>Au lieu qu'un composant <strong>crée</strong> ses dépendances, elles lui sont
+<strong>injectées de l'extérieur</strong>. Le composant déclare ce dont il a besoin
+(via ses paramètres), et quelqu'un d'autre fournit les instances concrètes.</p>
+</div>
+<p>C'est l'application directe du Dependency Inversion Principle vu au chapitre 3,
+mais ici on passe à la mécanique : <strong>comment</strong> fournir les bonnes instances
+aux bons handlers ?</p>
+<p>Il y a trois approches classiques :</p>
+<ol>
+<li>
+<p><strong>Injection par constructeur</strong> : les dépendances sont passées à <code>__init__</code>.
+   C'est le cas de notre <code>MessageBus</code>, qui reçoit le <code>uow</code> et les <code>dependencies</code>
+   à sa construction.</p>
+</li>
+<li>
+<p><strong>Injection par paramètre</strong> : les dépendances sont passées à chaque appel
+   de fonction. C'est le cas de nos handlers : <code>allouer(cmd, uow=...)</code>.</p>
+</li>
+<li>
+<p><strong>Injection par framework</strong> : un conteneur DI résout automatiquement le
+   graphe de dépendances. On en parlera en fin de chapitre.</p>
+</li>
+</ol>
+<p>Notre architecture combine les deux premières approches : le <code>MessageBus</code> reçoit
+ses dépendances par constructeur, puis les <strong>redistribue</strong> aux handlers par
+paramètre à chaque appel.</p>
+<hr />
+<h2 id="la-composition-root-un-seul-point-dassemblage">La Composition Root : un seul point d'assemblage<a class="headerlink" href="#la-composition-root-un-seul-point-dassemblage" title="Permanent link">&para;</a></h2>
+<p>Dans toute application, il existe un moment où il faut <strong>assembler</strong> les pièces :
+créer les instances concrètes et les connecter entre elles. Ce lieu s'appelle la
+<strong>Composition Root</strong>.</p>
+<p>Le principe est strict : <strong>il ne doit y avoir qu'un seul endroit</strong> dans
+l'application où les dépendances concrètes sont instanciées et reliées.
+Partout ailleurs, le code ne manipule que des abstractions.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>   Sans Composition Root :                Avec Composition Root :
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>   dépendances créées partout             dépendances créées en un seul point
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>   ┌───────────┐                          ┌───────────────────┐
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>   │ Handler A │── new UoW()              │   Bootstrap       │
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>   └───────────┘                          │   (Composition    │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>   ┌───────────┐                          │    Root)          │
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>   │ Handler B │── new UoW()              │                   │
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>   └───────────┘                          │  uow = SqlUoW()  │
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>   ┌───────────┐                          │  notif = Email()  │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>   │ Handler C │── new Email()            │  bus = MessageBus │
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>   └───────────┘                          │    (uow, notif)   │
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>                                          └─────────┬─────────┘
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>   Problème : couplage direct,                      │
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>   impossible de remplacer                  ┌───────┴───────┐
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>   les implémentations.                     │ Handlers A,B,C│
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>                                            │ reçoivent les │
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>                                            │ dépendances   │
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>                                            └───────────────┘
+</code></pre></div>
+<p>Dans notre projet, la Composition Root est le module <strong><code>bootstrap.py</code></strong>.</p>
+<hr />
+<h2 id="le-module-bootstrappy">Le module bootstrap.py<a class="headerlink" href="#le-module-bootstrappy" title="Permanent link">&para;</a></h2>
+<p>Voici le coeur de l'assemblage de notre application :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># src/allocation/service_layer/bootstrap.py</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">bootstrap</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">start_orm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">notifications_adapter</span><span class="p">:</span> <span class="n">notifications</span><span class="o">.</span><span class="n">AbstractNotifications</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="o">**</span><span class="n">extra_dependencies</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">:</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="sd">    Construit et retourne un MessageBus configuré.</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">if</span> <span class="n">start_orm</span><span class="p">:</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">orm</span><span class="o">.</span><span class="n">start_mappers</span><span class="p">()</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="k">if</span> <span class="n">uow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        <span class="n">uow</span> <span class="o">=</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">()</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>    <span class="k">if</span> <span class="n">notifications_adapter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>        <span class="n">notifications_adapter</span> <span class="o">=</span> <span class="n">notifications</span><span class="o">.</span><span class="n">EmailNotifications</span><span class="p">()</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="n">dependencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>        <span class="s2">&quot;notifications&quot;</span><span class="p">:</span> <span class="n">notifications_adapter</span><span class="p">,</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>        <span class="o">**</span><span class="n">extra_dependencies</span><span class="p">,</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    <span class="p">}</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>    <span class="k">return</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">(</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>        <span class="n">uow</span><span class="o">=</span><span class="n">uow</span><span class="p">,</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>        <span class="n">event_handlers</span><span class="o">=</span><span class="n">EVENT_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>        <span class="n">command_handlers</span><span class="o">=</span><span class="n">COMMAND_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>        <span class="n">dependencies</span><span class="o">=</span><span class="n">dependencies</span><span class="p">,</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Décomposons ce que fait cette fonction :</p>
+<ol>
+<li>
+<p><strong>Initialisation de l'ORM</strong> : si <code>start_orm</code> est vrai, on démarre le mapping
+   SQLAlchemy. En production, c'est nécessaire. En tests unitaires, on passe
+   <code>start_orm=False</code> car on n'a pas besoin de base de données.</p>
+</li>
+<li>
+<p><strong>Création du UoW</strong> : si aucun <code>uow</code> n'est fourni, on crée le concret
+   <code>SqlAlchemyUnitOfWork</code>. Si un fake est passé, on l'utilise tel quel.</p>
+</li>
+<li>
+<p><strong>Création des notifications</strong> : même logique. Par défaut, on crée
+   <code>EmailNotifications</code>. En test, on passe un <code>FakeNotifications</code>.</p>
+</li>
+<li>
+<p><strong>Assemblage du dictionnaire de dépendances</strong> : toutes les dépendances
+   supplémentaires (notifications, et potentiellement d'autres) sont regroupées
+   dans un dictionnaire.</p>
+</li>
+<li>
+<p><strong>Construction du MessageBus</strong> : le bus reçoit le UoW, les mappings
+   handlers/messages, et le dictionnaire de dépendances.</p>
+</li>
+</ol>
+<p>Le second élément clé est la <strong>configuration des handlers</strong>, définie dans le
+même module :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># src/allocation/service_layer/bootstrap.py</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">EVENT_HANDLERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Alloué</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">publier_événement_allocation</span><span class="p">],</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">réallouer</span><span class="p">],</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_notification_rupture_stock</span><span class="p">],</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">}</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">COMMAND_HANDLERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_lot</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">allouer</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">ModifierQuantitéLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">modifier_quantité_lot</span><span class="p">,</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="p">}</span>
+</code></pre></div>
+<p>Ces dictionnaires constituent le <strong>routing</strong> de l'application : quel handler
+traite quel message. Ils sont déclarés de manière statique et centralisée,
+ce qui rend le flux de l'application lisible d'un seul coup d'oeil.</p>
+<h3 id="utilisation-en-production">Utilisation en production<a class="headerlink" href="#utilisation-en-production" title="Permanent link">&para;</a></h3>
+<p>Dans le point d'entrée Flask, le bootstrap est appelé une seule fois au
+démarrage de l'application :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># src/allocation/entrypoints/flask_app.py</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">allocation.service_layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">bootstrap</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">()</span>  <span class="c1"># Composition Root -- tout est assemblé ici</span>
+</code></pre></div>
+<p>À partir de là, <code>bus</code> est le seul objet dont l'application a besoin. Chaque
+endpoint se contente de créer une command et de la confier au bus :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocate_endpoint</span><span class="p">():</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="n">id_commande</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id_commande&quot;</span><span class="p">],</span> <span class="n">sku</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span> <span class="n">quantité</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;quantité&quot;</span><span class="p">],</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;réf_lot&quot;</span><span class="p">:</span> <span class="n">réf_lot</span><span class="p">}),</span> <span class="mi">201</span>
+</code></pre></div>
+<p>L'endpoint ne sait pas quel UoW est utilisé, ni comment les notifications sont
+envoyées. Il n'a pas besoin de le savoir. Toute cette mécanique est cachée
+derrière le <code>MessageBus</code>, assemblé par le bootstrap.</p>
+<hr />
+<h2 id="linjection-par-introspection">L'injection par introspection<a class="headerlink" href="#linjection-par-introspection" title="Permanent link">&para;</a></h2>
+<p>Le mécanisme le plus subtil de notre architecture se trouve dans la méthode
+<code>_call_handler</code> du <code>MessageBus</code>. C'est elle qui réalise l'injection de
+dépendances à chaque appel de handler.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># src/allocation/service_layer/messagebus.py</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">_call_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="sd">    Appelle un handler en injectant les dépendances nécessaires.</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="sd">    Introspection des paramètres du handler pour déterminer</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="sd">    quelles dépendances injecter.</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]:</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>            <span class="c1"># Premier paramètre = le message lui-même</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>            <span class="k">continue</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;uow&quot;</span><span class="p">:</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>            <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uow</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">:</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>            <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>    <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+<p>Voici ce qui se passe, étape par étape :</p>
+<ol>
+<li>
+<p><strong>Introspection</strong> : <code>inspect.signature(handler).parameters</code> examine la
+   signature du handler pour connaître les noms de ses paramètres.</p>
+</li>
+<li>
+<p><strong>Le premier paramètre est sauté</strong> : c'est toujours le message lui-même
+   (la command ou l'event). Il sera passé comme argument positionnel.</p>
+</li>
+<li>
+<p><strong>Résolution des dépendances</strong> : pour chaque paramètre restant, le bus
+   cherche une correspondance par <strong>nom</strong> :</p>
+<ul>
+<li>Si le paramètre s'appelle <code>uow</code>, il reçoit le <code>self.uow</code>.</li>
+<li>Sinon, le bus cherche dans le dictionnaire <code>self.dependencies</code>.</li>
+</ul>
+</li>
+<li>
+<p><strong>Appel du handler</strong> : le message est passé en premier argument positionnel,
+   les dépendances en keyword arguments.</p>
+</li>
+</ol>
+<h3 id="exemple-concret">Exemple concret<a class="headerlink" href="#exemple-concret" title="Permanent link">&para;</a></h3>
+<p>Prenons le handler <code>envoyer_notification_rupture_stock</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">envoyer_notification_rupture_stock</span><span class="p">(</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">notifications</span><span class="p">:</span> <span class="n">AbstractNotifications</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="o">...</span>
+</code></pre></div>
+<p>Quand le bus doit appeler ce handler :</p>
+<ul>
+<li><code>inspect.signature</code> détecte deux paramètres : <code>event</code> et <code>notifications</code>.</li>
+<li><code>event</code> est le premier paramètre, il est sauté.</li>
+<li><code>notifications</code> est cherché dans <code>self.dependencies</code> -- et trouvé, car
+  le bootstrap a rempli <code>dependencies = {"notifications": notifications_adapter}</code>.</li>
+<li>Le bus appelle : <code>handler(event, notifications=email_adapter)</code>.</li>
+</ul>
+<p>Pour le handler <code>allouer</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">cmd</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="o">...</span>
+</code></pre></div>
+<ul>
+<li><code>cmd</code> est le premier paramètre, sauté.</li>
+<li><code>uow</code> est détecté par son nom et reçoit <code>self.uow</code>.</li>
+<li>Le bus appelle : <code>handler(cmd, uow=sqlalchemy_uow)</code>.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Convention over configuration</p>
+<p>L'injection fonctionne par <strong>convention de nommage</strong> : un paramètre
+nommé <code>uow</code> reçoit le Unit of Work, un paramètre nommé <code>notifications</code>
+reçoit l'adapter de notifications. C'est simple, lisible, et ne
+nécessite aucun décorateur ni annotation spéciale.</p>
+</div>
+<hr />
+<h2 id="di-pour-les-tests">DI pour les tests<a class="headerlink" href="#di-pour-les-tests" title="Permanent link">&para;</a></h2>
+<p>L'un des bénéfices majeurs de la Dependency Injection est de pouvoir
+remplacer les implémentations concrètes par des <strong>fakes</strong> dans les tests.
+Le même code de handler est exécuté, mais avec des dépendances différentes.</p>
+<h3 id="le-bootstrap-de-test">Le bootstrap de test<a class="headerlink" href="#le-bootstrap-de-test" title="Permanent link">&para;</a></h3>
+<p>Voici comment les tests unitaires assemblent le bus :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># tests/unit/test_handlers.py</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeUnitOfWork</span><span class="p">(</span><span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span><span class="p">):</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fake Unit of Work utilisant le FakeRepository.&quot;&quot;&quot;</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">produits</span> <span class="o">=</span> <span class="n">FakeRepository</span><span class="p">([])</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">committed</span> <span class="o">=</span> <span class="kc">False</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="k">pass</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_commit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">committed</span> <span class="o">=</span> <span class="kc">True</span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">rollback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="k">pass</span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeNotifications</span><span class="p">(</span><span class="n">AbstractNotifications</span><span class="p">):</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fake pour capturer les notifications envoyées.&quot;&quot;&quot;</span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">envoyées</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">envoyées</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">destination</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">bootstrap_test_bus</span><span class="p">(</span><span class="n">uow</span><span class="p">:</span> <span class="n">FakeUnitOfWork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">:</span>
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Crée un message bus configuré pour les tests.&quot;&quot;&quot;</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">allocation.service_layer.bootstrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">EVENT_HANDLERS</span><span class="p">,</span> <span class="n">COMMAND_HANDLERS</span>
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>    <span class="n">uow</span> <span class="o">=</span> <span class="n">uow</span> <span class="ow">or</span> <span class="n">FakeUnitOfWork</span><span class="p">()</span>
+<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>    <span class="n">notifications</span> <span class="o">=</span> <span class="n">FakeNotifications</span><span class="p">()</span>
+<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a>    <span class="k">return</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">(</span>
+<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a>        <span class="n">uow</span><span class="o">=</span><span class="n">uow</span><span class="p">,</span>
+<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a>        <span class="n">event_handlers</span><span class="o">=</span><span class="n">EVENT_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a>        <span class="n">command_handlers</span><span class="o">=</span><span class="n">COMMAND_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a>        <span class="n">dependencies</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;notifications&quot;</span><span class="p">:</span> <span class="n">notifications</span><span class="p">},</span>
+<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Observez les points clés :</p>
+<ul>
+<li>
+<p><strong><code>FakeUnitOfWork</code></strong> remplace <code>SqlAlchemyUnitOfWork</code>. Les produits sont
+  stockés en mémoire dans un <code>FakeRepository</code>. Le <code>_commit</code> se contente de
+  passer un flag à <code>True</code>, ce qui permet de vérifier que le commit a eu lieu.</p>
+</li>
+<li>
+<p><strong><code>FakeNotifications</code></strong> remplace <code>EmailNotifications</code>. Au lieu d'envoyer un
+  email, chaque appel à <code>send</code> est enregistré dans une liste <code>self.envoyées</code>.
+  Les tests peuvent ensuite inspecter cette liste.</p>
+</li>
+<li>
+<p><strong><code>bootstrap_test_bus</code></strong> joue le rôle de Composition Root pour les tests.
+  Elle réutilise les mêmes <code>EVENT_HANDLERS</code> et <code>COMMAND_HANDLERS</code> que la
+  production (les handlers sont identiques), mais injecte des fakes.</p>
+</li>
+</ul>
+<h3 id="les-tests-en-action">Les tests en action<a class="headerlink" href="#les-tests-en-action" title="Permanent link">&para;</a></h3>
+<p>Grâce à cette architecture, les tests sont simples et expressifs :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestAllouer</span><span class="p">:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_retourne_réf_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="k">assert</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;b1&quot;</span>
+</code></pre></div>
+<p>Ce test traverse toute la pile applicative -- du <code>MessageBus</code> au handler,
+du handler au domaine, du domaine au repository -- mais sans aucune
+infrastructure réelle. Il s'exécute en quelques millisecondes.</p>
+<p>La clé : <strong>le handler <code>allouer</code> ne sait pas qu'il travaille avec un fake</strong>.
+Il reçoit un objet qui respecte le contrat <code>AbstractUnitOfWork</code>, et c'est
+tout ce qui compte. C'est le polymorphisme au service de la testabilité.</p>
+<h3 id="le-parallele-production-tests">Le parallèle production / tests<a class="headerlink" href="#le-parallele-production-tests" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>   Production :                         Tests :
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>   bootstrap()                          bootstrap_test_bus()
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>     │                                    │
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>     ├── SqlAlchemyUnitOfWork             ├── FakeUnitOfWork
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>     ├── EmailNotifications               ├── FakeNotifications
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>     └── MessageBus                       └── MessageBus
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>           │                                    │
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>           ├── handlers.allouer                 ├── handlers.allouer
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>           ├── handlers.ajouter_lot             ├── handlers.ajouter_lot
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>           └── handlers.envoyer_notif...        └── handlers.envoyer_notif...
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>   Mêmes handlers, dépendances différentes.
+</code></pre></div>
+<hr />
+<h2 id="framework-di-vs-di-manuelle">Framework DI vs DI manuelle<a class="headerlink" href="#framework-di-vs-di-manuelle" title="Permanent link">&para;</a></h2>
+<p>En Java ou C#, la Dependency Injection passe presque toujours par un
+<strong>framework</strong> : Spring, Guice, Autofac. Ces frameworks maintiennent un
+<strong>conteneur</strong> qui connaît toutes les classes de l'application, résout
+automatiquement le graphe de dépendances, et gère les cycles de vie
+(singleton, scoped, transient).</p>
+<p>En Python, la situation est différente. Le langage est suffisamment dynamique
+pour que la DI manuelle soit souvent la meilleure option.</p>
+<h3 id="pourquoi-la-di-manuelle-suffit-en-python">Pourquoi la DI manuelle suffit en Python<a class="headerlink" href="#pourquoi-la-di-manuelle-suffit-en-python" title="Permanent link">&para;</a></h3>
+<p>Notre <code>bootstrap.py</code> fait une trentaine de lignes. Il est lisible, explicite,
+et facile à débugger. Quand quelque chose ne va pas, on sait exactement où
+regarder : c'est dans le bootstrap.</p>
+<p>Comparez avec un framework DI hypothétique :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Avec un framework DI (hypothétique)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">container</span> <span class="o">=</span> <span class="n">Container</span><span class="p">()</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">container</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">AbstractUnitOfWork</span><span class="p">,</span> <span class="n">SqlAlchemyUnitOfWork</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;singleton&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">container</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">AbstractNotifications</span><span class="p">,</span> <span class="n">EmailNotifications</span><span class="p">,</span> <span class="n">scope</span><span class="o">=</span><span class="s2">&quot;transient&quot;</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">container</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">MessageBus</span><span class="p">)</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">container</span><span class="o">.</span><span class="n">auto_wire</span><span class="p">()</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">MessageBus</span><span class="p">)</span>
+</code></pre></div>
+<p>C'est plus concis, mais aussi plus <strong>magique</strong>. Le <code>auto_wire()</code> cache la
+mécanique de résolution. Quand ça ne fonctionne pas, le message d'erreur
+peut être cryptique. Et pour un projet de taille raisonnable, le gain
+par rapport au bootstrap manuel est négligeable.</p>
+<h3 id="quand-envisager-un-framework">Quand envisager un framework<a class="headerlink" href="#quand-envisager-un-framework" title="Permanent link">&para;</a></h3>
+<p>Un framework DI devient intéressant quand :</p>
+<ul>
+<li>Le nombre de dépendances dépasse la vingtaine et le bootstrap manuel
+  devient pénible à maintenir.</li>
+<li>Vous avez besoin de <strong>scopes</strong> complexes (par requête HTTP, par session,
+  par thread).</li>
+<li>Plusieurs équipes travaillent sur le même projet et ont besoin d'un
+  mécanisme standardisé pour enregistrer des composants.</li>
+</ul>
+<p>Si vous atteignez ce stade, la bibliothèque
+<a href="https://python-dependency-injector.ets-labs.org/">dependency-injector</a>
+est le choix le plus mature en Python. Elle offre des conteneurs, du wiring
+automatique, et une bonne intégration avec les frameworks web.</p>
+<div class="admonition warning">
+<p class="admonition-title">Ne commencez pas par un framework DI</p>
+<p>La DI manuelle via un bootstrap est suffisante pour la grande majorité
+des projets Python. N'ajoutez un framework que quand la douleur du
+bootstrap manuel devient réelle, pas par anticipation.</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<p>L'injection de dépendances et le bootstrap résolvent un problème fondamental
+de toute architecture propre : <strong>comment assembler les composants sans créer
+de couplage entre eux</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Rôle</th>
+<th>Dans notre code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dependency Injection</strong></td>
+<td>Fournir les dépendances de l'extérieur au lieu de les créer en interne</td>
+<td>Les handlers déclarent <code>uow</code>, <code>notifications</code> comme paramètres</td>
+</tr>
+<tr>
+<td><strong>Composition Root</strong></td>
+<td>Un seul point où les dépendances concrètes sont assemblées</td>
+<td><code>bootstrap.py</code></td>
+</tr>
+<tr>
+<td><strong>Bootstrap</strong></td>
+<td>Fonction qui crée toutes les dépendances et construit le bus</td>
+<td><code>bootstrap()</code></td>
+</tr>
+<tr>
+<td><strong>Introspection</strong></td>
+<td>Découvrir automatiquement les dépendances requises par un handler</td>
+<td><code>inspect.signature</code> dans <code>_call_handler</code></td>
+</tr>
+<tr>
+<td><strong>Fakes pour les tests</strong></td>
+<td>Implémentations légères pour tester sans infrastructure</td>
+<td><code>FakeUnitOfWork</code>, <code>FakeNotifications</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="architecture-finale">Architecture finale<a class="headerlink" href="#architecture-finale" title="Permanent link">&para;</a></h3>
+<p>Voici le schéma complet de l'architecture, avec le bootstrap au sommet :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>   ┌──────────────────────────────────────────────────────────────┐
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>   │                        BOOTSTRAP                            │
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>   │                   (Composition Root)                        │
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>   │                                                              │
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>   │  Crée :  UoW, Notifications, MessageBus                     │
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>   │  Configure : routing commands/events -&gt; handlers             │
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>   └──────────────────────────┬───────────────────────────────────┘
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>                              │
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>                              │ construit
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>                              v
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>   ┌──────────────────────────────────────────────────────────────┐
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>   │                       MESSAGE BUS                            │
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>   │                                                              │
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>   │  - Reçoit les commands et events                             │
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>   │  - Dispatch vers les handlers                                │
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>   │  - Injecte les dépendances par introspection                 │
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>   │  - Collecte et traite les events en cascade                  │
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>   └──────┬──────────────────────────────────┬────────────────────┘
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>          │                                  │
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>          v                                  v
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>   ┌──────────────┐                   ┌──────────────┐
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a>   │  Command      │                   │  Event        │
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a>   │  Handlers     │                   │  Handlers     │
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a>   │               │                   │               │
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a>   │  allouer      │                   │  réallouer    │
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a>   │  ajouter_lot  │                   │  envoyer_notif│
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a>   │  modifier_qté │                   │  publier      │
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a>   └──────┬───────┘                   └──────┬───────┘
+<a id="__codelineno-13-29" name="__codelineno-13-29" href="#__codelineno-13-29"></a>          │                                  │
+<a id="__codelineno-13-30" name="__codelineno-13-30" href="#__codelineno-13-30"></a>          │ utilisent                        │ utilisent
+<a id="__codelineno-13-31" name="__codelineno-13-31" href="#__codelineno-13-31"></a>          v                                  v
+<a id="__codelineno-13-32" name="__codelineno-13-32" href="#__codelineno-13-32"></a>   ┌──────────────────────────────────────────────────────────────┐
+<a id="__codelineno-13-33" name="__codelineno-13-33" href="#__codelineno-13-33"></a>   │                      ABSTRACTIONS                            │
+<a id="__codelineno-13-34" name="__codelineno-13-34" href="#__codelineno-13-34"></a>   │                                                              │
+<a id="__codelineno-13-35" name="__codelineno-13-35" href="#__codelineno-13-35"></a>   │  AbstractUnitOfWork          AbstractNotifications            │
+<a id="__codelineno-13-36" name="__codelineno-13-36" href="#__codelineno-13-36"></a>   │       │                            │                         │
+<a id="__codelineno-13-37" name="__codelineno-13-37" href="#__codelineno-13-37"></a>   │       ├── SqlAlchemyUoW            ├── EmailNotifications    │
+<a id="__codelineno-13-38" name="__codelineno-13-38" href="#__codelineno-13-38"></a>   │       └── FakeUoW (tests)          └── FakeNotifications     │
+<a id="__codelineno-13-39" name="__codelineno-13-39" href="#__codelineno-13-39"></a>   └──────────────────────────────────────────────────────────────┘
+<a id="__codelineno-13-40" name="__codelineno-13-40" href="#__codelineno-13-40"></a>          │                                  │
+<a id="__codelineno-13-41" name="__codelineno-13-41" href="#__codelineno-13-41"></a>          v                                  v
+<a id="__codelineno-13-42" name="__codelineno-13-42" href="#__codelineno-13-42"></a>   ┌──────────────┐                   ┌──────────────┐
+<a id="__codelineno-13-43" name="__codelineno-13-43" href="#__codelineno-13-43"></a>   │  PostgreSQL   │                   │  Serveur     │
+<a id="__codelineno-13-44" name="__codelineno-13-44" href="#__codelineno-13-44"></a>   │  (production) │                   │  SMTP        │
+<a id="__codelineno-13-45" name="__codelineno-13-45" href="#__codelineno-13-45"></a>   └──────────────┘                   └──────────────┘
+</code></pre></div>
+<p>Le flux est toujours descendant : le bootstrap crée le bus, le bus dispatch
+aux handlers, les handlers utilisent les abstractions, et les abstractions
+cachent l'infrastructure. Nulle part un composant ne remonte pour créer
+ou chercher ses propres dépendances.</p>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Nouvelle dépendance</p>
+<p>Ajoutez un <code>AbstractLogger</code> injectable dans les handlers. Modifiez le bootstrap pour injecter un <code>FakeLogger</code> en test et un vrai <code>logging.Logger</code> en production. Vérifiez que l'introspection de <code>_call_handler</code> le résout correctement.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Tester l'injection</p>
+<p>Écrivez un test qui vérifie que si un handler déclare un paramètre <code>inconnu</code> qui n'est pas dans les dépendances, le bus le gère proprement (que se passe-t-il actuellement ?).</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Container DI</p>
+<p>Installez <code>dependency-injector</code> et réécrivez le bootstrap en utilisant un container. Comparez le nombre de lignes, la lisibilité et la facilité de debug avec le bootstrap manuel.</p>
+</div>
+<hr />
+<div class="admonition tip">
+<p class="admonition-title">À retenir</p>
+<ul>
+<li>Un handler ne crée <strong>jamais</strong> ses dépendances. Il les reçoit.</li>
+<li>Le <strong>bootstrap</strong> est le seul endroit où les implémentations concrètes
+  sont instanciées.</li>
+<li>L'<strong>introspection</strong> (<code>inspect.signature</code>) permet au bus d'injecter
+  automatiquement les bonnes dépendances dans chaque handler.</li>
+<li>En tests, on remplace les implémentations concrètes par des <strong>fakes</strong>
+  via le même mécanisme de bootstrap.</li>
+<li>La DI manuelle via un bootstrap explicite est souvent <strong>préférée</strong> en
+  Python à un framework DI. N'ajoutez de la complexité que quand elle
+  est justifiée.</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

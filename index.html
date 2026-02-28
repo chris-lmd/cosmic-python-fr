@@ -1,0 +1,1383 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+      
+        <link rel="next" href="chapitre_00_mise_en_route/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#patterns-darchitecture-en-python" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Accueil
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#de-quoi-parle-ce-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        De quoi parle ce guide ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#positionnement-de-ce-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positionnement de ce guide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pourquoi-ces-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi ces patterns ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#organisation-du-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Organisation du guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Organisation du guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#partie-1-construire-une-architecture-pour-le-domain-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partie 1 — Construire une architecture pour le Domain Modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partie-2-architecture-evenementielle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partie 2 — Architecture événementielle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epilogue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Épilogue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-domaine-metier-lallocation-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le domaine métier : l'allocation de stock
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-requis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pré-requis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crédits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#licence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Licence
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie1/chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="partie2/chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#de-quoi-parle-ce-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        De quoi parle ce guide ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#positionnement-de-ce-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Positionnement de ce guide
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pourquoi-ces-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi ces patterns ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#organisation-du-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Organisation du guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Organisation du guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#partie-1-construire-une-architecture-pour-le-domain-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partie 1 — Construire une architecture pour le Domain Modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#partie-2-architecture-evenementielle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partie 2 — Architecture événementielle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epilogue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Épilogue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-domaine-metier-lallocation-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le domaine métier : l'allocation de stock
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pre-requis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pré-requis
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#credits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crédits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#licence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Licence
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="patterns-darchitecture-en-python">Patterns d'Architecture en Python<a class="headerlink" href="#patterns-darchitecture-en-python" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>Guide francophone des patterns d'architecture logicielle en Python</p>
+</blockquote>
+<h2 id="de-quoi-parle-ce-guide">De quoi parle ce guide ?<a class="headerlink" href="#de-quoi-parle-ce-guide" title="Permanent link">&para;</a></h2>
+<p>Ce guide vous accompagne dans la construction d'une <strong>application Python bien architecturée</strong>, en introduisant progressivement des patterns éprouvés issus du <strong>Domain-Driven Design (DDD)</strong> et de l'<strong>architecture événementielle</strong>.</p>
+<p>Le fil rouge est un système d'<strong>allocation de stock</strong> : un problème métier suffisamment réaliste pour illustrer les enjeux, mais suffisamment simple pour se concentrer sur l'architecture.</p>
+<h2 id="positionnement-de-ce-guide">Positionnement de ce guide<a class="headerlink" href="#positionnement-de-ce-guide" title="Permanent link">&para;</a></h2>
+<p>Ce guide adopte une approche combinant <strong>Domain-Driven Design (DDD)</strong>, <strong>architecture hexagonale (Ports &amp; Adapters)</strong> et <strong>architecture événementielle</strong>. Si vous avez déjà entendu parler de la <strong>Clean Architecture</strong> de Robert C. Martin, vous retrouverez ici les mêmes principes fondamentaux — isolation du domaine, inversion des dépendances, découplage de l'infrastructure — mais avec des patterns et un vocabulaire mieux adaptés à Python.</p>
+<p>Là où la Clean Architecture propose des Use Cases sous forme de classes et un découpage en 4 couches formelles (pensé pour Java/C#), ce guide privilégie des <strong>handlers légers</strong> (de simples fonctions), des patterns éprouvés comme le <strong>Repository</strong> et le <strong>Unit of Work</strong>, et une architecture événementielle complète (Events, Commands, Message Bus, CQRS) qui permet au système de grandir progressivement.</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Clean Architecture (Uncle Bob)</th>
+<th>Ce guide (DDD + Hexagonal)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Orchestration</strong></td>
+<td>Use Case (une classe avec <code>execute()</code>)</td>
+<td>Handler (une simple fonction)</td>
+</tr>
+<tr>
+<td><strong>Formatage de la sortie</strong></td>
+<td>Presenter dédié</td>
+<td>Retour direct, l'entrypoint formate</td>
+</tr>
+<tr>
+<td><strong>Couches</strong></td>
+<td>4 couches strictes et formelles</td>
+<td>Ajoutées progressivement selon le besoin</td>
+</tr>
+<tr>
+<td><strong>Architecture événementielle</strong></td>
+<td>Peu détaillée</td>
+<td>Centrale (Events, Commands, Message Bus, CQRS)</td>
+</tr>
+<tr>
+<td><strong>Modélisation du domaine</strong></td>
+<td>Peu détaillée</td>
+<td>Riche (Aggregates, Value Objects, Domain Events)</td>
+</tr>
+<tr>
+<td><strong>Persistance</strong></td>
+<td>Gateways (concept générique)</td>
+<td>Repository + Unit of Work (patterns éprouvés)</td>
+</tr>
+</tbody>
+</table>
+<p>En résumé : même philosophie, outillage différent, taillé pour Python.</p>
+<h2 id="pourquoi-ces-patterns">Pourquoi ces patterns ?<a class="headerlink" href="#pourquoi-ces-patterns" title="Permanent link">&para;</a></h2>
+<p>La plupart des applications commencent simples, puis deviennent difficiles à maintenir au fil du temps. La logique métier se disperse entre les routes de l'API, les requêtes SQL, et les scripts utilitaires. Les tests deviennent fragiles car couplés à la base de données.</p>
+<p>Les patterns présentés ici résolvent ces problèmes en :</p>
+<ul>
+<li><strong>Isolant la logique métier</strong> dans un modèle de domaine pur (sans dépendance à la BDD ou au framework web)</li>
+<li><strong>Découplant les couches</strong> grâce à des abstractions (Repository, Unit of Work)</li>
+<li><strong>Rendant le système extensible</strong> grâce à une architecture événementielle (Events, Message Bus, CQRS)</li>
+</ul>
+<h2 id="organisation-du-guide">Organisation du guide<a class="headerlink" href="#organisation-du-guide" title="Permanent link">&para;</a></h2>
+<h3 id="partie-1-construire-une-architecture-pour-le-domain-modeling">Partie 1 — Construire une architecture pour le Domain Modeling<a class="headerlink" href="#partie-1-construire-une-architecture-pour-le-domain-modeling" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Chapitre</th>
+<th>Pattern</th>
+<th>Problème résolu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="partie1/chapitre_01_modele_domaine/">1. Le modèle de domaine</a></td>
+<td>Domain Model</td>
+<td>Où mettre la logique métier ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_02_repository/">2. Le pattern Repository</a></td>
+<td>Repository</td>
+<td>Comment découpler le domaine de la BDD ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_03_abstractions/">3. Couplage et abstractions</a></td>
+<td>Dependency Inversion</td>
+<td>Pourquoi et comment introduire des abstractions ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_04_service_layer/">4. La Service Layer</a></td>
+<td>Service Layer</td>
+<td>Où placer l'orchestration ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_05_tdd/">5. TDD à haute et basse vitesse</a></td>
+<td>Testing Pyramid</td>
+<td>Comment tester efficacement ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_06_unit_of_work/">6. Le pattern Unit of Work</a></td>
+<td>Unit of Work</td>
+<td>Comment gérer les transactions ?</td>
+</tr>
+<tr>
+<td><a href="partie1/chapitre_07_aggregats/">7. Agrégats et frontières</a></td>
+<td>Aggregate</td>
+<td>Comment garantir la cohérence ?</td>
+</tr>
+</tbody>
+</table>
+<h3 id="partie-2-architecture-evenementielle">Partie 2 — Architecture événementielle<a class="headerlink" href="#partie-2-architecture-evenementielle" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Chapitre</th>
+<th>Pattern</th>
+<th>Problème résolu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="partie2/chapitre_08_events/">8. Events et le Message Bus</a></td>
+<td>Domain Events</td>
+<td>Comment réagir aux changements du domaine ?</td>
+</tr>
+<tr>
+<td><a href="partie2/chapitre_09_message_bus/">9. Aller plus loin avec le Message Bus</a></td>
+<td>Message Bus</td>
+<td>Comment le bus devient le coeur de l'architecture ?</td>
+</tr>
+<tr>
+<td><a href="partie2/chapitre_10_commands/">10. Commands</a></td>
+<td>Command</td>
+<td>Comment distinguer intentions et faits ?</td>
+</tr>
+<tr>
+<td><a href="partie2/chapitre_11_events_externes/">11. Events externes</a></td>
+<td>Integration Events</td>
+<td>Comment communiquer entre services ?</td>
+</tr>
+<tr>
+<td><a href="partie2/chapitre_12_cqrs/">12. CQRS</a></td>
+<td>CQRS</td>
+<td>Comment optimiser lectures et écritures séparément ?</td>
+</tr>
+<tr>
+<td><a href="partie2/chapitre_13_injection_dependances/">13. Injection de dépendances</a></td>
+<td>Dependency Injection</td>
+<td>Comment assembler les composants proprement ?</td>
+</tr>
+</tbody>
+</table>
+<h3 id="epilogue">Épilogue<a class="headerlink" href="#epilogue" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="epilogue/">Épilogue -- Pièges, compromis et conseils pragmatiques</a></td>
+<td>Quand utiliser (et ne pas utiliser) ces patterns</td>
+</tr>
+</tbody>
+</table>
+<h2 id="le-domaine-metier-lallocation-de-stock">Le domaine métier : l'allocation de stock<a class="headerlink" href="#le-domaine-metier-lallocation-de-stock" title="Permanent link">&para;</a></h2>
+<p>Imaginons une entreprise de e-commerce qui doit gérer son stock. Quand un client passe commande, le système doit <strong>allouer</strong> les produits commandés à des <strong>lots de stock</strong> (batches).</p>
+<p>Les règles métier :</p>
+<ul>
+<li>Chaque lot a une <strong>référence</strong>, un <strong>SKU</strong> (identifiant produit), une <strong>quantité</strong>, et une <strong>ETA</strong> (date d'arrivée) optionnelle</li>
+<li>Les lots en stock (sans ETA) sont <strong>préférés</strong> aux lots en transit</li>
+<li>Parmi les lots en transit, on choisit celui avec l'<strong>ETA la plus proche</strong></li>
+<li>On ne peut pas allouer plus que la quantité disponible</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">unsafe_hash</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">LigneDeCommande</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Value Object : une ligne de commande.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">Lot</span><span class="p">:</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Entity : un lot de stock.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">réf</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">référence</span> <span class="o">=</span> <span class="n">réf</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">sku</span> <span class="o">=</span> <span class="n">sku</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">=</span> <span class="n">quantité</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">LigneDeCommande</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="pre-requis">Pré-requis<a class="headerlink" href="#pre-requis" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Python 3.12+</li>
+<li>Notions de base en programmation orientée objet</li>
+<li>Familiarité avec pytest</li>
+<li>Curiosité pour l'architecture logicielle</li>
+</ul>
+<h2 id="credits">Crédits<a class="headerlink" href="#credits" title="Permanent link">&para;</a></h2>
+<p>Ce guide s'inspire des concepts présentés dans <em>Architecture Patterns with Python</em> de Harry Percival et Bob Gregory (disponible sur <a href="https://www.cosmicpython.com/">cosmicpython.com</a>), ainsi que des travaux fondateurs d'Eric Evans (Domain-Driven Design) et de Martin Fowler (Patterns of Enterprise Application Architecture).</p>
+<p>Ce guide a été rédigé avec l'assistance de l'IA générative Claude (Anthropic). Le contenu, les explications et les exemples de code sont originaux mais ont été générés et structurés à l'aide de cet outil.</p>
+<h2 id="licence">Licence<a class="headerlink" href="#licence" title="Permanent link">&para;</a></h2>
+<p>Ce contenu est mis à disposition sous licence <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

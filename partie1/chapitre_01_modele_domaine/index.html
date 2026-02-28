@@ -1,0 +1,1755 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../../chapitre_00_mise_en_route/">
+      
+      
+        <link rel="next" href="../chapitre_02_repository/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 1 - Le modèle de domaine - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-1-le-domain-model" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 1 - Le modèle de domaine
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pourquoi-un-modele-de-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi un modèle de domaine ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quest-ce-quun-domain-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Qu'est-ce qu'un Domain Model ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#value-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value Objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-regles-metier-dans-le-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les règles métier dans le domaine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les règles métier dans le domaine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verifier-quon-peut-allouer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vérifier qu'on peut allouer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allouer-une-ligne-de-commande" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allouer une ligne de commande
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#desallouer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Désallouer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quantites-calculees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantités calculées
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-strategie-dallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La stratégie d'allocation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tester-le-modele-de-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tester le modèle de domaine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tester le modèle de domaine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tests-du-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests du Lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-la-strategie-dallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de la stratégie d'allocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-concepts-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les concepts clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-du-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avantages du pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inconvenients-du-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inconvénients du pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pourquoi-un-modele-de-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi un modèle de domaine ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quest-ce-quun-domain-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Qu'est-ce qu'un Domain Model ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#value-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value Objects
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entities
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-regles-metier-dans-le-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les règles métier dans le domaine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les règles métier dans le domaine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#verifier-quon-peut-allouer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vérifier qu'on peut allouer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allouer-une-ligne-de-commande" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allouer une ligne de commande
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#desallouer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Désallouer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quantites-calculees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantités calculées
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-strategie-dallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La stratégie d'allocation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tester-le-modele-de-domaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tester le modèle de domaine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tester le modèle de domaine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tests-du-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests du Lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-la-strategie-dallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de la stratégie d'allocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-concepts-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les concepts clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-du-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avantages du pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inconvenients-du-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inconvénients du pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-1-le-domain-model">Chapitre 1 -- Le Domain Model<a class="headerlink" href="#chapitre-1-le-domain-model" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Logique métier dispersée dans des transaction scripts</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Classes pures <code>Lot</code>, <code>LigneDeCommande</code> + fonction <code>allouer()</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="pourquoi-un-modele-de-domaine">Pourquoi un modèle de domaine ?<a class="headerlink" href="#pourquoi-un-modele-de-domaine" title="Permanent link">&para;</a></h2>
+<p>Imaginons un système d'allocation de stock. Un client passe une commande, et le système doit décider quel lot de marchandise utiliser pour honorer cette commande. Simple en apparence, mais les règles s'accumulent vite : on préfère puiser dans le stock déjà en entrepôt plutôt que dans une livraison à venir, on choisit la livraison la plus proche si tout le stock en entrepôt est épuisé, on ne peut pas allouer plus que ce qui est disponible, on ne peut pas allouer un SKU différent de celui commandé...</p>
+<p>Dans beaucoup de projets, cette logique finit dispersée un peu partout : dans les vues Django, dans les endpoints FastAPI, dans des scripts SQL. C'est ce qu'on appelle parfois un <strong>transaction script</strong> -- un gros bloc procédural qui mélange logique métier, accès aux données et orchestration. Ça fonctionne au début, puis ça devient un cauchemar à maintenir et à tester.</p>
+<p>Le <strong>Domain Model</strong> est une réponse à ce problème. L'idée est de concentrer toute la logique métier dans une couche de code pur Python, sans aucune dépendance technique. Pas de base de données, pas de framework web, pas d'import <code>requests</code> ou <code>sqlalchemy</code>. Juste des classes, des méthodes et des règles métier.</p>
+<div class="admonition tip">
+<p class="admonition-title">L'avantage principal</p>
+<p>Un modèle de domaine pur se teste avec de simples tests unitaires, sans fixtures de base de données ni serveur HTTP. Les tests s'exécutent en millisecondes.</p>
+</div>
+<h2 id="quest-ce-quun-domain-model">Qu'est-ce qu'un Domain Model ?<a class="headerlink" href="#quest-ce-quun-domain-model" title="Permanent link">&para;</a></h2>
+<p>Le Domain Model est une représentation en code des concepts, des règles et des processus du domaine métier. C'est la traduction directe de ce que les experts métier décrivent quand ils parlent de leur travail.</p>
+<p>Dans notre cas, les experts métier parlent de <strong>lignes de commande</strong>, de <strong>lots de stock</strong>, de <strong>SKU</strong> (Stock Keeping Unit), d'<strong>allocation</strong> et de <strong>quantité disponible</strong>. Le Domain Model reprend exactement ce vocabulaire.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Vocabulaire metier          Code
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>-----------------          ----
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Ligne de commande    --&gt;   LigneDeCommande
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>Lot de stock         --&gt;   Lot
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>Allouer              --&gt;   allouer()
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>Quantite disponible  --&gt;   quantité_disponible
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>Reference produit    --&gt;   SKU (str)
+</code></pre></div>
+<p>La distinction fondamentale avec un transaction script, c'est l'endroit où vivent les règles. Dans un transaction script, la logique est dans le handler :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Transaction script -- a eviter</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="p">,</span> <span class="n">session</span><span class="p">):</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">lots</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Lot</span><span class="p">)</span><span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">sku</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">lots</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">eta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">l</span><span class="o">.</span><span class="n">eta</span><span class="p">))</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="k">for</span> <span class="n">lot</span> <span class="ow">in</span> <span class="n">lots</span><span class="p">:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="k">if</span> <span class="n">lot</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">-</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_allouée</span> <span class="o">&gt;=</span> <span class="n">quantité</span><span class="p">:</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>            <span class="n">lot</span><span class="o">.</span><span class="n">quantité_allouée</span> <span class="o">+=</span> <span class="n">quantité</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>            <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            <span class="k">return</span> <span class="n">lot</span><span class="o">.</span><span class="n">référence</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rupture de stock pour </span><span class="si">{</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Dans un Domain Model, la logique vit dans les objets du domaine eux-mêmes. Le handler ne fait que les orchestrer. C'est cette séparation qui rend le code testable, lisible et maintenable.</p>
+<h2 id="value-objects">Value Objects<a class="headerlink" href="#value-objects" title="Permanent link">&para;</a></h2>
+<p>Un <strong>Value Object</strong> est un objet défini par ses attributs, pas par une identité. Deux billets de 10 euros sont interchangeables : peu importe lequel vous avez, ce qui compte c'est la valeur. De la même façon, deux lignes de commande avec le même <code>id_commande</code>, le même <code>sku</code> et la même <code>quantité</code> sont identiques.</p>
+<p>Voici notre Value Object <code>LigneDeCommande</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">unsafe_hash</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">LigneDeCommande</span><span class="p">:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="sd">    Value Object représentant une ligne de commande.</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="sd">    Un value object est défini par ses attributs, pas par une identité.</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="sd">    Deux LigneDeCommande avec les mêmes attributs sont considérées</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="sd">    comme identiques.</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span>
+</code></pre></div>
+<p>Le décorateur <code>@dataclass(unsafe_hash=True)</code> fait deux choses essentielles :</p>
+<ol>
+<li>
+<p><strong>Égalité structurelle</strong> -- <code>@dataclass</code> génère automatiquement <code>__eq__</code> en comparant tous les attributs. Deux <code>LigneDeCommande</code> avec les mêmes valeurs sont considérées comme identiques.</p>
+</li>
+<li>
+<p><strong>Hashabilité</strong> -- <code>unsafe_hash=True</code> génère <code>__hash__</code> à partir des attributs, ce qui permet d'utiliser l'objet dans des <code>set</code> et comme clé de <code>dict</code>. C'est indispensable pour notre modèle, car <code>Lot</code> stocke ses allocations dans un <code>set[LigneDeCommande]</code>.</p>
+</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Pourquoi <code>unsafe_hash</code> et pas <code>frozen</code> ?</p>
+<p>On pourrait utiliser <code>@dataclass(frozen=True)</code> pour rendre l'objet strictement immuable. Mais <code>frozen=True</code> entre en conflit avec le <strong>mapping ORM</strong> de SQLAlchemy : quand l'ORM charge un objet depuis la base de données, il a besoin de lui assigner un attribut interne (<code>_sa_instance_state</code>), ce que <code>frozen</code> interdit. <code>unsafe_hash=True</code> offre le même comportement d'égalité et de hashabilité, tout en restant compatible avec l'ORM. La convention dans l'équipe est de ne <strong>jamais modifier</strong> une <code>LigneDeCommande</code> après création -- c'est une discipline plutôt qu'une contrainte technique.</p>
+</div>
+<details class="note">
+<summary>Pourquoi <code>@dataclass</code> et pas <code>NamedTuple</code> ?</summary>
+<p>Les deux sont des choix valables. <code>@dataclass</code> offre plus de flexibilité (héritage, méthodes, valeurs par défaut mutables via <code>field</code>). <code>NamedTuple</code> est légèrement plus performant en mémoire. Pour un Domain Model, la différence est négligeable. L'important, c'est l'égalité structurelle et la hashabilité.</p>
+</details>
+<p>On peut vérifier le comportement d'égalité :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_equality</span><span class="p">():</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Deux LigneDeCommande avec les mêmes attributs sont égales (value object).&quot;&quot;&quot;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">ligne1</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">ligne2</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">assert</span> <span class="n">ligne1</span> <span class="o">==</span> <span class="n">ligne2</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_inequality</span><span class="p">():</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">ligne1</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">ligne2</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande2&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">assert</span> <span class="n">ligne1</span> <span class="o">!=</span> <span class="n">ligne2</span>
+</code></pre></div>
+<p>Pas besoin d'écrire <code>__eq__</code> : <code>@dataclass</code> le génère automatiquement en comparant tous les attributs.</p>
+<h2 id="entities">Entities<a class="headerlink" href="#entities" title="Permanent link">&para;</a></h2>
+<p>Une <strong>Entity</strong> est un objet avec une identité qui persiste dans le temps. Même si ses attributs changent, l'entité reste la même. Un lot de stock avec la référence <code>"lot-042"</code> reste le même lot, qu'il contienne 100 ou 50 unités.</p>
+<p>Voici notre entité <code>Lot</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Lot</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="sd">    Entité représentant un lot de stock.</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="sd">    Un Lot a une identité (sa référence) et un cycle de vie.</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="sd">    Il contient une quantité de stock pour un SKU donné,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="sd">    avec une date d&#39;arrivée (ETA) optionnelle.</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">réf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">eta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">référence</span> <span class="o">=</span> <span class="n">réf</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">sku</span> <span class="o">=</span> <span class="n">sku</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">=</span> <span class="n">eta</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">=</span> <span class="n">quantité</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">LigneDeCommande</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Lot </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">référence</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Lot</span><span class="p">):</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>            <span class="k">return</span> <span class="bp">NotImplemented</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">référence</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">référence</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">référence</span><span class="p">)</span>
+</code></pre></div>
+<p>Trois points importants :</p>
+<p><strong><code>__eq__</code> compare uniquement la référence.</strong> Deux objets <code>Lot</code> avec la même référence sont considérés comme la même entité, peu importe les autres attributs. C'est la définition même d'une entité : l'égalité est basée sur l'identité, pas sur la valeur.</p>
+<p><strong><code>__hash__</code> est basé sur la référence.</strong> Quand on redéfinit <code>__eq__</code>, Python rend l'objet non-hashable par défaut. On doit donc redéfinir <code>__hash__</code> explicitement, en se basant sur le même attribut que <code>__eq__</code>.</p>
+<p><strong><code>NotImplemented</code> plutôt que <code>False</code>.</strong> Quand on compare un <code>Lot</code> avec un objet d'un autre type, on retourne <code>NotImplemented</code> pour laisser Python essayer l'autre opérande. C'est une bonne pratique souvent oubliée.</p>
+<div class="admonition warning">
+<p class="admonition-title">Entity vs Value Object : la règle</p>
+<p>Si deux objets avec les mêmes attributs sont interchangeables, c'est un Value Object. Si un objet a un cycle de vie et une identité qui persiste même quand ses attributs changent, c'est une Entity.</p>
+</div>
+<h2 id="les-regles-metier-dans-le-domaine">Les règles métier dans le domaine<a class="headerlink" href="#les-regles-metier-dans-le-domaine" title="Permanent link">&para;</a></h2>
+<p>C'est ici que le Domain Model prend tout son sens. Les règles métier ne sont pas dans un service externe ou dans un handler : elles vivent directement dans les objets du domaine.</p>
+<h3 id="verifier-quon-peut-allouer">Vérifier qu'on peut allouer<a class="headerlink" href="#verifier-quon-peut-allouer" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">peut_allouer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligne</span><span class="p">:</span> <span class="n">LigneDeCommande</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Vérifie si ce lot peut accueillir la ligne de commande.&quot;&quot;&quot;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sku</span> <span class="o">==</span> <span class="n">ligne</span><span class="o">.</span><span class="n">sku</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">&gt;=</span> <span class="n">ligne</span><span class="o">.</span><span class="n">quantité</span>
+</code></pre></div>
+<p>Deux conditions, et elles se lisent comme du langage naturel : le SKU doit correspondre, et la quantité disponible doit être suffisante.</p>
+<h3 id="allouer-une-ligne-de-commande">Allouer une ligne de commande<a class="headerlink" href="#allouer-une-ligne-de-commande" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligne</span><span class="p">:</span> <span class="n">LigneDeCommande</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Alloue une ligne de commande à ce lot.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">):</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+</code></pre></div>
+<p>L'allocation revient à ajouter la ligne de commande dans l'ensemble <code>_allocations</code>. Comme <code>LigneDeCommande</code> est un Value Object hashable, le <code>set</code> garantit l'idempotence : allouer deux fois la même ligne n'a aucun effet.</p>
+<h3 id="desallouer">Désallouer<a class="headerlink" href="#desallouer" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">désallouer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligne</span><span class="p">:</span> <span class="n">LigneDeCommande</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Désalloue une ligne de commande de ce lot.&quot;&quot;&quot;</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="k">if</span> <span class="n">ligne</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+</code></pre></div>
+<p>La désallocation est l'opération inverse. On utilise <code>discard</code> plutôt que <code>remove</code> pour éviter une exception si la ligne n'est pas présente, mais la vérification <code>if ligne in self._allocations</code> rend l'intention explicite.</p>
+<h3 id="quantites-calculees">Quantités calculées<a class="headerlink" href="#quantites-calculees" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@property</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">quantité_allouée</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">ligne</span><span class="o">.</span><span class="n">quantité</span> <span class="k">for</span> <span class="n">ligne</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_allocations</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="nd">@property</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">quantité_disponible</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantité_allouée</span>
+</code></pre></div>
+<p>La quantité disponible est toujours calculée à partir de l'état réel des allocations. Pas de compteur à maintenir manuellement, pas de risque de désynchronisation. C'est un choix de conception délibéré : on préfère recalculer plutôt que de maintenir un état dérivé.</p>
+<details class="note">
+<summary>Performance</summary>
+<p>Recalculer <code>quantité_disponible</code> à chaque accès peut sembler coûteux. En pratique, un lot a rarement plus de quelques dizaines d'allocations. Si la performance devenait un problème, on pourrait ajouter un cache -- mais pas avant d'avoir mesuré. L'optimisation prématurée est l'ennemi du code clair.</p>
+</details>
+<h2 id="la-strategie-dallocation">La stratégie d'allocation<a class="headerlink" href="#la-strategie-dallocation" title="Permanent link">&para;</a></h2>
+<p>Quand un client passe une commande, on veut allouer depuis le lot le plus pertinent. La règle métier est :</p>
+<ol>
+<li><strong>D'abord les lots en stock</strong> (ceux qui sont déjà en entrepôt, sans ETA).</li>
+<li><strong>Puis les livraisons par ETA croissante</strong> (la plus proche d'abord).</li>
+</ol>
+<p>Pour implémenter cette stratégie, on définit <code>__gt__</code> sur <code>Lot</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="fm">__gt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="n">Lot</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        <span class="k">return</span> <span class="kc">False</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="k">if</span> <span class="n">other</span><span class="o">.</span><span class="n">eta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">eta</span> <span class="o">&gt;</span> <span class="n">other</span><span class="o">.</span><span class="n">eta</span>
+</code></pre></div>
+<p>La logique est la suivante :</p>
+<ul>
+<li>Un lot <strong>sans ETA</strong> (en stock) n'est jamais "plus grand" qu'un autre. Il sera donc toujours trié en premier.</li>
+<li>Un lot <strong>avec ETA</strong> est toujours "plus grand" qu'un lot sans ETA.</li>
+<li>Entre deux lots avec ETA, le tri se fait par date.</li>
+</ul>
+<p>Cela permet d'écrire une <strong>fonction d'allocation</strong> qui utilise simplement <code>sorted()</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">:</span> <span class="n">LigneDeCommande</span><span class="p">,</span> <span class="n">lots</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Lot</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="sd">    Alloue une ligne de commande au lot le plus approprié.</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="sd">    La stratégie d&#39;allocation privilégie les lots en stock</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="sd">    (sans ETA) puis les lots avec l&#39;ETA la plus proche.</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="sd">    Retourne la référence du lot choisi.</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="sd">    Lève une exception si aucun lot ne convient.</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        <span class="n">lot</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>            <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lots</span><span class="p">)</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>            <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>        <span class="p">)</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>        <span class="k">raise</span> <span class="n">RuptureDeStock</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rupture de stock pour </span><span class="si">{</span><span class="n">ligne</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>    <span class="k">return</span> <span class="n">lot</span><span class="o">.</span><span class="n">référence</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">RuptureDeStock</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Levée quand il n&#39;y a plus de stock disponible.&quot;&quot;&quot;</span>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>    <span class="k">pass</span>
+</code></pre></div>
+<p><code>sorted(lots)</code> trie les lots grâce à <code>__gt__</code>. Puis on prend le premier qui peut accueillir la ligne (<code>peut_allouer</code>). Si aucun lot ne convient, on lève une exception <code>RuptureDeStock</code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Pourquoi <code>__gt__</code> et pas <code>__lt__</code> ?</p>
+<p>Python a besoin d'un seul opérateur de comparaison pour que <code>sorted()</code> fonctionne. On aurait pu définir <code>__lt__</code> à la place, avec la logique inversée. Le choix de <code>__gt__</code> est une convention : on considère que les lots les "plus grands" sont ceux qui arrivent le plus tard, ce qui est naturel quand on pense aux dates.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Et ensuite ?</p>
+<p>Cette fonction libre <code>allouer()</code> fonctionne bien, mais elle a un défaut : rien ne garantit qu'on lui passe les bons lots, ni qu'on ne manipule pas un lot directement sans passer par la stratégie. Au <a href="../chapitre_07_aggregats/">chapitre 7</a>, nous introduirons le concept d'<strong>Agrégat</strong> avec la classe <code>Produit</code>, qui regroupera les lots d'un même SKU et servira de <strong>point d'entrée unique</strong> pour toutes les opérations d'allocation. Cette évolution n'est pas nécessaire pour l'instant -- concentrons-nous d'abord sur les fondamentaux.</p>
+</div>
+<h2 id="tester-le-modele-de-domaine">Tester le modèle de domaine<a class="headerlink" href="#tester-le-modele-de-domaine" title="Permanent link">&para;</a></h2>
+<p>L'avantage majeur d'un Domain Model pur, c'est la testabilité. Les tests sont simples, rapides et ne nécessitent aucune infrastructure.</p>
+<h3 id="tests-du-lot">Tests du Lot<a class="headerlink" href="#tests-du-lot" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">allocation.domain.model</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lot</span><span class="p">,</span> <span class="n">LigneDeCommande</span><span class="p">,</span> <span class="n">allouer</span><span class="p">,</span> <span class="n">RuptureDeStock</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">make_lot_et_ligne</span><span class="p">(</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quantité_lot</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantité_ligne</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Lot</span><span class="p">,</span> <span class="n">LigneDeCommande</span><span class="p">]:</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>        <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-001&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité_lot</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()),</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;ref-commande&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité_ligne</span><span class="p">),</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="p">)</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestLot</span><span class="p">:</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_reduit_quantite_disponible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">make_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;PETITE-TABLE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_peut_allouer_si_disponible_superieur_au_requis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">make_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ELEGANTE-LAMPE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_ne_peut_pas_allouer_si_disponible_inferieur_au_requis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">make_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ELEGANTE-LAMPE&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>        <span class="k">assert</span> <span class="ow">not</span> <span class="n">lot</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_ne_peut_pas_allouer_si_skus_differents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a>        <span class="n">lot</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-001&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-INCOMFORTABLE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;ref-commande&quot;</span><span class="p">,</span> <span class="s2">&quot;COUSSIN-MOELLEUX&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>        <span class="k">assert</span> <span class="ow">not</span> <span class="n">lot</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allocation_est_idempotente</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">make_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ANGULAR-DESK&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+<a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a>
+<a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_desallouer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">make_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ANGULAR-DESK&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">désallouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">20</span>
+</code></pre></div>
+<p>Remarquez la structure : chaque test crée ses objets, exécute une action et vérifie le résultat. Pas de <code>setUp</code> complexe, pas de mock, pas de base de données. Les noms des tests décrivent le comportement attendu en langage naturel.</p>
+<h3 id="tests-de-la-strategie-dallocation">Tests de la stratégie d'allocation<a class="headerlink" href="#tests-de-la-strategie-dallocation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestAllouer</span><span class="p">:</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_prefere_lots_en_stock_aux_livraisons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Les lots en stock (sans ETA) sont préférés aux livraisons.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>        <span class="n">lot_en_stock</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-en-stock&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="n">lot_en_livraison</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>            <span class="s2">&quot;lot-en-livraison&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="p">)</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;réf-cmd&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        <span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">,</span> <span class="p">[</span><span class="n">lot_en_stock</span><span class="p">,</span> <span class="n">lot_en_livraison</span><span class="p">])</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>        <span class="k">assert</span> <span class="n">lot_en_stock</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">90</span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>        <span class="k">assert</span> <span class="n">lot_en_livraison</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_prefere_lots_plus_proches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Parmi les livraisons, on préfère la plus proche.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>        <span class="n">le_plus_tot</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-rapide&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">())</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>        <span class="n">moyen</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>            <span class="s2">&quot;lot-normal&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>        <span class="p">)</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>        <span class="n">le_plus_tard</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>            <span class="s2">&quot;lot-lent&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>        <span class="p">)</span>
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande1&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>
+<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>        <span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">,</span> <span class="p">[</span><span class="n">moyen</span><span class="p">,</span> <span class="n">le_plus_tot</span><span class="p">,</span> <span class="n">le_plus_tard</span><span class="p">])</span>
+<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>
+<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>        <span class="k">assert</span> <span class="n">le_plus_tot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">90</span>
+<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>        <span class="k">assert</span> <span class="n">moyen</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>        <span class="k">assert</span> <span class="n">le_plus_tard</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>
+<a id="__codelineno-12-35" name="__codelineno-12-35" href="#__codelineno-12-35"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_leve_rupture_de_stock_si_impossible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-12-36" name="__codelineno-12-36" href="#__codelineno-12-36"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;RuptureDeStock est levée quand aucun lot ne convient.&quot;&quot;&quot;</span>
+<a id="__codelineno-12-37" name="__codelineno-12-37" href="#__codelineno-12-37"></a>        <span class="n">lot</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-001&quot;</span><span class="p">,</span> <span class="s2">&quot;PETITE-FOURCHETTE&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">())</span>
+<a id="__codelineno-12-38" name="__codelineno-12-38" href="#__codelineno-12-38"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande1&quot;</span><span class="p">,</span> <span class="s2">&quot;PETITE-FOURCHETTE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-12-39" name="__codelineno-12-39" href="#__codelineno-12-39"></a>
+<a id="__codelineno-12-40" name="__codelineno-12-40" href="#__codelineno-12-40"></a>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">RuptureDeStock</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;PETITE-FOURCHETTE&quot;</span><span class="p">):</span>
+<a id="__codelineno-12-41" name="__codelineno-12-41" href="#__codelineno-12-41"></a>            <span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">,</span> <span class="p">[</span><span class="n">lot</span><span class="p">])</span>
+</code></pre></div>
+<p>Notez comment les tests appellent directement la fonction <code>allouer()</code> avec une ligne et une liste de lots. Le test <code>test_prefere_lots_en_stock_aux_livraisons</code> passe les lots dans un ordre qui ne correspond pas à la priorité attendue, pour vérifier que le tri fonctionne. Le test <code>test_prefere_lots_plus_proches</code> mélange volontairement l'ordre (<code>moyen, le_plus_tot, le_plus_tard</code>) pour la même raison. Le test <code>test_leve_rupture_de_stock_si_impossible</code> vérifie que l'exception <code>RuptureDeStock</code> est bien levée quand aucun lot ne peut satisfaire la demande.</p>
+<p>Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines sans que la suite de tests ne ralentisse. C'est un avantage considérable par rapport aux tests d'intégration qui nécessitent une base de données.</p>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Ajouter une règle métier</p>
+<p>Ajoutez une règle : on ne peut pas allouer une quantité de <strong>zéro ou négative</strong>. Modifiez la méthode <code>peut_allouer()</code> de <code>Lot</code> et écrivez un test unitaire qui vérifie ce comportement.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Nouveau Value Object</p>
+<p>Créez un Value Object <code>Sku</code> qui encapsule la validation du SKU (non vide, uniquement des caractères alphanumériques et des tirets). Remplacez les <code>str</code> par <code>Sku</code> dans le modèle. Quels tests changent ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Comparer avec un transaction script</p>
+<p>Écrivez la logique d'allocation complète sous forme de transaction script (une seule fonction procédurale sans classes). Comparez la lisibilité et la testabilité avec le Domain Model.</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<h3 id="les-concepts-cles">Les concepts clés<a class="headerlink" href="#les-concepts-cles" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Description</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Domain Model</strong></td>
+<td>Couche de code pur qui représente les règles métier, sans dépendance technique.</td>
+<td>Le module <code>model.py</code></td>
+</tr>
+<tr>
+<td><strong>Value Object</strong></td>
+<td>Objet défini par ses attributs, immuable, sans identité propre.</td>
+<td><code>LigneDeCommande</code></td>
+</tr>
+<tr>
+<td><strong>Entity</strong></td>
+<td>Objet avec une identité persistante, même si ses attributs changent.</td>
+<td><code>Lot</code></td>
+</tr>
+<tr>
+<td><strong>Fonction de domaine</strong></td>
+<td>Logique métier encapsulée dans une fonction libre, opérant sur les objets du domaine.</td>
+<td><code>allouer()</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="avantages-du-pattern">Avantages du pattern<a class="headerlink" href="#avantages-du-pattern" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Testabilité</strong> -- La logique métier se teste en isolation, sans infrastructure. Les tests sont rapides et fiables.</li>
+<li><strong>Lisibilité</strong> -- Le code du domaine utilise le vocabulaire métier. Un expert non-technique peut le relire et vérifier les règles.</li>
+<li><strong>Maintenabilité</strong> -- Les règles métier sont centralisées. Quand une règle change, on sait exactement où intervenir.</li>
+<li><strong>Indépendance technique</strong> -- Le domaine ne dépend pas de la base de données ni du framework web. On peut changer d'ORM ou de framework sans toucher aux règles métier.</li>
+</ul>
+<h3 id="inconvenients-du-pattern">Inconvénients du pattern<a class="headerlink" href="#inconvenients-du-pattern" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Complexité initiale</strong> -- Pour des CRUD simples, un Domain Model est excessif. Un transaction script suffit.</li>
+<li><strong>Mapping objet-relationnel</strong> -- Le domaine étant découplé de la persistance, il faut une couche de mapping (c'est le sujet du prochain chapitre sur le Repository pattern).</li>
+<li><strong>Courbe d'apprentissage</strong> -- Les concepts de DDD (Entity, Value Object, Aggregate) demandent un investissement initial.</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Quand utiliser ce pattern ?</p>
+<p>Le Domain Model vaut l'investissement quand la logique métier est complexe et susceptible d'évoluer. Si votre application est essentiellement un CRUD avec peu de règles métier, un transaction script ou un framework comme Django avec ses modèles "fat" sera plus adapté. Il n'y a pas de honte à choisir la simplicité quand elle suffit.</p>
+</div>
+<hr />
+<p><em>Dans le prochain chapitre, nous verrons comment persister ce modèle de domaine sans le contaminer avec des détails techniques, grâce au pattern </em><em>Repository</em><em>.</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

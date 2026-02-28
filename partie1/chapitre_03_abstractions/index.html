@@ -1,0 +1,1693 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_02_repository/">
+      
+      
+        <link rel="next" href="../chapitre_04_service_layer/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 3 - Couplage et abstractions - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-3-couplage-et-abstractions" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 3 - Couplage et abstractions
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-du-couplage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème du couplage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-dependency-inversion-principle-dip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Dependency Inversion Principle (DIP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le Dependency Inversion Principle (DIP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#illustration-avec-le-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Illustration avec le Repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#illustration-avec-les-notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Illustration avec les notifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ports-and-adapters-architecture-hexagonale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports and Adapters (architecture hexagonale)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-abstraire-quand-ne-pas-abstraire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand abstraire, quand ne pas abstraire
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand abstraire, quand ne pas abstraire">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-regle-des-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La règle des 3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-ne-pas-abstraire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand NE PAS abstraire
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-to-edge-testing-avec-des-fakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge-to-edge testing avec des fakes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edge-to-edge testing avec des fakes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-fakerepository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le FakeRepository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-fakenotifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le FakeNotifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-cest-puissant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi c'est puissant
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-du-couplage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème du couplage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-dependency-inversion-principle-dip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Dependency Inversion Principle (DIP)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le Dependency Inversion Principle (DIP)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#illustration-avec-le-repository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Illustration avec le Repository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#illustration-avec-les-notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Illustration avec les notifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ports-and-adapters-architecture-hexagonale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ports and Adapters (architecture hexagonale)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-abstraire-quand-ne-pas-abstraire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand abstraire, quand ne pas abstraire
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand abstraire, quand ne pas abstraire">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-regle-des-3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La règle des 3
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-ne-pas-abstraire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand NE PAS abstraire
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-to-edge-testing-avec-des-fakes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge-to-edge testing avec des fakes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edge-to-edge testing avec des fakes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#le-fakerepository" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le FakeRepository
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-fakenotifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le FakeNotifications
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-cest-puissant" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi c'est puissant
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-3-couplage-et-abstractions">Chapitre 3 -- Couplage et abstractions<a class="headerlink" href="#chapitre-3-couplage-et-abstractions" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Service Layer dépend de SQLAlchemy et <code>smtplib</code></td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Service Layer dépend d'abstractions (ports)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="le-probleme-du-couplage">Le problème du couplage<a class="headerlink" href="#le-probleme-du-couplage" title="Permanent link">&para;</a></h2>
+<p>Imaginez un système d'allocation de stock où chaque composant connaît directement
+tous les autres. Le service layer appelle SQLAlchemy. Les handlers envoient des
+emails via <code>smtplib</code>. Les tests doivent démarrer une base de données et un serveur
+SMTP pour fonctionner.</p>
+<p>Quand tout dépend de tout, modifier un composant revient à tirer sur un fil :
+tout le reste se détricote.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   Couplage direct : chaque module dépend des détails des autres.
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>   ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   │  Service      │────&gt;│  SQLAlchemy   │────&gt;│  PostgreSQL   │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>   │  Layer        │     │  (ORM)        │     │  (BDD)        │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>   └──────┬───────┘     └──────────────┘     └──────────────┘
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>          │
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>          │              ┌──────────────┐     ┌──────────────┐
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>          └─────────────&gt;│  smtplib      │────&gt;│  Serveur SMTP │
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                         └──────────────┘     └──────────────┘
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>   Problème : pour tester le Service Layer, il faut PostgreSQL ET un serveur SMTP.
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   Pour changer de BDD, il faut modifier le Service Layer.
+</code></pre></div>
+<p>Ce schéma illustre le <strong>couplage direct</strong> : les modules de haut niveau (la logique
+d'orchestration) dépendent des modules de bas niveau (la base de données, le
+serveur de mail). Changer un détail d'infrastructure force à modifier le code métier.</p>
+<p>Maintenant, comparons avec une architecture où l'on a introduit des abstractions :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>   Dépendances inversées : tout pointe vers les abstractions.
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>   ┌──────────────┐     ┌────────────────────┐     ┌──────────────┐
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>   │  Service      │────&gt;│  AbstractRepository │&lt;────│ SqlAlchemy    │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>   │  Layer        │     │  (port)             │     │ Repository    │
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>   └──────┬───────┘     └────────────────────┘     └──────────────┘
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>          │
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>          │              ┌────────────────────────┐  ┌──────────────┐
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>          └─────────────&gt;│  AbstractNotifications  │&lt;─│ Email         │
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>                         │  (port)                 │  │ Notifications │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>                         └────────────────────────┘  └──────────────┘
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>   Le Service Layer ne connaît QUE les abstractions.
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>   Les implémentations concrètes aussi.
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>   Personne ne dépend des détails.
+</code></pre></div>
+<p>Les flèches ont changé de direction. Le Service Layer ne connaît plus SQLAlchemy
+ni <code>smtplib</code>. Il ne connaît que des <strong>abstractions</strong>. C'est le coeur du
+Dependency Inversion Principle.</p>
+<hr />
+<h2 id="le-dependency-inversion-principle-dip">Le Dependency Inversion Principle (DIP)<a class="headerlink" href="#le-dependency-inversion-principle-dip" title="Permanent link">&para;</a></h2>
+<p>Le DIP, cinquième principe SOLID, s'énonce ainsi :</p>
+<div class="admonition note">
+<p class="admonition-title">Dependency Inversion Principle</p>
+<p><strong>Les modules de haut niveau ne doivent pas dépendre des modules de bas niveau.</strong>
+Les deux doivent dépendre d'abstractions.
+<strong>Les abstractions ne doivent pas dépendre des détails.</strong>
+Les détails doivent dépendre des abstractions.</p>
+</div>
+<p>En pratique, cela signifie que notre code métier ne doit jamais importer
+<code>sqlalchemy</code> ou <code>smtplib</code>. Il travaille avec des <strong>interfaces abstraites</strong>,
+et ce sont les couches d'infrastructure qui fournissent les implémentations concrètes.</p>
+<h3 id="illustration-avec-le-repository">Illustration avec le Repository<a class="headerlink" href="#illustration-avec-le-repository" title="Permanent link">&para;</a></h3>
+<p>Voici comment notre projet applique ce principe. D'abord, l'abstraction -- le
+<strong>port</strong> -- qui définit le contrat :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># src/allocation/adapters/repository.py</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractRepository</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="sd">    Interface abstraite du repository.</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="sd">    Définit le contrat que tout repository doit respecter.</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">produit</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Ajoute un produit au repository et le marque comme vu.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">_add</span><span class="p">(</span><span class="n">produit</span><span class="p">)</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">produit</span><span class="p">)</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Récupère un produit par son SKU et le marque comme vu.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get</span><span class="p">(</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>        <span class="k">if</span> <span class="n">produit</span><span class="p">:</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">produit</span><span class="p">)</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>        <span class="k">return</span> <span class="n">produit</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">produit</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</code></pre></div>
+<p>Remarquez la structure : les méthodes publiques <code>add</code> et <code>get</code> contiennent la
+logique commune (le tracking via <code>self.seen</code>), tandis que les méthodes préfixées
+par <code>_</code> sont les points d'extension que chaque implémentation concrète doit fournir.
+C'est le <strong>Template Method</strong> pattern au service du DIP.</p>
+<p>Ensuite, l'implémentation concrète -- l'<strong>adapter</strong> -- qui sait parler à
+SQLAlchemy :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># src/allocation/adapters/repository.py</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">SqlAlchemyRepository</span><span class="p">(</span><span class="n">AbstractRepository</span><span class="p">):</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Implémentation concrète du repository avec SQLAlchemy.&quot;&quot;&quot;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">):</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">session</span> <span class="o">=</span> <span class="n">session</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">produit</span><span class="p">:</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">produit</span><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">)</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>            <span class="o">.</span><span class="n">filter_by</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>            <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="p">)</span>
+</code></pre></div>
+<p>Le Service Layer reçoit un <code>AbstractRepository</code>. Il ne sait pas -- et <strong>n'a pas
+besoin de savoir</strong> -- si derrière se cache PostgreSQL, un fichier CSV, ou un
+simple dictionnaire en mémoire.</p>
+<h3 id="illustration-avec-les-notifications">Illustration avec les notifications<a class="headerlink" href="#illustration-avec-les-notifications" title="Permanent link">&para;</a></h3>
+<p>Le même pattern s'applique à d'autres préoccupations d'infrastructure.
+Pour les notifications :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># src/allocation/adapters/notifications.py</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractNotifications</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface abstraite pour les notifications.&quot;&quot;&quot;</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="nd">@abc</span><span class="o">.</span><span class="n">abstractmethod</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">EmailNotifications</span><span class="p">(</span><span class="n">AbstractNotifications</span><span class="p">):</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Implémentation concrète envoyant des emails via SMTP.&quot;&quot;&quot;</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smtp_host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">smtp_port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">587</span><span class="p">):</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">smtp_host</span> <span class="o">=</span> <span class="n">smtp_host</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">smtp_port</span> <span class="o">=</span> <span class="n">smtp_port</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Subject: Notification d&#39;allocation</span><span class="se">\n\n</span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        <span class="k">with</span> <span class="n">smtplib</span><span class="o">.</span><span class="n">SMTP</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">smtp_host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">smtp_port</span><span class="p">)</span> <span class="k">as</span> <span class="n">smtp</span><span class="p">:</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>            <span class="n">smtp</span><span class="o">.</span><span class="n">sendmail</span><span class="p">(</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>                <span class="n">from_addr</span><span class="o">=</span><span class="s2">&quot;allocations@example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>                <span class="n">to_addrs</span><span class="o">=</span><span class="p">[</span><span class="n">destination</span><span class="p">],</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>                <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>            <span class="p">)</span>
+</code></pre></div>
+<p>L'abstraction <code>AbstractNotifications</code> définit un contrat minimal : une seule
+méthode <code>send</code>. L'implémentation <code>EmailNotifications</code> encapsule toute la
+mécanique SMTP. Demain, si l'on veut envoyer des SMS ou des notifications Slack,
+il suffit de créer un nouvel adapter sans toucher au code métier.</p>
+<hr />
+<h2 id="ports-and-adapters-architecture-hexagonale">Ports and Adapters (architecture hexagonale)<a class="headerlink" href="#ports-and-adapters-architecture-hexagonale" title="Permanent link">&para;</a></h2>
+<p>Le pattern que nous venons de voir porte un nom : <strong>Ports and Adapters</strong>,
+aussi appelé <strong>architecture hexagonale</strong> (Alistair Cockburn, 2005).</p>
+<p>L'idée est simple :</p>
+<ul>
+<li>Le <strong>domaine</strong> est au centre. Il ne dépend de rien d'extérieur.</li>
+<li>Les <strong>ports</strong> sont les interfaces que le domaine expose ou requiert
+  (par exemple <code>AbstractRepository</code>, <code>AbstractNotifications</code>).</li>
+<li>Les <strong>adapters</strong> sont les implémentations concrètes qui connectent le domaine
+  au monde extérieur (base de données, API, email, etc.).</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>                        ┌─────────────────────────┐
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>                        │                         │
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>         ┌──────────┐   │   ┌─────────────────┐   │   ┌──────────────┐
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>         │ API Web  │───┼──&gt;│                 │   │   │              │
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>         │ (adapter)│   │   │   Domaine        │   │&lt;──│  PostgreSQL  │
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>         └──────────┘   │   │                 │   │   │  (adapter)   │
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>                        │   │   LigneDeCommande│   │   └──────────────┘
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>         ┌──────────┐   │   │   Lot            │   │
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>         │ CLI      │───┼──&gt;│   Produit        │   │   ┌──────────────┐
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>         │ (adapter)│   │   │   allouer()      │   │&lt;──│  SMTP        │
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>         └──────────┘   │   │                 │   │   │  (adapter)   │
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>                        │   └─────────────────┘   │   └──────────────┘
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>                        │         ports           │
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>                        └─────────────────────────┘
+</code></pre></div>
+<p>Dans notre projet, cela se traduit par :</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Dans notre code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domaine</td>
+<td><code>allocation.domain.model</code></td>
+</tr>
+<tr>
+<td>Port (persistance)</td>
+<td><code>AbstractRepository</code></td>
+</tr>
+<tr>
+<td>Port (notifications)</td>
+<td><code>AbstractNotifications</code></td>
+</tr>
+<tr>
+<td>Adapter (BDD)</td>
+<td><code>SqlAlchemyRepository</code></td>
+</tr>
+<tr>
+<td>Adapter (email)</td>
+<td><code>EmailNotifications</code></td>
+</tr>
+</tbody>
+</table>
+<p>Le domaine définit les <strong>ports</strong> : "j'ai besoin d'un mécanisme pour stocker et
+récupérer des produits" et "j'ai besoin d'un mécanisme pour envoyer des
+notifications". Ce sont des interfaces, pas des implémentations. Les adapters
+fournissent la réalité concrète derrière ces interfaces.</p>
+<p>L'avantage fondamental : on peut <strong>remplacer n'importe quel adapter</strong> sans
+toucher au domaine ni à la logique d'orchestration.</p>
+<hr />
+<h2 id="quand-abstraire-quand-ne-pas-abstraire">Quand abstraire, quand ne pas abstraire<a class="headerlink" href="#quand-abstraire-quand-ne-pas-abstraire" title="Permanent link">&para;</a></h2>
+<p>L'abstraction est un outil puissant, mais elle a un coût : l'<strong>indirection</strong>.
+Chaque couche d'abstraction ajoute un fichier, une interface, un niveau
+supplémentaire à comprendre pour le développeur qui lit le code.</p>
+<div class="admonition warning">
+<p class="admonition-title">Le piège de l'abstraction prématurée</p>
+<p>Abstraire trop tôt, c'est construire un pont avant de savoir où passe la
+rivière. On risque de créer des abstractions inutiles qui compliquent le
+code sans apporter de valeur.</p>
+</div>
+<h3 id="la-regle-des-3">La règle des 3<a class="headerlink" href="#la-regle-des-3" title="Permanent link">&para;</a></h3>
+<p>Une heuristique utile est la <strong>règle des 3</strong> :</p>
+<ol>
+<li>
+<p><strong>3 implémentations</strong> : Si vous n'avez qu'une seule implémentation (par
+   exemple, un seul type de base de données), l'abstraction est peut-être
+   prématurée. Quand vous en avez 3 (SQL, fichier, in-memory pour les tests),
+   le pattern devient évident.</p>
+</li>
+<li>
+<p><strong>3 raisons de changer</strong> : Si un composant pourrait changer pour 3 raisons
+   différentes (changer de BDD, améliorer les performances, supporter un
+   nouveau format), c'est un bon candidat pour une abstraction.</p>
+</li>
+</ol>
+<p>Dans notre cas, le <code>Repository</code> a au moins deux implémentations dès le départ :</p>
+<ul>
+<li><code>SqlAlchemyRepository</code> pour la production</li>
+<li><code>FakeRepository</code> pour les tests</li>
+</ul>
+<p>Et on pourrait facilement imaginer un <code>RedisRepository</code> pour du cache, ou un
+<code>FileRepository</code> pour de l'export. L'abstraction se justifie pleinement.</p>
+<h3 id="quand-ne-pas-abstraire">Quand NE PAS abstraire<a class="headerlink" href="#quand-ne-pas-abstraire" title="Permanent link">&para;</a></h3>
+<p>Ne créez pas d'abstraction si :</p>
+<ul>
+<li>Il n'y a qu'une seule implémentation et aucune raison prévisible d'en avoir
+  une deuxième.</li>
+<li>Le code est si simple qu'une abstraction le rendrait <strong>plus</strong> difficile à lire.</li>
+<li>Vous le faites "au cas où". Le <strong>YAGNI</strong> (You Ain't Gonna Need It) est
+  un contrepoids sain au DIP.</li>
+</ul>
+<p>Le bon réflexe : commencez concret, puis extrayez l'abstraction quand le
+besoin se manifeste. Le refactoring est moins coûteux qu'une mauvaise abstraction.</p>
+<hr />
+<h2 id="edge-to-edge-testing-avec-des-fakes">Edge-to-edge testing avec des fakes<a class="headerlink" href="#edge-to-edge-testing-avec-des-fakes" title="Permanent link">&para;</a></h2>
+<p>L'un des bénéfices les plus immédiats de l'architecture Ports and Adapters
+est la possibilité de faire du <strong>edge-to-edge testing</strong> : tester de bout en
+bout sans infrastructure réelle, en remplaçant les adapters par des <strong>fakes</strong>.</p>
+<h3 id="le-fakerepository">Le FakeRepository<a class="headerlink" href="#le-fakerepository" title="Permanent link">&para;</a></h3>
+<p>On réutilise le <code>FakeRepository</code> défini au <a href="../chapitre_02_repository/">chapitre 2</a> : une implémentation en mémoire qui stocke les produits dans un simple <code>set</code> Python, respectant exactement le même contrat que <code>SqlAlchemyRepository</code>. Pas de base de données, pas de connexion, pas de migration. Les tests s'exécutent en millisecondes.</p>
+<h3 id="le-fakenotifications">Le FakeNotifications<a class="headerlink" href="#le-fakenotifications" title="Permanent link">&para;</a></h3>
+<p>Le même principe s'applique aux notifications. Le <code>FakeNotifications</code> stocke les appels dans une liste au lieu d'envoyer de vrais emails :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">FakeNotifications</span><span class="p">(</span><span class="n">AbstractNotifications</span><span class="p">):</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">envoyées</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">envoyées</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">destination</span><span class="p">,</span> <span class="n">message</span><span class="p">))</span>
+</code></pre></div>
+<p>Dans les tests, on peut alors vérifier :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Exemple d&#39;assertion dans un test</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">assert</span> <span class="n">notifications</span><span class="o">.</span><span class="n">envoyées</span> <span class="o">==</span> <span class="p">[</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="p">(</span><span class="s2">&quot;stock@example.com&quot;</span><span class="p">,</span> <span class="s2">&quot;Le SKU SMALL-TABLE est en rupture de stock&quot;</span><span class="p">)</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="p">]</span>
+</code></pre></div>
+<h3 id="pourquoi-cest-puissant">Pourquoi c'est puissant<a class="headerlink" href="#pourquoi-cest-puissant" title="Permanent link">&para;</a></h3>
+<p>Le edge-to-edge testing combine les avantages des tests unitaires et des
+tests d'intégration :</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th style="text-align: center;">Tests unitaires</th>
+<th style="text-align: center;">Tests d'intégration</th>
+<th style="text-align: center;">Edge-to-edge (fakes)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vitesse</td>
+<td style="text-align: center;">Rapide</td>
+<td style="text-align: center;">Lent</td>
+<td style="text-align: center;">Rapide</td>
+</tr>
+<tr>
+<td>Couverture de code</td>
+<td style="text-align: center;">Faible</td>
+<td style="text-align: center;">Élevée</td>
+<td style="text-align: center;">Élevée</td>
+</tr>
+<tr>
+<td>Fragilité</td>
+<td style="text-align: center;">Faible</td>
+<td style="text-align: center;">Élevée</td>
+<td style="text-align: center;">Faible</td>
+</tr>
+<tr>
+<td>Besoin d'infrastructure</td>
+<td style="text-align: center;">Non</td>
+<td style="text-align: center;">Oui</td>
+<td style="text-align: center;">Non</td>
+</tr>
+</tbody>
+</table>
+<p>Les tests avec fakes traversent toute la pile applicative -- du handler jusqu'au
+repository -- mais sans jamais toucher à une vraie base de données. On teste
+le <strong>comportement réel</strong> du système, pas un mock fragile qui simule un
+scénario idéalisé.</p>
+<hr />
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Identifier les abstractions manquantes</p>
+<p>Imaginez que votre système doit générer des fichiers PDF pour les bons de livraison. Dessinez le port (interface abstraite) et deux adapters (un réel avec une bibliothèque PDF, un fake pour les tests). Quels paramètres la méthode du port prend-elle ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Mesurer le couplage</p>
+<p>Listez tous les <code>import</code> de <code>handlers.py</code>. Combien pointent vers le domaine ? Combien vers l'infrastructure ? Si un import pointe vers l'infrastructure, est-ce un problème ? Pourquoi ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- YAGNI vs DIP</p>
+<p>Votre application n'envoie des emails que via SMTP et n'aura jamais besoin d'autre chose. Faut-il quand même créer une <code>AbstractNotifications</code> ? Argumentez pour et contre.</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<p>Ce chapitre a introduit les concepts de couplage et d'abstraction, et montré
+comment le Dependency Inversion Principle et l'architecture Ports and Adapters
+permettent de construire un système découplé et testable.</p>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Définition</th>
+<th>Bénéfice</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Couplage</strong></td>
+<td>Degré de dépendance entre composants</td>
+<td>Le réduire rend le système plus flexible</td>
+</tr>
+<tr>
+<td><strong>DIP</strong></td>
+<td>Dépendre d'abstractions, pas de détails concrets</td>
+<td>Le code métier est isolé de l'infrastructure</td>
+</tr>
+<tr>
+<td><strong>Port</strong></td>
+<td>Interface abstraite définissant un contrat (<code>AbstractRepository</code>)</td>
+<td>Définit ce dont le domaine a besoin sans dire comment</td>
+</tr>
+<tr>
+<td><strong>Adapter</strong></td>
+<td>Implémentation concrète d'un port (<code>SqlAlchemyRepository</code>)</td>
+<td>Encapsule les détails d'infrastructure</td>
+</tr>
+<tr>
+<td><strong>Fake</strong></td>
+<td>Implémentation simple d'un port pour les tests (<code>FakeRepository</code>)</td>
+<td>Tests rapides sans infrastructure</td>
+</tr>
+<tr>
+<td><strong>Edge-to-edge testing</strong></td>
+<td>Tester toute la pile avec des fakes</td>
+<td>Couverture large, exécution rapide</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">À retenir</p>
+<ul>
+<li>Le couplage direct entre composants rend le système fragile et difficile à tester.</li>
+<li>Le DIP inverse les dépendances : tout le monde dépend des abstractions.</li>
+<li>L'architecture Ports and Adapters place le domaine au centre et l'infrastructure à la périphérie.</li>
+<li>N'abstraire que quand c'est justifié : la règle des 3 est un bon guide.</li>
+<li>Les fakes permettent un edge-to-edge testing rapide et fiable.</li>
+</ul>
+</div>
+<p>Dans le <a href="../chapitre_04_service_layer/">chapitre suivant</a>, nous verrons comment
+la <strong>Service Layer</strong> orchestre les cas d'utilisation en s'appuyant sur ces
+abstractions.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

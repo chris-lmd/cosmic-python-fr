@@ -1,0 +1,1581 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_03_abstractions/">
+      
+      
+        <link rel="next" href="../chapitre_05_tdd/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 4 - La Service Layer - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-4-la-service-layer" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 4 - La Service Layer
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-des-routes-flask-qui-grossissent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème : des routes Flask qui grossissent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-service-layer-une-couche-dorchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La Service Layer : une couche d'orchestration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-handlers-fins-et-proceduraux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les handlers : fins et procéduraux
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les handlers : fins et procéduraux">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ajouter_lot-creer-un-lot-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ajouter_lot -- créer un lot de stock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allouer-allouer-une-ligne-de-commande" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        allouer -- allouer une ligne de commande
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-ligne-de-demarcation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La ligne de démarcation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flask-comme-thin-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flask comme thin adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testabilite-des-fakes-plutot-que-des-mocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testabilité : des fakes plutôt que des mocks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testabilité : des fakes plutôt que des mocks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fakerepository-et-fakeunitofwork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FakeRepository et FakeUnitOfWork
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-tests-des-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les tests des handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#et-les-tests-de-lapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Et les tests de l'API ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-pyramide-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La pyramide des tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-des-routes-flask-qui-grossissent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème : des routes Flask qui grossissent
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-service-layer-une-couche-dorchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La Service Layer : une couche d'orchestration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-handlers-fins-et-proceduraux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les handlers : fins et procéduraux
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les handlers : fins et procéduraux">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ajouter_lot-creer-un-lot-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ajouter_lot -- créer un lot de stock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allouer-allouer-une-ligne-de-commande" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        allouer -- allouer une ligne de commande
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-ligne-de-demarcation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La ligne de démarcation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flask-comme-thin-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flask comme thin adapter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testabilite-des-fakes-plutot-que-des-mocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testabilité : des fakes plutôt que des mocks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Testabilité : des fakes plutôt que des mocks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fakerepository-et-fakeunitofwork" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FakeRepository et FakeUnitOfWork
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-tests-des-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les tests des handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#et-les-tests-de-lapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Et les tests de l'API ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-pyramide-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La pyramide des tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-4-la-service-layer">Chapitre 4 -- La Service Layer<a class="headerlink" href="#chapitre-4-la-service-layer" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Toute la logique dans les routes Flask</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Handlers fins orchestrent, Flask ne fait que traduire HTTP</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition abstract">
+<p class="admonition-title">Ce que vous allez apprendre</p>
+<ul>
+<li>Pourquoi la logique d'orchestration n'a pas sa place dans les routes Flask</li>
+<li>Ce qu'est une Service Layer et ce qu'elle contient (et ne contient <strong>pas</strong>)</li>
+<li>Comment écrire des handlers fins et procéduraux</li>
+<li>Comment transformer Flask en thin adapter qui ne fait que traduire HTTP</li>
+<li>Comment tester l'orchestration sans framework web ni base de données</li>
+</ul>
+</div>
+<hr />
+<h2 id="le-probleme-des-routes-flask-qui-grossissent">Le problème : des routes Flask qui grossissent<a class="headerlink" href="#le-probleme-des-routes-flask-qui-grossissent" title="Permanent link">&para;</a></h2>
+<p>Dans les chapitres précédents, nous avons construit un modèle de domaine (<code>Lot</code>, <code>LigneDeCommande</code>, <code>allouer()</code>) et un Repository pour persister nos objets dans un conteneur <code>Produit</code>. La logique d'allocation que nous avions écrite comme fonction libre au chapitre 1 est maintenant une <strong>méthode</strong> de <code>Produit</code> -- c'est lui qui possède les lots et qui sait comment les trier. Imaginons maintenant une première route Flask pour allouer du stock :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Version naïve -- toute la logique dans la route</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocate_endpoint</span><span class="p">():</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="c1"># 1. Ouvrir une session / transaction</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">session</span> <span class="o">=</span> <span class="n">get_session</span><span class="p">()</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="c1"># 2. Récupérer l&#39;agrégat</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">produit</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">])</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="k">if</span> <span class="n">produit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;SKU inconnu&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="c1"># 3. Construire le value object</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id_commande&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;quantité&quot;</span><span class="p">])</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="c1"># 4. Appeler la logique métier</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="c1"># 5. Committer</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;réf_lot&quot;</span><span class="p">:</span> <span class="n">réf_lot</span><span class="p">}),</span> <span class="mi">201</span>
+</code></pre></div>
+<p>Ce code fonctionne, mais il pose plusieurs problèmes :</p>
+<p><strong>Duplication.</strong> Si demain on ajoute une CLI, un worker Celery ou un consumer Redis, il faudra recopier toute cette séquence (récupérer le produit, construire la ligne, allouer, committer). Chaque point d'entrée réimplémentera le même workflow.</p>
+<p><strong>Testabilité.</strong> Pour tester cette logique, on doit démarrer Flask, envoyer de vraies requêtes HTTP et souvent brancher une base de données. Les tests deviennent lents et fragiles.</p>
+<p><strong>Responsabilité mal placée.</strong> Flask est un framework de présentation. Son rôle est de convertir des requêtes HTTP en appels applicatifs, pas d'orchestrer un workflow métier.</p>
+<hr />
+<h2 id="la-service-layer-une-couche-dorchestration">La Service Layer : une couche d'orchestration<a class="headerlink" href="#la-service-layer-une-couche-dorchestration" title="Permanent link">&para;</a></h2>
+<p>La Service Layer est une couche mince qui se place <strong>entre</strong> les points d'entrée (Flask, CLI...) et le modèle de domaine. Son rôle est précis :</p>
+<ol>
+<li>Récupérer les objets nécessaires via le Repository</li>
+<li>Appeler les méthodes du domaine</li>
+<li>Committer la transaction</li>
+</ol>
+<p>Elle <strong>ne contient pas</strong> de logique métier. La logique métier reste dans le modèle de domaine (c'est <code>Produit.allouer()</code> qui décide quel lot choisir, pas le handler). La Service Layer se contente de <strong>coordonner</strong>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>┌──────────────────────────────────────────────┐
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>│              Entrypoints                      │
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>│         (Flask, CLI, Consumer...)             │
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>│  Convertit le protocole externe en commands   │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>└──────────────────┬───────────────────────────┘
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>                   │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>                   ▼
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>┌──────────────────────────────────────────────┐
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>│            Service Layer                      │
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>│         (handlers.py)                         │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>│  Orchestre : UoW → Repository → Domaine       │
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>└──────────────────┬───────────────────────────┘
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>                   │
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>                   ▼
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>┌──────────────────────────────────────────────┐
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>│          Modèle de domaine                    │
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>│  (Produit, Lot, LigneDeCommande)              │
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>│  Contient TOUTE la logique métier             │
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>└──────────────────────────────────────────────┘
+</code></pre></div>
+<hr />
+<h2 id="les-handlers-fins-et-proceduraux">Les handlers : fins et procéduraux<a class="headerlink" href="#les-handlers-fins-et-proceduraux" title="Permanent link">&para;</a></h2>
+<p>Nos handlers vivent dans <code>src/allocation/service_layer/handlers.py</code>. Chaque handler prend une command (un simple dataclass décrivant l'intention) et un Unit of Work, puis orchestre le workflow en quelques lignes.</p>
+<h3 id="ajouter_lot-creer-un-lot-de-stock"><code>ajouter_lot</code> -- créer un lot de stock<a class="headerlink" href="#ajouter_lot-creer-un-lot-de-stock" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">ajouter_lot</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">cmd</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="k">if</span> <span class="n">produit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="n">produit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">Produit</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">lots</span><span class="o">=</span><span class="p">[])</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>            <span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">produit</span><span class="p">)</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        <span class="n">produit</span><span class="o">.</span><span class="n">lots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>            <span class="n">model</span><span class="o">.</span><span class="n">Lot</span><span class="p">(</span><span class="n">réf</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">réf</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">quantité</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">eta</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</code></pre></div>
+<p>Le handler est <strong>procédural</strong> : il ouvre le Unit of Work, récupère ou crée le produit, ajoute le lot, puis committe. Pas de boucle complexe, pas de logique conditionnelle métier.</p>
+<h3 id="allouer-allouer-une-ligne-de-commande"><code>allouer</code> -- allouer une ligne de commande<a class="headerlink" href="#allouer-allouer-une-ligne-de-commande" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">cmd</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">LigneDeCommande</span><span class="p">(</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">id_commande</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">quantité</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="p">)</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="k">if</span> <span class="n">produit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>            <span class="k">raise</span> <span class="n">SkuInconnu</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SKU inconnu : </span><span class="si">{</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="k">return</span> <span class="n">réf_lot</span>
+</code></pre></div>
+<p>Observez que <strong>toute la logique d'allocation</strong> (trier les lots par ETA, vérifier la quantité disponible, choisir le meilleur lot) est dans <code>produit.allouer()</code>. Le handler ne fait que préparer les données et déclencher l'appel.</p>
+<h3 id="la-ligne-de-demarcation">La ligne de démarcation<a class="headerlink" href="#la-ligne-de-demarcation" title="Permanent link">&para;</a></h3>
+<p>Un bon test pour savoir si la logique est au bon endroit : si vous enlevez le handler et appelez directement <code>produit.allouer()</code> dans un test unitaire, la règle métier fonctionne-t-elle toujours ? Si oui, la logique est bien dans le domaine. Le handler ne fait que du "plumbing".</p>
+<hr />
+<h2 id="flask-comme-thin-adapter">Flask comme thin adapter<a class="headerlink" href="#flask-comme-thin-adapter" title="Permanent link">&para;</a></h2>
+<p>Maintenant que la Service Layer existe, Flask n'a plus qu'un seul rôle : <strong>traduire le protocole HTTP</strong> en objets que la couche service comprend, puis convertir le résultat en réponse HTTP.</p>
+<p>Voici le code réel de <code>src/allocation/entrypoints/flask_app.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">()</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/add_batch&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">add_batch_endpoint</span><span class="p">():</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">eta</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;eta&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="k">if</span> <span class="n">eta</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="n">eta</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">eta</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="n">réf</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;ref&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="n">sku</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="n">quantité</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="n">eta</span><span class="o">=</span><span class="n">eta</span><span class="p">,</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="p">)</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>    <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="k">return</span> <span class="s2">&quot;OK&quot;</span><span class="p">,</span> <span class="mi">201</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocate_endpoint</span><span class="p">():</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>        <span class="n">cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>            <span class="n">id_commande</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;orderid&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>            <span class="n">sku</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>            <span class="n">quantité</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>        <span class="p">)</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>        <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>    <span class="k">except</span> <span class="n">handlers</span><span class="o">.</span><span class="n">SkuInconnu</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}),</span> <span class="mi">400</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;batchref&quot;</span><span class="p">:</span> <span class="n">réf_lot</span><span class="p">}),</span> <span class="mi">201</span>
+</code></pre></div>
+<p>Chaque endpoint suit la même structure en trois temps :</p>
+<ol>
+<li><strong>Extraire</strong> les données de la requête HTTP (<code>request.json</code>)</li>
+<li><strong>Construire</strong> une command (un dataclass immuable)</li>
+<li><strong>Déléguer</strong> au bus (qui dispatch vers le handler)</li>
+</ol>
+<p>Il n'y a <strong>aucune logique métier</strong> dans ces fonctions. Pas de <code>if</code> sur la disponibilité du stock, pas de tri des lots, pas d'accès direct au Repository. Flask ne sait même pas que des lots existent.</p>
+<div class="admonition tip">
+<p class="admonition-title">Adaptateurs et ports</p>
+<p>Flask est un <strong>adapter</strong> au sens de l'architecture hexagonale. Il adapte le port HTTP vers l'interface de la Service Layer. Si demain vous remplacez Flask par FastAPI, seul cet adaptateur change -- ni les handlers, ni le domaine ne sont touchés.</p>
+</div>
+<hr />
+<h2 id="testabilite-des-fakes-plutot-que-des-mocks">Testabilité : des fakes plutôt que des mocks<a class="headerlink" href="#testabilite-des-fakes-plutot-que-des-mocks" title="Permanent link">&para;</a></h2>
+<p>L'un des gains majeurs de la Service Layer est la <strong>testabilité</strong>. On peut tester toute l'orchestration sans démarrer Flask et sans toucher à la base de données, en remplaçant les adaptateurs concrets par des fakes.</p>
+<h3 id="fakerepository-et-fakeunitofwork">FakeRepository et FakeUnitOfWork<a class="headerlink" href="#fakerepository-et-fakeunitofwork" title="Permanent link">&para;</a></h3>
+<p>On utilise le <code>FakeRepository</code> défini au <a href="../chapitre_02_repository/">chapitre 2</a> et un <code>FakeUnitOfWork</code> qui l'encapsule (détaillé au <a href="../chapitre_06_unit_of_work/">chapitre 6</a>). Ces fakes sont des implémentations <strong>en mémoire</strong> des abstractions : le <code>FakeRepository</code> stocke les produits dans un <code>set</code> Python, et le <code>FakeUnitOfWork</code> trace les commits via un booléen <code>self.committed</code> sans toucher à aucune base de données.</p>
+<h3 id="les-tests-des-handlers">Les tests des handlers<a class="headerlink" href="#les-tests-des-handlers" title="Permanent link">&para;</a></h3>
+<p>Avec ces fakes, tester un handler est direct et rapide :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestAjouterLot</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_ajouter_lot_pour_nouveau_produit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;l1&quot;</span><span class="p">,</span> <span class="s2">&quot;COUSSIN-CARRE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="k">assert</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;COUSSIN-CARRE&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="k">assert</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">committed</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_ajouter_lot_pour_produit_existant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;l1&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-RONDE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;l2&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-RONDE&quot;</span><span class="p">,</span> <span class="mi">99</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;LAMPE-RONDE&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">produit</span><span class="o">.</span><span class="n">lots</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestAllouer</span><span class="p">:</span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_retourne_ref_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;l1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="k">assert</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;l1&quot;</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_erreur_pour_sku_inconnu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;l1&quot;</span><span class="p">,</span> <span class="s2">&quot;VRAI-SKU&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">handlers</span><span class="o">.</span><span class="n">SkuInconnu</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;SKU-INEXISTANT&quot;</span><span class="p">):</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>            <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;c1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-INEXISTANT&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+</code></pre></div>
+<p>Remarquez ce que ces tests <strong>ne font pas</strong> :</p>
+<ul>
+<li>Pas de <code>app.test_client()</code> -- aucune requête HTTP</li>
+<li>Pas de <code>session</code> SQLAlchemy -- aucune base de données</li>
+<li>Pas de <code>mock.patch</code> -- on injecte de vrais objets (les fakes)</li>
+</ul>
+<p>Les tests sont rapides (millisecondes), isolés et lisibles. Ils vérifient le <strong>comportement métier</strong> (est-ce que le lot est bien créé ? est-ce que l'allocation retourne la bonne référence ?) sans être couplés à aucune infrastructure.</p>
+<h3 id="et-les-tests-de-lapi">Et les tests de l'API ?<a class="headerlink" href="#et-les-tests-de-lapi" title="Permanent link">&para;</a></h3>
+<p>Les tests de l'API Flask deviennent des <strong>tests d'intégration légers</strong> : ils vérifient uniquement que Flask parse correctement le JSON, appelle le bon handler, et retourne le bon code HTTP. La logique métier, elle, est déjà couverte par les tests unitaires des handlers.</p>
+<hr />
+<h2 id="la-pyramide-des-tests">La pyramide des tests<a class="headerlink" href="#la-pyramide-des-tests" title="Permanent link">&para;</a></h2>
+<p>Avec la Service Layer en place, la répartition des tests évolue :</p>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Type de test</th>
+<th>Vitesse</th>
+<th>Ce qu'on teste</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Domaine</td>
+<td>Unitaire</td>
+<td>Très rapide</td>
+<td>Règles métier pures</td>
+</tr>
+<tr>
+<td>Service Layer</td>
+<td>Unitaire (avec fakes)</td>
+<td>Rapide</td>
+<td>Orchestration, workflows</td>
+</tr>
+<tr>
+<td>Entrypoints</td>
+<td>Intégration</td>
+<td>Plus lent</td>
+<td>Traduction HTTP, sérialisation</td>
+</tr>
+<tr>
+<td>End-to-end</td>
+<td>Système</td>
+<td>Lent</td>
+<td>Le système complet</td>
+</tr>
+</tbody>
+</table>
+<p>La majorité des tests se concentre sur les deux premières couches. Les tests d'intégration de l'API sont peu nombreux car ils ne vérifient que le "câblage".</p>
+<hr />
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Nouvelle command</p>
+<p>Ajoutez un handler <code>désallouer</code> qui prend une command <code>Désallouer(id_commande, sku, quantité)</code> et retire une allocation. Écrivez le test correspondant avec le <code>FakeUnitOfWork</code>. Où devrait vivre la logique de désallocation ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Handler trop gros</p>
+<p>Un collègue écrit un handler de 30 lignes qui vérifie le stock disponible, applique des promotions, calcule les frais de port et envoie un email. Quels principes sont violés ? Comment le refactorer ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Ajouter un endpoint CLI</p>
+<p>Écrivez un point d'entrée CLI (avec <code>argparse</code> ou <code>click</code>) qui appelle <code>bus.handle(commands.Allouer(...))</code>. Vérifiez que vous n'avez rien changé dans les handlers ni le domaine.</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<p>La Service Layer est le ciment entre le monde extérieur et le modèle de domaine. Elle applique le <strong>principe de responsabilité unique</strong> à l'échelle des couches :</p>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Responsabilité</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Entrypoints</strong></td>
+<td>Traduire un protocole externe en commands</td>
+<td>Flask parse le JSON, construit <code>commands.Allouer</code>, délègue au bus</td>
+</tr>
+<tr>
+<td><strong>Service Layer</strong></td>
+<td>Orchestrer le workflow applicatif</td>
+<td>Le handler ouvre le UoW, récupère le produit, appelle <code>produit.allouer()</code>, committe</td>
+</tr>
+<tr>
+<td><strong>Domaine</strong></td>
+<td>Implémenter les règles métier</td>
+<td><code>Produit.allouer()</code> trie les lots, vérifie la disponibilité, choisit le lot</td>
+</tr>
+</tbody>
+</table>
+<p>Quelques principes à retenir :</p>
+<ul>
+<li><strong>Les handlers sont fins.</strong> Quelques lignes de code procédural. Si un handler dépasse 15 lignes, de la logique métier s'est probablement glissée au mauvais endroit.</li>
+<li><strong>Le domaine ne sait rien de la persistance.</strong> Il ne connaît ni le Repository, ni le Unit of Work. C'est le handler qui fait le lien.</li>
+<li><strong>Les entrypoints ne savent rien du domaine.</strong> Flask ne manipule jamais directement un <code>Produit</code> ou un <code>Lot</code>. Il envoie des commands et reçoit des résultats.</li>
+<li><strong>Les fakes sont préférés aux mocks.</strong> En implémentant les interfaces abstraites (<code>AbstractRepository</code>, <code>AbstractUnitOfWork</code>), on obtient des doubles de test fiables et maintenables.</li>
+</ul>
+<div class="admonition quote">
+<p class="admonition-title">Règle d'or</p>
+<p>Si vous ne savez pas où placer un bout de code, posez-vous la question : "Est-ce une <strong>règle métier</strong> (domaine), une <strong>étape du workflow</strong> (service layer), ou une <strong>traduction de protocole</strong> (entrypoint) ?"</p>
+</div>
+<hr />
+<p><em>Prochain chapitre : <a href="../chapitre_05_tdd/">TDD à haute et basse vitesse</a> -- comment exploiter cette architecture en couches pour écrire des tests à la fois rapides et fiables.</em></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,1765 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_08_events/">
+      
+      
+        <link rel="next" href="../chapitre_10_commands/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 9 - Aller plus loin avec le Message Bus - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-9-aller-plus-loin-avec-le-message-bus" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 9 - Aller plus loin avec le Message Bus
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-message-bus-comme-cur-de-larchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Message Bus comme cœur de l'architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#avant-apres-levolution-du-point-dentree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant / Après : l'évolution du point d'entrée
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Avant / Après : l&#39;évolution du point d&#39;entrée">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avant-lapi-appelle-directement-les-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant : l'API appelle directement les handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-file-dattente-interne" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La file d'attente interne
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La file d&#39;attente interne">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#difference-de-traitement-entre-commands-et-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Différence de traitement entre commands et events
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handlers-en-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handlers en cascade
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Handlers en cascade">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-reduction-de-la-quantite-dun-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scénario : réduction de la quantité d'un lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagramme-de-sequence-la-boucle-de-la-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagramme de séquence : la boucle de la queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linjection-de-dependances-dans-le-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L'injection de dépendances dans le bus
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L&#39;injection de dépendances dans le bus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-methode-_call_handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La méthode _call_handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-bootstrap-la-composition-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bootstrap : la composition root
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume-le-nouveau-schema-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé : le nouveau schéma d'architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé : le nouveau schéma d&#39;architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principes-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principes clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ce-que-nous-avons-gagne" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ce que nous avons gagné
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-message-bus-comme-cur-de-larchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Message Bus comme cœur de l'architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#avant-apres-levolution-du-point-dentree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant / Après : l'évolution du point d'entrée
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Avant / Après : l&#39;évolution du point d&#39;entrée">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#avant-lapi-appelle-directement-les-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant : l'API appelle directement les handlers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-file-dattente-interne" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La file d'attente interne
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La file d&#39;attente interne">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#difference-de-traitement-entre-commands-et-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Différence de traitement entre commands et events
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handlers-en-cascade" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handlers en cascade
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Handlers en cascade">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-reduction-de-la-quantite-dun-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scénario : réduction de la quantité d'un lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagramme-de-sequence-la-boucle-de-la-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagramme de séquence : la boucle de la queue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#linjection-de-dependances-dans-le-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        L'injection de dépendances dans le bus
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="L&#39;injection de dépendances dans le bus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-methode-_call_handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La méthode _call_handler
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-bootstrap-la-composition-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bootstrap : la composition root
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume-le-nouveau-schema-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé : le nouveau schéma d'architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé : le nouveau schéma d&#39;architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principes-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principes clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ce-que-nous-avons-gagne" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ce que nous avons gagné
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-9-aller-plus-loin-avec-le-message-bus">Chapitre 9 -- Aller plus loin avec le Message Bus<a class="headerlink" href="#chapitre-9-aller-plus-loin-avec-le-message-bus" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>API appelle handlers, side-effects dispersés</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Tout passe par <code>bus.handle()</code>, propagation en cascade</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="le-message-bus-comme-cur-de-larchitecture">Le Message Bus comme cœur de l'architecture<a class="headerlink" href="#le-message-bus-comme-cur-de-larchitecture" title="Permanent link">&para;</a></h2>
+<p>Dans les chapitres précédents, le message bus était un mécanisme secondaire :
+l'API appelait directement les service layer handlers, et le bus servait
+uniquement à propager les events en tant que side-effects. Cette approche
+fonctionnait, mais elle créait une asymétrie gênante : les commands et les
+events empruntaient des chemins différents dans l'application.</p>
+<p>L'idée centrale de ce chapitre est simple mais transformatrice : <strong>tout passe
+par le bus</strong>. Le message bus n'est plus un outil annexe -- il devient le point
+d'entrée unique de l'application. Toute opération transite par le même
+pipeline, qu'elle soit déclenchée par une requête HTTP, un message Redis ou un
+event interne. Conséquences :</p>
+<ul>
+<li><strong>Uniformité</strong> : commands et events suivent le même chemin de dispatch.</li>
+<li><strong>Découplage</strong> : l'API ne connaît plus les handlers, seulement le bus.</li>
+<li><strong>Extensibilité</strong> : ajouter un comportement = ajouter un handler.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                  +-----------+
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  HTTP Request --&gt;|  Flask    |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                  |  (thin    |---&gt; Command ---&gt; MessageBus
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>                  |  adapter) |                     |
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                  +-----------+                     |
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                                            +-------+-------+
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                                            |               |
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                                      Command           Event
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                                      Handler           Handlers
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                                            |               |
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                                            v               v
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                                          UoW           UoW / Adapters
+</code></pre></div>
+<hr />
+<h2 id="avant-apres-levolution-du-point-dentree">Avant / Après : l'évolution du point d'entrée<a class="headerlink" href="#avant-apres-levolution-du-point-dentree" title="Permanent link">&para;</a></h2>
+<h3 id="avant-lapi-appelle-directement-les-handlers">Avant : l'API appelle directement les handlers<a class="headerlink" href="#avant-lapi-appelle-directement-les-handlers" title="Permanent link">&para;</a></h3>
+<p>Dans une architecture classique, le endpoint Flask aurait ressemblé à ceci :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocate_endpoint</span><span class="p">():</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id_commande&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;quantité&quot;</span><span class="p">])</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">services</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">,</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">())</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;réf_lot&quot;</span><span class="p">:</span> <span class="n">réf_lot</span><span class="p">}),</span> <span class="mi">201</span>
+</code></pre></div>
+<p>L'API connaissait les fonctions du service layer et instanciait elle-même les
+dépendances. Après, dans <code>src/allocation/entrypoints/flask_app.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">()</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocate&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;POST&quot;</span><span class="p">])</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocate_endpoint</span><span class="p">():</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">json</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        <span class="n">cmd</span> <span class="o">=</span> <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>            <span class="n">id_commande</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;orderid&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>            <span class="n">sku</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;sku&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>            <span class="n">quantité</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;qty&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>        <span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="k">except</span> <span class="n">handlers</span><span class="o">.</span><span class="n">SkuInconnu</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}),</span> <span class="mi">400</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;batchref&quot;</span><span class="p">:</span> <span class="n">réf_lot</span><span class="p">}),</span> <span class="mi">201</span>
+</code></pre></div>
+<p>Le endpoint ne connaît plus aucun handler. Son travail se résume à :</p>
+<ol>
+<li>Extraire les données de la requête HTTP.</li>
+<li>Construire un objet <code>Command</code>.</li>
+<li>Le soumettre au <code>MessageBus</code> via <code>bus.handle(cmd)</code>.</li>
+<li>Convertir le résultat en réponse HTTP.</li>
+</ol>
+<p>C'est un <strong>thin adapter</strong> au sens propre : une fine couche de traduction entre
+le protocole HTTP et le langage interne du domaine (les commands). Toute la
+configuration -- quels handlers répondent à quels messages, quelles dépendances
+sont injectées -- est définie dans le bootstrap, pas dans l'API.</p>
+<hr />
+<h2 id="la-file-dattente-interne">La file d'attente interne<a class="headerlink" href="#la-file-dattente-interne" title="Permanent link">&para;</a></h2>
+<p>Le cœur du mécanisme réside dans la méthode <code>handle()</code> du <code>MessageBus</code> et
+dans son attribut <code>self.queue</code> (<code>src/allocation/service_layer/messagebus.py</code>) :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">MessageBus</span><span class="p">:</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">uow</span><span class="p">:</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">event_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]],</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">command_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">],</span> <span class="n">Callable</span><span class="p">],</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">dependencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="p">):</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">uow</span> <span class="o">=</span> <span class="n">uow</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">event_handlers</span> <span class="o">=</span> <span class="n">event_handlers</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">command_handlers</span> <span class="o">=</span> <span class="n">command_handlers</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="n">dependencies</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">message</span><span class="p">]</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>            <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_event</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">):</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_command</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Message de type inconnu : </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>        <span class="k">return</span> <span class="n">results</span>
+</code></pre></div>
+<p>Le fonctionnement est le suivant :</p>
+<ol>
+<li>Le message initial (en général une <code>Command</code>) est placé dans <code>self.queue</code>.</li>
+<li>La boucle <code>while self.queue</code> dépile les messages un par un.</li>
+<li>Chaque message est dispatché vers le handler correspondant.</li>
+<li>Après l'exécution d'un handler, les events émis par les agrégats sont
+   collectés via <code>self.uow.collect_new_events()</code> et ajoutés à la queue.</li>
+<li>La boucle continue jusqu'à ce que la queue soit vide.</li>
+</ol>
+<p>Ce mécanisme est visible dans <code>_handle_command</code> et <code>_handle_event</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_handle_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">handler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">command_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">))</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">if</span> <span class="n">handler</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aucun handler pour la command </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_handler</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">collect_new_events</span><span class="p">())</span>  <span class="c1"># (1)</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">return</span> <span class="n">result</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">_handle_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">event</span><span class="p">),</span> <span class="p">[]):</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_call_handler</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">collect_new_events</span><span class="p">())</span>  <span class="c1"># (2)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Erreur lors du traitement de l&#39;event </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>(1)</strong> et <strong>(2)</strong> : après chaque exécution de handler, on collecte les events
+du domaine et on les réinjecte dans la queue. C'est ce qui permet la
+propagation en cascade. La méthode <code>collect_new_events</code> du Unit of Work
+parcourt tous les agrégats observés pendant la transaction :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">collect_new_events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">for</span> <span class="n">produit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">seen</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="k">while</span> <span class="n">produit</span><span class="o">.</span><span class="n">événements</span><span class="p">:</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>            <span class="k">yield</span> <span class="n">produit</span><span class="o">.</span><span class="n">événements</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="difference-de-traitement-entre-commands-et-events">Différence de traitement entre commands et events<a class="headerlink" href="#difference-de-traitement-entre-commands-et-events" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Command</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nombre de handlers</td>
+<td>Exactement 1</td>
+<td>0, 1 ou N</td>
+</tr>
+<tr>
+<td>En cas d'erreur</td>
+<td>L'exception remonte à l'appelant</td>
+<td>L'exception est loggée, les autres handlers continuent</td>
+</tr>
+<tr>
+<td>Valeur de retour</td>
+<td>Oui (ajoutée à <code>results</code>)</td>
+<td>Non</td>
+</tr>
+</tbody>
+</table>
+<p>Une command est une intention qui <strong>doit</strong> aboutir ou échouer explicitement.
+Un event est une notification qui ne doit pas bloquer le flux principal.</p>
+<hr />
+<h2 id="handlers-en-cascade">Handlers en cascade<a class="headerlink" href="#handlers-en-cascade" title="Permanent link">&para;</a></h2>
+<p>Le vrai intérêt de la queue interne apparaît quand les handlers déclenchent
+eux-mêmes de nouveaux events. Prenons un scénario concret.</p>
+<h3 id="scenario-reduction-de-la-quantite-dun-lot">Scénario : réduction de la quantité d'un lot<a class="headerlink" href="#scenario-reduction-de-la-quantite-dun-lot" title="Permanent link">&para;</a></h3>
+<p>Un fournisseur nous informe qu'un lot de 50 unités ne contiendra finalement
+que 25 unités. Certaines lignes de commande déjà allouées à ce lot doivent
+être désallouées puis réallouées à d'autres lots.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>1. ModifierQuantitéLot (command)
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>   --&gt; modifier_quantité_lot handler
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>       --&gt; Produit.modifier_quantité_lot()
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>           --&gt; émet Désalloué event(s)
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>2. Désalloué (event) ajouté à la queue
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>   --&gt; réallouer handler
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>       --&gt; Produit.allouer()
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>           --&gt; peut émettre RuptureDeStock
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>3. (optionnel) RuptureDeStock (event) ajouté à la queue
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>   --&gt; envoyer_notification_rupture_stock handler
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>       --&gt; envoie un email via l&#39;adapter de notifications
+</code></pre></div>
+<p>Dans le domaine (<code>src/allocation/domain/model.py</code>), le modèle émet les events
+sans savoir ce qui va se passer ensuite :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">modifier_quantité_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">réf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">lot</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lots</span> <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">référence</span> <span class="o">==</span> <span class="n">réf</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">=</span> <span class="n">quantité</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="k">while</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">lot</span><span class="o">.</span><span class="n">désallouer_une</span><span class="p">()</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">événements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>            <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">quantité</span><span class="p">)</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        <span class="p">)</span>
+</code></pre></div>
+<p>Côté handlers (<code>src/allocation/service_layer/handlers.py</code>), <code>réallouer</code>
+réagit à l'event <code>Désalloué</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">réallouer</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">,</span> <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">allouer</span><span class="p">(</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>        <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">quantité</span><span class="p">),</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        <span class="n">uow</span><span class="o">=</span><span class="n">uow</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Et si <code>allouer()</code> échoue par manque de stock, le domaine émet un <code>RuptureDeStock</code>
+event, dispatché vers <code>envoyer_notification_rupture_stock</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">envoyer_notification_rupture_stock</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">,</span> <span class="n">notifications</span><span class="p">:</span> <span class="n">AbstractNotifications</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">notifications</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>        <span class="n">destination</span><span class="o">=</span><span class="s2">&quot;stock@example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Rupture de stock pour le SKU </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Personne n'a eu besoin d'orchestrer cette cascade. <strong>Le comportement émerge de
+la composition des handlers</strong>, pas d'un code d'orchestration central.</p>
+<h3 id="diagramme-de-sequence-la-boucle-de-la-queue">Diagramme de séquence : la boucle de la queue<a class="headerlink" href="#diagramme-de-sequence-la-boucle-de-la-queue" title="Permanent link">&para;</a></h3>
+<p>Voici le déroulé complet de la queue interne pour le scénario ci-dessus :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>queue = [ModifierQuantitéLot]
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  │
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>  ├─► modifier_quantité_lot() → Produit émet [Désalloué]
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>  │   collect_new_events() → queue = [Désalloué]
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>  │
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>  ├─► réallouer() → appelle allouer(Allouer)
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>  │   → Produit émet [Alloué]
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>  │   collect_new_events() → queue = [Alloué]
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>  │
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>  ├─► publier_événement_allocation()
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>  ├─► ajouter_allocation_vue()
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>  │
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>  └─► queue vide, fin
+</code></pre></div>
+<p><strong>Point clé</strong> : un seul message initial (<code>ModifierQuantitéLot</code>) peut déclencher
+toute une cascade. Le bus dépile les messages un par un, et chaque handler peut
+en produire de nouveaux. La boucle <code>while queue:</code> continue tant qu'il reste des
+messages à traiter.</p>
+<hr />
+<h2 id="linjection-de-dependances-dans-le-bus">L'injection de dépendances dans le bus<a class="headerlink" href="#linjection-de-dependances-dans-le-bus" title="Permanent link">&para;</a></h2>
+<p>Les handlers ont besoin de dépendances (<code>uow</code>, <code>notifications</code>, etc.), mais on
+ne veut pas que l'appelant ait à les fournir. La solution : le bus les injecte
+automatiquement en inspectant la signature de chaque handler.</p>
+<h3 id="la-methode-_call_handler">La méthode <code>_call_handler</code><a class="headerlink" href="#la-methode-_call_handler" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_call_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">params</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">handler</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]:</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>            <span class="k">continue</span>  <span class="c1"># Premier paramètre = le message lui-même</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;uow&quot;</span><span class="p">:</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>            <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">uow</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="k">elif</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">:</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>            <span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</code></pre></div>
+<p>La logique est la suivante :</p>
+<ol>
+<li><code>inspect.signature(handler).parameters</code> extrait les paramètres du handler.</li>
+<li>Le premier paramètre est toujours le message -- on le saute.</li>
+<li>Pour chaque paramètre suivant, le bus cherche une correspondance :<ul>
+<li><code>"uow"</code> : on injecte le Unit of Work.</li>
+<li>Autre nom : on cherche dans <code>self.dependencies</code>.</li>
+</ul>
+</li>
+<li>Le handler est appelé avec le message en premier et les dépendances en
+   keyword arguments.</li>
+</ol>
+<p>Prenons <code>envoyer_notification_rupture_stock(event, notifications)</code>. Le bus
+inspecte la signature, trouve <code>"notifications"</code> dans <code>self.dependencies</code>, et
+appelle <code>handler(event, notifications=email_adapter)</code>. Le handler n'a jamais
+besoin de savoir d'où viennent ses dépendances.</p>
+<h3 id="le-bootstrap-la-composition-root">Le bootstrap : la composition root<a class="headerlink" href="#le-bootstrap-la-composition-root" title="Permanent link">&para;</a></h3>
+<p>L'assemblage se fait dans <code>src/allocation/service_layer/bootstrap.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">bootstrap</span><span class="p">(</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">start_orm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">notifications_adapter</span><span class="p">:</span> <span class="n">notifications</span><span class="o">.</span><span class="n">AbstractNotifications</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="o">**</span><span class="n">extra_dependencies</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">:</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="k">if</span> <span class="n">start_orm</span><span class="p">:</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="n">orm</span><span class="o">.</span><span class="n">start_mappers</span><span class="p">()</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>    <span class="k">if</span> <span class="n">uow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="n">uow</span> <span class="o">=</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">SqlAlchemyUnitOfWork</span><span class="p">()</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>    <span class="k">if</span> <span class="n">notifications_adapter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>        <span class="n">notifications_adapter</span> <span class="o">=</span> <span class="n">notifications</span><span class="o">.</span><span class="n">EmailNotifications</span><span class="p">()</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="n">dependencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>        <span class="s2">&quot;notifications&quot;</span><span class="p">:</span> <span class="n">notifications_adapter</span><span class="p">,</span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>        <span class="o">**</span><span class="n">extra_dependencies</span><span class="p">,</span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>    <span class="p">}</span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>    <span class="k">return</span> <span class="n">messagebus</span><span class="o">.</span><span class="n">MessageBus</span><span class="p">(</span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>        <span class="n">uow</span><span class="o">=</span><span class="n">uow</span><span class="p">,</span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>        <span class="n">event_handlers</span><span class="o">=</span><span class="n">EVENT_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>        <span class="n">command_handlers</span><span class="o">=</span><span class="n">COMMAND_HANDLERS</span><span class="p">,</span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>        <span class="n">dependencies</span><span class="o">=</span><span class="n">dependencies</span><span class="p">,</span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>La clé <code>"notifications"</code> dans le dictionnaire doit correspondre exactement au
+nom du paramètre dans la signature du handler. <strong>Le nom du paramètre fait
+office de contrat</strong>. Le mapping handlers/messages est déclaré explicitement :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">EVENT_HANDLERS</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Alloué</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">publier_événement_allocation</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_allocation_vue</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="p">],</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">réallouer</span><span class="p">,</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">supprimer_allocation_vue</span><span class="p">,</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="p">],</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_notification_rupture_stock</span><span class="p">],</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">}</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">COMMAND_HANDLERS</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_lot</span><span class="p">,</span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">allouer</span><span class="p">,</span>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">ModifierQuantitéLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">modifier_quantité_lot</span><span class="p">,</span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="p">}</span>
+</code></pre></div>
+<p>Pour les tests, on injecte des fakes sans toucher au code de production :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="o">.</span><span class="n">bootstrap</span><span class="p">(</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">start_orm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">uow</span><span class="o">=</span><span class="n">FakeUnitOfWork</span><span class="p">(),</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">notifications_adapter</span><span class="o">=</span><span class="n">FakeNotifications</span><span class="p">(),</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="p">)</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="n">réf</span><span class="o">=</span><span class="s2">&quot;batch-001&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;TABLE&quot;</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="mi">100</span><span class="p">))</span>
+</code></pre></div>
+<hr />
+<h2 id="resume-le-nouveau-schema-darchitecture">Résumé : le nouveau schéma d'architecture<a class="headerlink" href="#resume-le-nouveau-schema-darchitecture" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>  Entrypoints             Service Layer              Domain
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a> (thin adapters)       (MessageBus + Handlers)       (Model)
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a> +--------------+     +--------------------+     +------------------+
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a> | Flask API    | cmd |    MessageBus      |     |  Produit         |
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a> | Redis sub    |----&gt;|  1. queue = [cmd]  |     |  Lot             |
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a> | CLI          |     |  2. dispatch       |     |  LigneDeCommande |
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a> +--------------+     |  3. collect events |     +--------+---------+
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>                      |  4. repeat         |              |
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>                      |  Handlers + Deps   |&lt;-- events----+
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>                      +--------------------+
+</code></pre></div>
+<h3 id="principes-cles">Principes clés<a class="headerlink" href="#principes-cles" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Un seul point d'entrée</strong> : tout passe par <code>bus.handle(message)</code>. Que
+   l'appelant soit un endpoint Flask, un subscriber Redis ou un test unitaire,
+   le chemin est identique.</p>
+</li>
+<li>
+<p><strong>Propagation automatique</strong> : les events émis par le domaine sont collectés
+   et traités sans intervention. Aucun code d'orchestration n'est nécessaire.</p>
+</li>
+<li>
+<p><strong>Injection par introspection</strong> : le bus injecte les dépendances dans les
+   handlers en inspectant leurs signatures. Les handlers déclarent ce dont ils
+   ont besoin, le bus fournit.</p>
+</li>
+<li>
+<p><strong>Séparation des responsabilités</strong> :</p>
+<ul>
+<li>Les <strong>entrypoints</strong> traduisent les entrées externes en commands.</li>
+<li>Le <strong>bus</strong> dispatche et orchestre.</li>
+<li>Les <strong>handlers</strong> contiennent la logique applicative.</li>
+<li>Le <strong>domaine</strong> contient les règles métier et émet des events.</li>
+</ul>
+</li>
+<li>
+<p><strong>Testabilité</strong> : le bootstrap accepte des fakes pour chaque dépendance,
+   rendant les tests rapides et isolés.</p>
+</li>
+</ol>
+<h3 id="ce-que-nous-avons-gagne">Ce que nous avons gagné<a class="headerlink" href="#ce-que-nous-avons-gagne" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Avant</th>
+<th>Après</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L'API appelle les handlers directement</td>
+<td>L'API envoie des commands au bus</td>
+</tr>
+<tr>
+<td>Les dépendances sont passées manuellement</td>
+<td>Les dépendances sont injectées automatiquement</td>
+</tr>
+<tr>
+<td>Les side-effects sont gérés à part</td>
+<td>Tout transite par le bus, commands comme events</td>
+</tr>
+<tr>
+<td>Ajouter un comportement = modifier du code</td>
+<td>Ajouter un handler + l'enregistrer dans le bootstrap</td>
+</tr>
+<tr>
+<td>Tests couplés aux détails d'implémentation</td>
+<td>Tests via le bus avec des fakes injectées</td>
+</tr>
+</tbody>
+</table>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Ajouter un middleware</p>
+<p>Modifiez <code>_call_handler</code> pour logger le temps d'exécution de chaque handler. Vérifiez que les tests passent toujours.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Handler asynchrone</p>
+<p>Comment adapteriez-vous le message bus pour supporter des handlers <code>async</code> ? Quelles parties de l'architecture changeraient ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Compteur de messages</p>
+<p>Ajoutez un attribut <code>self.messages_processed: int</code> au <code>MessageBus</code> qui compte le nombre total de messages (commands + events) traités. Écrivez un test qui vérifie que le compteur est correct après une cascade command → event → handler.</p>
+</div>
+<hr />
+<p>Le message bus est devenu la colonne vertébrale de l'application. Toute
+l'intelligence est dans les handlers et le domaine ; le bus ne fait que
+distribuer les messages et injecter les dépendances. Cette simplicité apparente
+cache une grande puissance : on peut ajouter des comportements complexes
+(cascades d'events, notifications, publication externe) sans jamais modifier
+le code existant.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

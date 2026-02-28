@@ -1,0 +1,2167 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../../partie1/chapitre_07_aggregats/">
+      
+      
+        <link rel="next" href="../chapitre_09_message_bus/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 8 - Events et le Message Bus - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-8-events-et-le-message-bus" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 8 - Events et le Message Bus
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-des-effets-de-bord" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème des effets de bord
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-domain-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les Domain Events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-structure-dun-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La structure d'un Event
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La structure d&#39;un Event">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-classe-de-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La classe de base
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-events-concrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les events concrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-frozentrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi frozen=True ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-agregats-emettent-des-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les agrégats émettent des events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les agrégats émettent des events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#emission-lors-de-lallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Émission lors de l'allocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emission-lors-du-changement-de-quantite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Émission lors du changement de quantité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-le-domaine-et-pas-le-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi le domaine et pas le handler ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-message-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Message Bus
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le Message Bus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-point-dentree-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le point d'entrée : handle()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#events-vs-commands-une-asymetrie-deliberee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events vs. Commands : une asymétrie délibérée
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-collecte-des-events-par-le-unit-of-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La collecte des events par le Unit of Work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagramme-de-sequence-emission-et-collecte-des-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagramme de séquence : émission et collecte des events
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-event-handlers-concrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les Event Handlers concrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les Event Handlers concrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#notification-de-rupture-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification de rupture de stock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reallocation-apres-desallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Réallocation après désallocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-cablage-dans-le-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le câblage dans le bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-flux-complet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le flux complet
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le flux complet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-la-quantite-dun-lot-diminue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scénario : la quantité d'un lot diminue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualisation-du-flux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualisation du flux
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-concepts-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les concepts clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-regles-a-retenir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les règles à retenir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schéma d'architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-des-effets-de-bord" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème des effets de bord
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-domain-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les Domain Events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-structure-dun-event" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La structure d'un Event
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La structure d&#39;un Event">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-classe-de-base" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La classe de base
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-events-concrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les events concrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-frozentrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi frozen=True ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-agregats-emettent-des-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les agrégats émettent des events
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les agrégats émettent des events">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#emission-lors-de-lallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Émission lors de l'allocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#emission-lors-du-changement-de-quantite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Émission lors du changement de quantité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-le-domaine-et-pas-le-handler" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi le domaine et pas le handler ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-message-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le Message Bus
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le Message Bus">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#la-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-point-dentree-handle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le point d'entrée : handle()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#events-vs-commands-une-asymetrie-deliberee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Events vs. Commands : une asymétrie délibérée
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-collecte-des-events-par-le-unit-of-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La collecte des events par le Unit of Work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diagramme-de-sequence-emission-et-collecte-des-events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagramme de séquence : émission et collecte des events
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-event-handlers-concrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les Event Handlers concrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Les Event Handlers concrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#notification-de-rupture-de-stock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notification de rupture de stock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reallocation-apres-desallocation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Réallocation après désallocation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-cablage-dans-le-bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le câblage dans le bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-flux-complet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le flux complet
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le flux complet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scenario-la-quantite-dun-lot-diminue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scénario : la quantité d'un lot diminue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualisation-du-flux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualisation du flux
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#les-concepts-cles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les concepts clés
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#les-regles-a-retenir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les règles à retenir
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schema-darchitecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schéma d'architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-8-events-et-le-message-bus">Chapitre 8 -- Events et le Message Bus<a class="headerlink" href="#chapitre-8-events-et-le-message-bus" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Handler appelle <code>send_email()</code>, <code>publish()</code> directement</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Domaine émet events, handlers réagissent via Message Bus</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Pattern</strong> : Domain Events + Message Bus
+<strong>Problème résolu</strong> : Comment réagir aux changements du domaine sans coupler la logique métier aux effets de bord ?</p>
+</blockquote>
+<hr />
+<h2 id="le-probleme-des-effets-de-bord">Le problème des effets de bord<a class="headerlink" href="#le-probleme-des-effets-de-bord" title="Permanent link">&para;</a></h2>
+<p>Jusqu'ici, notre système d'allocation fait bien son travail : il choisit le bon lot,
+respecte les règles métier, et le Unit of Work garantit l'atomicité des transactions.</p>
+<p>Mais la réalité rattrape vite une architecture trop simple. Quand une allocation réussit,
+il faut probablement :</p>
+<ul>
+<li><strong>Envoyer un email</strong> de confirmation au client</li>
+<li><strong>Mettre à jour un tableau de bord</strong> en temps réel</li>
+<li><strong>Notifier un service externe</strong> (entrepôt, logistique, facturation)</li>
+<li><strong>Émettre un événement</strong> vers un bus de messages (Redis, Kafka...)</li>
+</ul>
+<p>La tentation naturelle est de tout mettre dans le handler :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># NE FAITES PAS CA -- handler monolithique</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">uow</span><span class="p">):</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">quantité</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">réf_lot</span> <span class="o">=</span> <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="c1"># Effets de bord empilés...</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">send_email</span><span class="p">(</span><span class="s2">&quot;client@example.com&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Commande </span><span class="si">{</span><span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="si">}</span><span class="s2"> allouée&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">update_dashboard</span><span class="p">(</span><span class="n">cmd</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">réf_lot</span><span class="p">)</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">notify_warehouse</span><span class="p">(</span><span class="n">réf_lot</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">publish_to_redis</span><span class="p">(</span><span class="s2">&quot;allocation&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;id_commande&quot;</span><span class="p">:</span> <span class="n">cmd</span><span class="o">.</span><span class="n">id_commande</span><span class="p">})</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    <span class="k">return</span> <span class="n">réf_lot</span>
+</code></pre></div>
+<p>Ce code pose trois problèmes sérieux :</p>
+<ol>
+<li><strong>Couplage</strong> : le handler connaît les détails de chaque système externe. Si on ajoute
+   un nouveau consommateur, il faut modifier le handler.</li>
+<li><strong>Testabilité</strong> : pour tester l'allocation, il faut mocker l'email, le dashboard,
+   l'entrepôt et Redis. Les tests deviennent fragiles et lents.</li>
+<li><strong>Responsabilité</strong> : le handler orchestre la logique métier <em>et</em> gère les effets de
+   bord. C'est une violation du Single Responsibility Principle.</li>
+</ol>
+<p>La solution ? Séparer le <strong>fait</strong> (une allocation a eu lieu) de ses <strong>conséquences</strong>
+(envoyer un email, notifier un service). C'est exactement ce que permettent les
+Domain Events.</p>
+<hr />
+<h2 id="les-domain-events">Les Domain Events<a class="headerlink" href="#les-domain-events" title="Permanent link">&para;</a></h2>
+<p>Un Domain Event est un objet qui représente <strong>un fait qui s'est produit</strong> dans le
+système. Pas une demande, pas une intention -- un constat irrévocable.</p>
+<p>La convention de nommage est importante : les events sont toujours au <strong>passé</strong> :</p>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Alloué</code></td>
+<td>Une ligne de commande <strong>a été</strong> allouée à un lot</td>
+</tr>
+<tr>
+<td><code>Désalloué</code></td>
+<td>Une ligne de commande <strong>a été</strong> désallouée</td>
+</tr>
+<tr>
+<td><code>RuptureDeStock</code></td>
+<td>Le stock <strong>est épuisé</strong> pour un SKU donné</td>
+</tr>
+</tbody>
+</table>
+<p>Comparez avec les commands, qui sont des <strong>demandes</strong> au présent impératif :</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Event correspondant</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Allouer</code> (alloue !)</td>
+<td><code>Alloué</code> (a été alloué)</td>
+</tr>
+<tr>
+<td><code>ModifierQuantitéLot</code> (change !)</td>
+<td><code>Désalloué</code> (a été désalloué)</td>
+</tr>
+</tbody>
+</table>
+<p>Cette distinction est fondamentale. Une command peut échouer (stock insuffisant,
+SKU inexistant). Un event, lui, <strong>ne peut pas échouer</strong> : il décrit un fait déjà
+survenu. On ne peut pas "refuser" qu'une allocation ait eu lieu.</p>
+<hr />
+<h2 id="la-structure-dun-event">La structure d'un Event<a class="headerlink" href="#la-structure-dun-event" title="Permanent link">&para;</a></h2>
+<p>Les events sont définis dans <code>src/allocation/domain/events.py</code>. La structure repose
+sur une classe de base <code>Event</code> et des dataclasses concrètes avec <code>frozen=True</code>.</p>
+<h3 id="la-classe-de-base">La classe de base<a class="headerlink" href="#la-classe-de-base" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Event</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Classe de base pour tous les events du domaine.&quot;&quot;&quot;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">pass</span>
+</code></pre></div>
+<p>Volontairement minimale, elle sert de <strong>marqueur de type</strong> : elle permet au message bus
+de distinguer un event d'une command. Pas de méthode, pas d'attribut -- juste un contrat.</p>
+<h3 id="les-events-concrets">Les events concrets<a class="headerlink" href="#les-events-concrets" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Alloué</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Une LigneDeCommande a été allouée à un Lot.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">réf_lot</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">Désalloué</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Une LigneDeCommande a été désallouée d&#39;un Lot.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    <span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="k">class</span><span class="w"> </span><span class="nc">RuptureDeStock</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Le stock est épuisé pour un SKU donné.&quot;&quot;&quot;</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div>
+<h3 id="pourquoi-frozentrue">Pourquoi <code>frozen=True</code> ?<a class="headerlink" href="#pourquoi-frozentrue" title="Permanent link">&para;</a></h3>
+<p>Le paramètre <code>frozen=True</code> rend la dataclass <strong>immutable</strong>. C'est un choix délibéré :</p>
+<ul>
+<li>Un event représente un <strong>fait passé</strong>. On ne modifie pas le passé.</li>
+<li>L'immutabilité garantit qu'un handler ne peut pas corrompre un event avant
+  qu'un autre handler ne le traite.</li>
+<li>Un objet frozen est <strong>hashable</strong>, utilisable dans des sets ou comme clé de dict.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">event</span> <span class="o">=</span> <span class="n">Alloué</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;LAMP&quot;</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">réf_lot</span><span class="o">=</span><span class="s2">&quot;batch-001&quot;</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">event</span><span class="o">.</span><span class="n">quantité</span> <span class="o">=</span> <span class="mi">5</span>  <span class="c1"># FrozenInstanceError !</span>
+</code></pre></div>
+<p>Chaque event porte exactement les <strong>données nécessaires</strong> pour que ses handlers puissent
+travailler sans dépendre du contexte d'émission. <code>Alloué</code> porte l'<code>id_commande</code>, le <code>sku</code>,
+la <code>quantité</code> et le <code>réf_lot</code>. <code>RuptureDeStock</code> ne porte que le <code>sku</code>. Un event est
+<strong>autosuffisant</strong> : ses consommateurs n'ont pas besoin d'interroger la base de données.</p>
+<hr />
+<h2 id="les-agregats-emettent-des-events">Les agrégats émettent des events<a class="headerlink" href="#les-agregats-emettent-des-events" title="Permanent link">&para;</a></h2>
+<p>C'est le domaine qui sait quand quelque chose d'intéressant se produit. Pas le handler,
+pas la couche service -- le <strong>domaine lui-même</strong>. C'est donc l'agrégat qui émet les events.</p>
+<p>L'agrégat <code>Produit</code> maintient une liste d'events en attente :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">Produit</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">lots</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">numéro_version</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">sku</span> <span class="o">=</span> <span class="n">sku</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">lots</span> <span class="o">=</span> <span class="n">lots</span> <span class="ow">or</span> <span class="p">[]</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">numéro_version</span> <span class="o">=</span> <span class="n">numéro_version</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">événements</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (1)</span>
+</code></pre></div>
+<p><strong>(1)</strong> La liste <code>self.événements</code> est le <strong>tampon d'events</strong>. Les events y sont accumulés
+pendant l'exécution des méthodes métier, puis collectés par le Unit of Work.</p>
+<h3 id="emission-lors-de-lallocation">Émission lors de l'allocation<a class="headerlink" href="#emission-lors-de-lallocation" title="Permanent link">&para;</a></h3>
+<p>Quand l'allocation échoue par manque de stock, le <code>Produit</code> émet un <code>RuptureDeStock</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">allouer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ligne</span><span class="p">:</span> <span class="n">LigneDeCommande</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">lot</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>            <span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lots</span><span class="p">)</span> <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>        <span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">événements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">(</span><span class="n">sku</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">sku</span><span class="p">))</span>  <span class="c1"># (1)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">numéro_version</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="k">return</span> <span class="n">lot</span><span class="o">.</span><span class="n">référence</span>
+</code></pre></div>
+<p><strong>(1)</strong> Plutôt que de lever une exception, le domaine <strong>enregistre un fait</strong> : "le stock
+est épuisé". C'est un changement de philosophie important.</p>
+<h3 id="emission-lors-du-changement-de-quantite">Émission lors du changement de quantité<a class="headerlink" href="#emission-lors-du-changement-de-quantite" title="Permanent link">&para;</a></h3>
+<p>Quand la quantité d'un lot diminue, chaque désallocation génère un <code>Désalloué</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">modifier_quantité_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">réf</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">lot</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">l</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lots</span> <span class="k">if</span> <span class="n">l</span><span class="o">.</span><span class="n">référence</span> <span class="o">==</span> <span class="n">réf</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">_quantité_achetée</span> <span class="o">=</span> <span class="n">quantité</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="k">while</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">lot</span><span class="o">.</span><span class="n">désallouer_une</span><span class="p">()</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">événements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>            <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">(</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>                <span class="n">id_commande</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">ligne</span><span class="o">.</span><span class="n">quantité</span><span class="p">,</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>            <span class="p">)</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="p">)</span>
+</code></pre></div>
+<p>Si trois lignes sont désallouées, il y aura trois events <code>Désalloué</code>, et chacun pourra
+déclencher une réallocation indépendante.</p>
+<h3 id="pourquoi-le-domaine-et-pas-le-handler">Pourquoi le domaine et pas le handler ?<a class="headerlink" href="#pourquoi-le-domaine-et-pas-le-handler" title="Permanent link">&para;</a></h3>
+<p>On pourrait être tenté de faire émettre les events par le handler. Mais ce serait une
+erreur :</p>
+<ul>
+<li>Le <strong>domaine connaît les règles</strong>. C'est lui qui sait qu'une rupture de stock s'est
+  produite. Le handler ne fait que transmettre la demande.</li>
+<li>Si un autre handler appelle la même méthode, les events sont émis <strong>automatiquement</strong>.</li>
+<li>On garde le domaine comme <strong>source de vérité</strong> pour les faits métier.</li>
+</ul>
+<hr />
+<h2 id="le-message-bus">Le Message Bus<a class="headerlink" href="#le-message-bus" title="Permanent link">&para;</a></h2>
+<p>Les events sont émis par le domaine, mais ils ne servent à rien s'ils restent dans une
+liste. Il faut un mécanisme pour les <strong>router vers les bons handlers</strong>. C'est le rôle
+du Message Bus.</p>
+<h3 id="la-structure">La structure<a class="headerlink" href="#la-structure" title="Permanent link">&para;</a></h3>
+<p>Le Message Bus est un <strong>dispatcher</strong> défini dans
+<code>src/allocation/service_layer/messagebus.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">Message</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">,</span> <span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">]</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">MessageBus</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>        <span class="bp">self</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="n">uow</span><span class="p">:</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>        <span class="n">event_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="n">Callable</span><span class="p">]],</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>        <span class="n">command_handlers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">],</span> <span class="n">Callable</span><span class="p">],</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>        <span class="n">dependencies</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="p">):</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">uow</span> <span class="o">=</span> <span class="n">uow</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">event_handlers</span> <span class="o">=</span> <span class="n">event_handlers</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">command_handlers</span> <span class="o">=</span> <span class="n">command_handlers</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="n">dependencies</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div>
+<p>Le bus reçoit à la construction le <strong>Unit of Work</strong>, un dictionnaire
+<strong>event_handlers</strong> (chaque event vers une <em>liste</em> de handlers), un dictionnaire
+<strong>command_handlers</strong> (chaque command vers <em>un</em> handler), et des <strong>dépendances</strong> à
+injecter (notifications, etc.).</p>
+<h3 id="le-point-dentree-handle">Le point d'entrée : <code>handle()</code><a class="headerlink" href="#le-point-dentree-handle" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="n">Message</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">message</span><span class="p">]</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_event</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">):</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_command</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Message de type inconnu : </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">message</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="k">return</span> <span class="n">results</span>
+</code></pre></div>
+<p>Le cœur du bus est cette boucle <code>while</code>, qui fonctionne comme une <strong>file de messages</strong> :</p>
+<ol>
+<li>Le message initial est placé dans la queue</li>
+<li>Tant qu'il reste des messages, on dépile et on traite</li>
+<li>Chaque traitement peut générer de <strong>nouveaux events</strong> ajoutés à la queue</li>
+<li>La boucle continue jusqu'à épuisement</li>
+</ol>
+<p>C'est cette mécanique qui permet la <strong>propagation en cascade</strong> : une command peut
+déclencher un event, qui déclenche un handler, qui produit un autre event.</p>
+<h3 id="events-vs-commands-une-asymetrie-deliberee">Events vs. Commands : une asymétrie délibérée<a class="headerlink" href="#events-vs-commands-une-asymetrie-deliberee" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_handle_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="k">for</span> <span class="n">handler</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">event_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">event</span><span class="p">),</span> <span class="p">[]):</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">_call_handler</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">collect_new_events</span><span class="p">())</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Erreur lors du traitement de l&#39;event </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="k">def</span><span class="w"> </span><span class="nf">_handle_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">handler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">command_handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">))</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="k">if</span> <span class="n">handler</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Aucun handler pour la command </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_handler</span><span class="p">(</span><span class="n">handler</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">collect_new_events</span><span class="p">())</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="k">return</span> <span class="n">result</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Command</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nombre de handlers</td>
+<td>Exactement <strong>un</strong></td>
+<td><strong>Zéro, un ou plusieurs</strong></td>
+</tr>
+<tr>
+<td>En cas d'erreur</td>
+<td>L'exception <strong>remonte</strong></td>
+<td>L'exception est <strong>logguée</strong>, les autres handlers continuent</td>
+</tr>
+<tr>
+<td>Valeur de retour</td>
+<td>Peut retourner un résultat</td>
+<td>Pas de retour attendu</td>
+</tr>
+</tbody>
+</table>
+<p>Une <strong>command</strong> est une demande explicite -- si elle échoue, l'appelant doit le savoir.
+Un <strong>event</strong> est un constat -- si l'envoi d'email échoue, ce n'est pas une raison pour
+annuler l'allocation.</p>
+<h3 id="la-collecte-des-events-par-le-unit-of-work">La collecte des events par le Unit of Work<a class="headerlink" href="#la-collecte-des-events-par-le-unit-of-work" title="Permanent link">&para;</a></h3>
+<p>Après chaque handler, le bus appelle <code>self.uow.collect_new_events()</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">AbstractUnitOfWork</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABC</span><span class="p">):</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">collect_new_events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>        <span class="k">for</span> <span class="n">produit</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">seen</span><span class="p">:</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>            <span class="k">while</span> <span class="n">produit</span><span class="o">.</span><span class="n">événements</span><span class="p">:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>                <span class="k">yield</span> <span class="n">produit</span><span class="o">.</span><span class="n">événements</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+<p>Le UoW itère sur tous les agrégats <strong>vus</strong> pendant la transaction, vide leur liste
+d'events, et les transmet au bus. C'est le pont entre le domaine et l'infrastructure.</p>
+<h3 id="diagramme-de-sequence-emission-et-collecte-des-events">Diagramme de séquence : émission et collecte des events<a class="headerlink" href="#diagramme-de-sequence-emission-et-collecte-des-events" title="Permanent link">&para;</a></h3>
+<p>Le cycle complet, de la requête HTTP jusqu'au traitement des events :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Flask ──► MessageBus ──► handler(cmd) ──► Produit.allouer()
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>                                               │
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>                                               ▼
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>                                          événements.append(Alloué)
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>                                               │
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>               ◄── collect_new_events() ◄── uow.commit()
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>               │
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>               ▼
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>          handler(Alloué) ──► ajouter_allocation_vue()
+</code></pre></div>
+<p><strong>Point clé</strong> : les events remontent du domaine via le UoW, puis sont re-dispatchés
+par le bus. Le domaine n'appelle jamais directement un handler d'event — il se
+contente d'accumuler des faits, et l'infrastructure les achemine.</p>
+<hr />
+<h2 id="les-event-handlers-concrets">Les Event Handlers concrets<a class="headerlink" href="#les-event-handlers-concrets" title="Permanent link">&para;</a></h2>
+<p>Voyons les handlers d'events définis dans <code>src/allocation/service_layer/handlers.py</code>.</p>
+<h3 id="notification-de-rupture-de-stock">Notification de rupture de stock<a class="headerlink" href="#notification-de-rupture-de-stock" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">envoyer_notification_rupture_stock</span><span class="p">(</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">notifications</span><span class="p">:</span> <span class="n">AbstractNotifications</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">notifications</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="n">destination</span><span class="o">=</span><span class="s2">&quot;stock@example.com&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Rupture de stock pour le SKU </span><span class="si">{</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Ce handler reçoit un <code>RuptureDeStock</code> et une dépendance <code>notifications</code> injectée par le bus.
+Pas besoin du UoW, pas besoin de la base -- juste l'event et l'adapter.</p>
+<h3 id="reallocation-apres-desallocation">Réallocation après désallocation<a class="headerlink" href="#reallocation-apres-desallocation" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">réallouer</span><span class="p">(</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>    <span class="n">allouer</span><span class="p">(</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>        <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>            <span class="n">id_commande</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">quantité</span><span class="p">,</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>        <span class="p">),</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>        <span class="n">uow</span><span class="o">=</span><span class="n">uow</span><span class="p">,</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="p">)</span>
+</code></pre></div>
+<p>Quand une ligne est désallouée, ce handler crée une <strong>nouvelle command</strong> <code>Allouer</code> et
+la traite. C'est une <strong>chaîne réactive</strong> : un changement de quantité entraîne des
+désallocations, qui entraînent des réallocations.</p>
+<h3 id="le-cablage-dans-le-bootstrap">Le câblage dans le bootstrap<a class="headerlink" href="#le-cablage-dans-le-bootstrap" title="Permanent link">&para;</a></h3>
+<p>Les associations sont déclarées dans <code>src/allocation/service_layer/bootstrap.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">EVENT_HANDLERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Alloué</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">publier_événement_allocation</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_allocation_vue</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="p">],</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">réallouer</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">supprimer_allocation_vue</span><span class="p">,</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="p">],</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_notification_rupture_stock</span><span class="p">],</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="p">}</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="n">COMMAND_HANDLERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">commands</span><span class="o">.</span><span class="n">Command</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_lot</span><span class="p">,</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">allouer</span><span class="p">,</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="n">commands</span><span class="o">.</span><span class="n">ModifierQuantitéLot</span><span class="p">:</span> <span class="n">handlers</span><span class="o">.</span><span class="n">modifier_quantité_lot</span><span class="p">,</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="p">}</span>
+</code></pre></div>
+<p>Pour ajouter un nouveau comportement, il suffit d'<strong>ajouter un handler à la liste</strong> --
+sans modifier le code existant. C'est le principe Open/Closed en action :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_notification_rupture_stock</span><span class="p">,</span>  <span class="c1"># email existant</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_sms_rupture_stock</span><span class="p">,</span>            <span class="c1"># SMS (nouveau !)</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="p">],</span>
+</code></pre></div>
+<hr />
+<h2 id="le-flux-complet">Le flux complet<a class="headerlink" href="#le-flux-complet" title="Permanent link">&para;</a></h2>
+<p>Déroulons un scénario de bout en bout : un changement de quantité de lot qui
+déclenche une cascade d'events.</p>
+<h3 id="scenario-la-quantite-dun-lot-diminue">Scénario : la quantité d'un lot diminue<a class="headerlink" href="#scenario-la-quantite-dun-lot-diminue" title="Permanent link">&para;</a></h3>
+<p>Un fournisseur informe qu'un lot de 50 "BLUE-VASE" ne contiendra que 20 unités.
+Trois commandes de 10 étaient allouées. Avec 20 unités, une doit être désallouée.</p>
+<p><strong>Étape 1</strong> -- La command entre dans le bus :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="n">cmd</span> <span class="o">=</span> <span class="n">ModifierQuantitéLot</span><span class="p">(</span><span class="n">réf</span><span class="o">=</span><span class="s2">&quot;batch-001&quot;</span><span class="p">,</span> <span class="n">quantité</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Étape 2</strong> -- Le command handler charge le Produit et appelle la méthode métier.</p>
+<p><strong>Étape 3</strong> -- Le domaine désalloue une ligne et émet <code>Désalloué(id_commande="order-3",
+sku="BLUE-VASE", quantité=10)</code>.</p>
+<p><strong>Étape 4</strong> -- Le UoW collecte l'event et l'ajoute à la queue du bus.</p>
+<p><strong>Étape 5</strong> -- Le bus dépile le <code>Désalloué</code> et appelle le handler <code>réallouer</code>.</p>
+<p><strong>Étape 6</strong> -- <code>réallouer</code> crée une command <code>Allouer</code> et la traite. Le système
+tente de réallouer la ligne à un autre lot.</p>
+<p><strong>Étape 7</strong> -- Si la réallocation réussit, un <code>Alloué</code> est émis. S'il n'y a plus de
+stock, un <code>RuptureDeStock</code> déclenche l'envoi d'une notification. La boucle continue
+jusqu'à épuisement de la queue.</p>
+<h3 id="visualisation-du-flux">Visualisation du flux<a class="headerlink" href="#visualisation-du-flux" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ModifierQuantitéLot (command)
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    |
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    v
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>modifier_quantité_lot (command handler)
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    |
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>    v
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>Produit.modifier_quantité_lot() --- émet ---&gt; Désalloué (event)
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    |                                              |
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    v                                              v
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>UoW.commit()                              réallouer (event handler)
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>                                                   |
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>                                                   v
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>                                           Allouer (command)
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>                                                   |
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>                                                   v
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a>                                           Produit.allouer()
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a>                                              /          \
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a>                                        succès            échec
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>                                          |                |
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a>                                          v                v
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a>                                       Alloué         RuptureDeStock
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a>                                          |                |
+<a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a>                                          v                v
+<a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a>                             publier_événement     envoyer_notification
+</code></pre></div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<p>Les Domain Events et le Message Bus résolvent le problème des effets de bord en
+<strong>découplant les faits de leurs conséquences</strong>.</p>
+<h3 id="les-concepts-cles">Les concepts clés<a class="headerlink" href="#les-concepts-cles" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Domain Event</strong></td>
+<td>Objet immutable représentant un fait passé</td>
+</tr>
+<tr>
+<td><strong><code>self.événements</code></strong></td>
+<td>Tampon dans l'agrégat où les events sont accumulés</td>
+</tr>
+<tr>
+<td><strong>Message Bus</strong></td>
+<td>Dispatcher qui route events et commands vers leurs handlers</td>
+</tr>
+<tr>
+<td><strong><code>collect_new_events()</code></strong></td>
+<td>Méthode du UoW qui extrait les events des agrégats</td>
+</tr>
+<tr>
+<td><strong>Event Handler</strong></td>
+<td>Fonction qui réagit à un event</td>
+</tr>
+</tbody>
+</table>
+<h3 id="les-regles-a-retenir">Les règles à retenir<a class="headerlink" href="#les-regles-a-retenir" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Les events sont au passé</strong> : <code>Alloué</code>, pas <code>Allouer</code>. Ils constatent, ils ne
+   demandent pas.</li>
+<li><strong>Les events sont immutables</strong> : <code>frozen=True</code>. Le passé ne change pas.</li>
+<li><strong>Le domaine émet les events</strong> : c'est l'agrégat qui sait ce qui s'est passé, pas
+   le handler.</li>
+<li><strong>Un event peut avoir plusieurs handlers</strong> : ajouter un comportement ne nécessite pas
+   de modifier le code existant.</li>
+<li><strong>Un handler d'event ne fait pas échouer les autres</strong> : les erreurs sont logguées
+   mais la propagation continue.</li>
+<li><strong>La boucle du bus traite en cascade</strong> : un handler peut générer de nouveaux events,
+   qui sont traités à leur tour.</li>
+</ol>
+<h3 id="schema-darchitecture">Schéma d'architecture<a class="headerlink" href="#schema-darchitecture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>                    +------------------+
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>                    |   Point d&#39;entrée |
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>                    |  (API / CLI)     |
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>                    +--------+---------+
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>                             |
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>                        Command
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>                             |
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>                             v
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>                    +------------------+
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>                    |   Message Bus    |&lt;-----------+
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>                    +--------+---------+            |
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>                             |                      |
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>                    +--------+---------+    nouveaux events
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>                    | Command Handler  |            |
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>                    +--------+---------+            |
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>                             |                      |
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>                             v                      |
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>                    +------------------+            |
+<a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a>                    |     Domaine      |            |
+<a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a>                    | (Produit.événements) |        |
+<a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>                    +--------+---------+            |
+<a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a>                             |                      |
+<a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a>                             v                      |
+<a id="__codelineno-18-24" name="__codelineno-18-24" href="#__codelineno-18-24"></a>                    +------------------+            |
+<a id="__codelineno-18-25" name="__codelineno-18-25" href="#__codelineno-18-25"></a>                    |   Unit of Work   |            |
+<a id="__codelineno-18-26" name="__codelineno-18-26" href="#__codelineno-18-26"></a>                    | collect_events() +------------+
+<a id="__codelineno-18-27" name="__codelineno-18-27" href="#__codelineno-18-27"></a>                    +--------+---------+
+<a id="__codelineno-18-28" name="__codelineno-18-28" href="#__codelineno-18-28"></a>                             |
+<a id="__codelineno-18-29" name="__codelineno-18-29" href="#__codelineno-18-29"></a>                             v
+<a id="__codelineno-18-30" name="__codelineno-18-30" href="#__codelineno-18-30"></a>                    +------------------+
+<a id="__codelineno-18-31" name="__codelineno-18-31" href="#__codelineno-18-31"></a>                    | Event Handlers   |
+<a id="__codelineno-18-32" name="__codelineno-18-32" href="#__codelineno-18-32"></a>                    | (email, réalloc, |
+<a id="__codelineno-18-33" name="__codelineno-18-33" href="#__codelineno-18-33"></a>                    |  publish, ...)   |
+<a id="__codelineno-18-34" name="__codelineno-18-34" href="#__codelineno-18-34"></a>                    +------------------+
+</code></pre></div>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Nouvel event</p>
+<p>Créez un event <code>StockBas(sku, quantité_restante)</code> émis quand la quantité disponible d'un lot tombe sous un seuil (par exemple 10). Ajoutez un handler qui envoie une notification. Écrivez le test.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Boucle infinie</p>
+<p>Que se passerait-il si un event handler émettait le même event qu'il traite ? Comment le message bus gère-t-il ce cas ? Proposez une protection.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Event vs exception</p>
+<p>Dans le code actuel, <code>Produit.allouer()</code> émet un event <code>RuptureDeStock</code> au lieu de lever une exception. Quels sont les avantages de chaque approche ? Dans quels cas préférer l'exception ?</p>
+</div>
+<hr />
+<p>Avec les Domain Events et le Message Bus, notre architecture gagne en <strong>extensibilité</strong>
+(ajouter des réactions sans modifier le domaine), en <strong>testabilité</strong> (chaque handler se
+teste indépendamment) et en <strong>clarté</strong> (chaque composant a une responsabilité unique).</p>
+<p>Dans le chapitre suivant, nous verrons comment le Message Bus peut devenir le <strong>point
+d'entrée principal</strong> de toute l'application, en remplacement de la service layer
+traditionnelle.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

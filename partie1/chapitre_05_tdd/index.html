@@ -1,0 +1,1888 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_04_service_layer/">
+      
+      
+        <link rel="next" href="../chapitre_06_unit_of_work/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 5 - TDD à haute et basse vitesse - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-5-tdd-a-haute-et-basse-vitesse" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 5 - TDD à haute et basse vitesse
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ou-en-sommes-nous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Où en sommes-nous ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-pyramide-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La pyramide des tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La pyramide des tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-cette-forme-pyramidale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi cette forme pyramidale ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-haute-vitesse-high-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests "haute vitesse" (high gear)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests &#34;haute vitesse&#34; (high gear)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#des-tests-qui-expriment-le-quoi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Des tests qui expriment le "quoi"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-changement-de-quantite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de changement de quantité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-des-tests-high-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avantages des tests high gear
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-basse-vitesse-low-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests "basse vitesse" (low gear)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests &#34;basse vitesse&#34; (low gear)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tests-granulaires-du-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests granulaires du Lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-la-strategie-dallocation-dans-produit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de la stratégie d'allocation dans Produit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-les-tests-low-gear-brillent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand les tests low gear brillent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-utiliser-quel-niveau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand utiliser quel niveau ?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand utiliser quel niveau ?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-basse-vitesse-low-gear-developper-la-logique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 : Basse vitesse (low gear) -- Développer la logique
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-haute-vitesse-high-gear-stabiliser-et-proteger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 : Haute vitesse (high gear) -- Stabiliser et protéger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-bon-ratio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bon ratio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-piege-des-tests-couples-a-limplementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le piège des tests couplés à l'implémentation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le piège des tests couplés à l&#39;implémentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-de-test-fragile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemple de test fragile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-meme-test-oriente-comportement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le même test, orienté comportement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptomes-de-tests-couples-a-limplementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptômes de tests couplés à l'implémentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-regle-dor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La règle d'or
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principe-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principe général
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tableau-comparatif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tableau comparatif
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#points-cles-a-retenir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Points clés à retenir
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_12_cqrs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie2/chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ou-en-sommes-nous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Où en sommes-nous ?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#la-pyramide-des-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La pyramide des tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="La pyramide des tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pourquoi-cette-forme-pyramidale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pourquoi cette forme pyramidale ?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-haute-vitesse-high-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests "haute vitesse" (high gear)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests &#34;haute vitesse&#34; (high gear)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#des-tests-qui-expriment-le-quoi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Des tests qui expriment le "quoi"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-changement-de-quantite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de changement de quantité
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avantages-des-tests-high-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avantages des tests high gear
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tests-basse-vitesse-low-gear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests "basse vitesse" (low gear)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tests &#34;basse vitesse&#34; (low gear)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tests-granulaires-du-lot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests granulaires du Lot
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tests-de-la-strategie-dallocation-dans-produit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tests de la stratégie d'allocation dans Produit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quand-les-tests-low-gear-brillent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand les tests low gear brillent
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-utiliser-quel-niveau" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand utiliser quel niveau ?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand utiliser quel niveau ?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-basse-vitesse-low-gear-developper-la-logique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 : Basse vitesse (low gear) -- Développer la logique
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-haute-vitesse-high-gear-stabiliser-et-proteger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 : Haute vitesse (high gear) -- Stabiliser et protéger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-bon-ratio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le bon ratio
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-piege-des-tests-couples-a-limplementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le piège des tests couplés à l'implémentation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Le piège des tests couplés à l&#39;implémentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-de-test-fragile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exemple de test fragile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#le-meme-test-oriente-comportement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le même test, orienté comportement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#symptomes-de-tests-couples-a-limplementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Symptômes de tests couplés à l'implémentation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#la-regle-dor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        La règle d'or
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Résumé">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principe-general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principe général
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tableau-comparatif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tableau comparatif
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#points-cles-a-retenir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Points clés à retenir
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-5-tdd-a-haute-et-basse-vitesse">Chapitre 5 -- TDD à haute et basse vitesse<a class="headerlink" href="#chapitre-5-tdd-a-haute-et-basse-vitesse" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Tests unitaires OU tests E2E coûteux</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Stratégie 2 vitesses : haute (fakes) + basse (domaine pur)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="ou-en-sommes-nous">Où en sommes-nous ?<a class="headerlink" href="#ou-en-sommes-nous" title="Permanent link">&para;</a></h2>
+<p>Dans les chapitres précédents, nous avons construit un modèle de domaine (<code>Lot</code>, <code>LigneDeCommande</code>, <code>Produit</code>), un Repository pour le persister, et une Service Layer pour orchestrer les cas d'utilisation. Nous avons également écrit des tests à différents niveaux.</p>
+<p>Mais une question reste ouverte : <strong>à quel niveau faut-il écrire nos tests ?</strong> Faut-il tester chaque méthode du domaine ? Passer systématiquement par la service layer ? Écrire des tests end-to-end pour tout ?</p>
+<p>Ce chapitre propose un cadre de réflexion pour choisir le bon niveau de test selon la situation, en s'appuyant sur la métaphore de la <strong>boîte de vitesses</strong> : parfois on roule en haute vitesse (high gear), parfois en basse vitesse (low gear).</p>
+<h2 id="la-pyramide-des-tests">La pyramide des tests<a class="headerlink" href="#la-pyramide-des-tests" title="Permanent link">&para;</a></h2>
+<p>La pyramide des tests est un modèle classique qui guide la répartition de l'effort de test :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>         /  E2E  \           &lt;- Peu, lents, coûteux
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        /----------\
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>       / Integration \       &lt;- Nombre moyen
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>      /----------------\
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>     /   Unit Tests     \    &lt;- Nombreux, rapides
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    /____________________\
+</code></pre></div>
+<p><strong>Unit tests</strong> forment la base. Ils sont rapides (millisecondes), isolés, et nombreux. Ils testent une unité de logique sans dépendance externe.</p>
+<p><strong>Integration tests</strong> vérifient que les composants fonctionnent ensemble : le repository avec une vraie base de données, l'API avec un vrai serveur HTTP.</p>
+<p><strong>End-to-end tests</strong> (E2E) traversent tout le système, du point d'entrée HTTP jusqu'à la base de données. Ils sont lents, fragiles, et coûteux à maintenir.</p>
+<h3 id="pourquoi-cette-forme-pyramidale">Pourquoi cette forme pyramidale ?<a class="headerlink" href="#pourquoi-cette-forme-pyramidale" title="Permanent link">&para;</a></h3>
+<p>La raison est économique. Plus un test est haut dans la pyramide :</p>
+<ul>
+<li>Plus il est <strong>lent</strong> à exécuter (secondes voire minutes contre millisecondes)</li>
+<li>Plus il est <strong>fragile</strong> face aux changements d'infrastructure</li>
+<li>Plus il est <strong>difficile</strong> à debugger quand il échoue</li>
+<li>Plus il couvre de code <strong>par test</strong>, mais avec moins de <strong>précision</strong></li>
+</ul>
+<p>À l'inverse, les unit tests du bas de la pyramide sont rapides, stables, et précis. C'est pourquoi on en veut un maximum.</p>
+<div class="admonition note">
+<p class="admonition-title">Règle empirique</p>
+<p>Si votre suite de tests met plus de quelques secondes à s'exécuter, vous n'avez probablement pas assez de unit tests et trop de tests d'intégration.</p>
+</div>
+<h2 id="tests-haute-vitesse-high-gear">Tests "haute vitesse" (high gear)<a class="headerlink" href="#tests-haute-vitesse-high-gear" title="Permanent link">&para;</a></h2>
+<p>Les tests <strong>high gear</strong> sont ceux qui passent par la <strong>service layer</strong>. Ils ne connaissent pas les détails internes du domaine. Ils envoient des commands et vérifient les résultats.</p>
+<p>C'est notre fichier <code>tests/unit/test_handlers.py</code>, qui utilise les fakes définis aux chapitres précédents : le <code>FakeRepository</code> (<a href="../chapitre_02_repository/">chapitre 2</a>) et le <code>FakeUnitOfWork</code> (<a href="../chapitre_06_unit_of_work/">chapitre 6</a>). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc <strong>rapides</strong> (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.</p>
+<h3 id="des-tests-qui-expriment-le-quoi">Des tests qui expriment le "quoi"<a class="headerlink" href="#des-tests-qui-expriment-le-quoi" title="Permanent link">&para;</a></h3>
+<p>Regardons les tests d'allocation :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestAllouer</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_retourne_la_référence_du_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="k">assert</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;b1&quot;</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_lève_sku_inconnu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;VRAI-SKU&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="k">with</span> <span class="n">pytest</span><span class="o">.</span><span class="n">raises</span><span class="p">(</span><span class="n">handlers</span><span class="o">.</span><span class="n">SkuInconnu</span><span class="p">,</span> <span class="n">match</span><span class="o">=</span><span class="s2">&quot;SKU-INEXISTANT&quot;</span><span class="p">):</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>            <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-INEXISTANT&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+</code></pre></div>
+<p>Ces tests ne savent pas <strong>comment</strong> l'allocation fonctionne en interne. Ils ne connaissent ni <code>Lot</code>, ni <code>LigneDeCommande</code>, ni la stratégie de tri. Ils envoient une command <code>Allouer</code> et vérifient le résultat.</p>
+<p>C'est le <strong>"quoi"</strong> : <em>quand j'alloue la commande o1 pour le SKU CHAISE-COMFY, j'obtiens le lot b1</em>.</p>
+<h3 id="tests-de-changement-de-quantite">Tests de changement de quantité<a class="headerlink" href="#tests-de-changement-de-quantite" title="Permanent link">&para;</a></h3>
+<p>Le même principe s'applique aux scénarios plus complexes :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestModifierQuantitéLot</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_changes_quantité_disponible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;TAPIS-ADORABLE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="p">[</span><span class="n">lot</span><span class="p">]</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TAPIS-ADORABLE&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lots</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">ModifierQuantitéLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="mi">50</span><span class="p">))</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">50</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_réalloue_si_nécessaire</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;TASSE-INDIGO&quot;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;TASSE-INDIGO&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o2&quot;</span><span class="p">,</span> <span class="s2">&quot;TASSE-INDIGO&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b2&quot;</span><span class="p">,</span> <span class="s2">&quot;TASSE-INDIGO&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>        <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">ModifierQuantitéLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="mi">25</span><span class="p">))</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>        <span class="c1"># L&#39;une des lignes a été réallouée au nouveau lot</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>        <span class="k">assert</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="o">.</span><span class="n">produits</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;TASSE-INDIGO&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lots</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">5</span>
+</code></pre></div>
+<p>Le test <code>test_réalloue_si_nécessaire</code> vérifie un scénario métier complet : quand on réduit la quantité d'un lot en dessous de ses allocations, le système doit automatiquement réallouer les lignes en excès vers un autre lot. On ne teste pas le mécanisme interne de réallocation, on vérifie que <strong>le résultat final est correct</strong>.</p>
+<h3 id="avantages-des-tests-high-gear">Avantages des tests high gear<a class="headerlink" href="#avantages-des-tests-high-gear" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Rapides</strong> : grâce aux fakes, pas d'I/O</li>
+<li><strong>Stables</strong> : ils ne cassent pas quand on refactore le domaine</li>
+<li><strong>Expressifs</strong> : ils décrivent les cas d'utilisation métier</li>
+<li><strong>Bonne couverture</strong> : chaque test traverse service layer + domaine</li>
+</ul>
+<h2 id="tests-basse-vitesse-low-gear">Tests "basse vitesse" (low gear)<a class="headerlink" href="#tests-basse-vitesse-low-gear" title="Permanent link">&para;</a></h2>
+<p>Les tests <strong>low gear</strong> sont les tests unitaires du modèle de domaine. Ils travaillent directement avec les objets <code>Lot</code>, <code>LigneDeCommande</code>, et <code>Produit</code>.</p>
+<p>C'est notre fichier <code>tests/unit/test_model.py</code> :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">créer_lot_et_ligne</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">quantité_lot</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">quantité_ligne</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Lot</span><span class="p">,</span> <span class="n">LigneDeCommande</span><span class="p">]:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-001&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité_lot</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()),</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;commande-ref&quot;</span><span class="p">,</span> <span class="n">sku</span><span class="p">,</span> <span class="n">quantité_ligne</span><span class="p">),</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="p">)</span>
+</code></pre></div>
+<h3 id="tests-granulaires-du-lot">Tests granulaires du Lot<a class="headerlink" href="#tests-granulaires-du-lot" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestLot</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_réduit_la_quantité_disponible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;PETITE-TABLE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_peut_allouer_si_disponible_supérieur</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ELEGANTE-LAMPE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_ne_peut_pas_allouer_si_disponible_insuffisant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ELEGANTE-LAMPE&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="k">assert</span> <span class="ow">not</span> <span class="n">lot</span><span class="o">.</span><span class="n">peut_allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_allocation_idempotente</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;ANGULAR-DESK&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+</code></pre></div>
+<p>Ces tests sont <strong>très proches de l'implémentation</strong>. Ils vérifient directement les méthodes <code>allouer()</code>, <code>peut_allouer()</code>, et <code>désallouer()</code> de la classe <code>Lot</code>. Ils testent le <strong>"comment"</strong> de la logique d'allocation.</p>
+<h3 id="tests-de-la-strategie-dallocation-dans-produit">Tests de la stratégie d'allocation dans Produit<a class="headerlink" href="#tests-de-la-strategie-dallocation-dans-produit" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestProduit</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_préfère_les_lots_en_stock_aux_livraisons</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>        <span class="n">lot_en_stock</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-stock&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>        <span class="n">lot_en_transit</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>            <span class="s2">&quot;lot-transit&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="p">)</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">Produit</span><span class="p">(</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>            <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>            <span class="n">lots</span><span class="o">=</span><span class="p">[</span><span class="n">lot_en_stock</span><span class="p">,</span> <span class="n">lot_en_transit</span><span class="p">]</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>        <span class="p">)</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;oref&quot;</span><span class="p">,</span> <span class="s2">&quot;HORLOGE-RETRO&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">assert</span> <span class="n">lot_en_stock</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">90</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>        <span class="k">assert</span> <span class="n">lot_en_transit</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_préfère_les_lots_avec_eta_la_plus_proche</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">plus_tôt</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;lot-rapide&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">())</span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="n">moyen</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>            <span class="s2">&quot;lot-normal&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="p">)</span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>        <span class="n">plus_tard</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>            <span class="s2">&quot;lot-lent&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>            <span class="n">eta</span><span class="o">=</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>        <span class="p">)</span>
+<a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>        <span class="n">produit</span> <span class="o">=</span> <span class="n">Produit</span><span class="p">(</span>
+<a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>            <span class="n">sku</span><span class="o">=</span><span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="n">lots</span><span class="o">=</span><span class="p">[</span><span class="n">moyen</span><span class="p">,</span> <span class="n">plus_tôt</span><span class="p">,</span> <span class="n">plus_tard</span><span class="p">]</span>
+<a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>        <span class="p">)</span>
+<a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>        <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;order1&quot;</span><span class="p">,</span> <span class="s2">&quot;LAMPE-MINIMALE&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>
+<a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a>        <span class="n">produit</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a>
+<a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a>        <span class="k">assert</span> <span class="n">plus_tôt</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">90</span>
+<a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a>        <span class="k">assert</span> <span class="n">moyen</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+<a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a>        <span class="k">assert</span> <span class="n">plus_tard</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">100</span>
+</code></pre></div>
+<p>Ces tests vérifient la <strong>règle métier précise</strong> : les lots en stock sont préférés aux livraisons, et parmi les livraisons, la plus proche en date l'emporte. Ils sont indispensables pour <strong>développer</strong> cette logique, car ils donnent un feedback immédiat et précis.</p>
+<h3 id="quand-les-tests-low-gear-brillent">Quand les tests low gear brillent<a class="headerlink" href="#quand-les-tests-low-gear-brillent" title="Permanent link">&para;</a></h3>
+<p>Les tests low gear sont particulièrement utiles quand :</p>
+<ul>
+<li>On <strong>développe une nouvelle règle métier</strong> et on a besoin de feedback rapide et précis</li>
+<li>La logique est <strong>complexe</strong> (algorithmes de tri, calculs, règles conditionnelles)</li>
+<li>On veut <strong>documenter</strong> le comportement attendu d'une entité ou d'un value object</li>
+<li>On débogue un <strong>cas limite</strong> spécifique</li>
+</ul>
+<h2 id="quand-utiliser-quel-niveau">Quand utiliser quel niveau ?<a class="headerlink" href="#quand-utiliser-quel-niveau" title="Permanent link">&para;</a></h2>
+<p>La métaphore de la boîte de vitesses est éclairante. Quand on démarre un projet ou une nouvelle fonctionnalité :</p>
+<h3 id="phase-1-basse-vitesse-low-gear-developper-la-logique">Phase 1 : Basse vitesse (low gear) -- Développer la logique<a class="headerlink" href="#phase-1-basse-vitesse-low-gear-developper-la-logique" title="Permanent link">&para;</a></h3>
+<p>On commence par des <strong>tests du domaine</strong> pour construire la logique métier pas à pas.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># On développe la règle d&#39;allocation lot par lot</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_réduit_la_quantité_disponible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;PETITE-TABLE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+</code></pre></div>
+<p>À ce stade, on avance lentement mais avec précision. Chaque test vérifie un aspect spécifique du modèle. C'est le moment de la <strong>découverte</strong> : on explore le domaine, on affine les règles, on ajuste les abstractions.</p>
+<h3 id="phase-2-haute-vitesse-high-gear-stabiliser-et-proteger">Phase 2 : Haute vitesse (high gear) -- Stabiliser et protéger<a class="headerlink" href="#phase-2-haute-vitesse-high-gear-stabiliser-et-proteger" title="Permanent link">&para;</a></h3>
+<p>Une fois la logique en place, on <strong>remonte</strong> vers la service layer pour écrire les tests de non-régression :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># On vérifie le cas d&#39;utilisation complet</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_retourne_la_référence_du_lot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">bus</span> <span class="o">=</span> <span class="n">bootstrap_test_bus</span><span class="p">()</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">CréerLot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">results</span> <span class="o">=</span> <span class="n">bus</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">commands</span><span class="o">.</span><span class="n">Allouer</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;CHAISE-COMFY&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="k">assert</span> <span class="n">results</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;b1&quot;</span>
+</code></pre></div>
+<p>Ces tests sont plus stables dans le temps. Si on décide de refactorer le modèle de domaine (changer la structure interne de <code>Lot</code>, réorganiser <code>Produit</code>), les tests high gear continuent de passer tant que le <strong>comportement externe</strong> reste le même.</p>
+<h3 id="le-bon-ratio">Le bon ratio<a class="headerlink" href="#le-bon-ratio" title="Permanent link">&para;</a></h3>
+<p>En pratique, une base de code mature tend vers cette répartition :</p>
+<ul>
+<li><strong>Beaucoup de tests high gear</strong> : ils couvrent tous les cas d'utilisation et servent de filet de sécurité pour le refactoring</li>
+<li><strong>Quelques tests low gear</strong> : ils documentent les règles métier complexes et les cas limites du domaine</li>
+<li><strong>Très peu de tests E2E</strong> : ils vérifient que le système fonctionne de bout en bout (API -&gt; BDD -&gt; réponse)</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Conseil pratique</p>
+<p>Si vous pouvez supprimer un test low gear sans perdre de couverture fonctionnelle (parce qu'un test high gear couvre déjà le même scénario), c'est probablement un bon candidat à la suppression. Moins de tests à maintenir, c'est moins de friction lors du refactoring.</p>
+</div>
+<h2 id="le-piege-des-tests-couples-a-limplementation">Le piège des tests couplés à l'implémentation<a class="headerlink" href="#le-piege-des-tests-couples-a-limplementation" title="Permanent link">&para;</a></h2>
+<p>Le plus grand danger en matière de tests, c'est d'écrire des tests qui vérifient <strong>comment</strong> le code fonctionne plutôt que <strong>ce qu'il fait</strong>. Ces tests sont fragiles : ils cassent dès qu'on refactore, même si le comportement reste identique.</p>
+<h3 id="exemple-de-test-fragile">Exemple de test fragile<a class="headerlink" href="#exemple-de-test-fragile" title="Permanent link">&para;</a></h3>
+<p>Imaginons un test qui vérifie les détails internes :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># MAUVAIS : couplage à l&#39;implémentation</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_allocation_adds_to_internal_set</span><span class="p">():</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">lot</span> <span class="o">=</span> <span class="n">Lot</span><span class="p">(</span><span class="s2">&quot;b1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">ligne</span> <span class="o">=</span> <span class="n">LigneDeCommande</span><span class="p">(</span><span class="s2">&quot;o1&quot;</span><span class="p">,</span> <span class="s2">&quot;SKU-001&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="c1"># On vérifie la structure interne !</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="k">assert</span> <span class="n">ligne</span> <span class="ow">in</span> <span class="n">lot</span><span class="o">.</span><span class="n">_allocations</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lot</span><span class="o">.</span><span class="n">_allocations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+</code></pre></div>
+<p>Ce test accède à <code>_allocations</code>, un attribut privé. Si on décide de remplacer le <code>set</code> par une <code>list</code>, ou de renommer l'attribut, le test casse -- alors que le comportement n'a pas changé.</p>
+<h3 id="le-meme-test-oriente-comportement">Le même test, orienté comportement<a class="headerlink" href="#le-meme-test-oriente-comportement" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># BON : on teste le comportement observable</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">test_allouer_réduit_la_quantité_disponible</span><span class="p">():</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">lot</span><span class="p">,</span> <span class="n">ligne</span> <span class="o">=</span> <span class="n">créer_lot_et_ligne</span><span class="p">(</span><span class="s2">&quot;PETITE-TABLE&quot;</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">lot</span><span class="o">.</span><span class="n">allouer</span><span class="p">(</span><span class="n">ligne</span><span class="p">)</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="k">assert</span> <span class="n">lot</span><span class="o">.</span><span class="n">quantité_disponible</span> <span class="o">==</span> <span class="mi">18</span>
+</code></pre></div>
+<p>Ce test vérifie le <strong>résultat observable</strong> : après une allocation, la quantité disponible diminue. Peu importe comment c'est implémenté en interne.</p>
+<h3 id="symptomes-de-tests-couples-a-limplementation">Symptômes de tests couplés à l'implémentation<a class="headerlink" href="#symptomes-de-tests-couples-a-limplementation" title="Permanent link">&para;</a></h3>
+<p>Voici les signes d'alerte :</p>
+<ul>
+<li>Le test accède à des <strong>attributs privés</strong> (<code>_allocations</code>, <code>_quantité_achetée</code>)</li>
+<li>Le test vérifie des <strong>appels de méthodes</strong> avec <code>mock.assert_called_with()</code></li>
+<li>Le test <strong>casse quand on refactore</strong> sans changer le comportement</li>
+<li>Le test est <strong>difficile à lire</strong> car il reproduit la logique interne</li>
+</ul>
+<h3 id="la-regle-dor">La règle d'or<a class="headerlink" href="#la-regle-dor" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Testez les inputs et les outputs, pas les mécanismes internes.</strong></p>
+</blockquote>
+<p>Pour un test high gear, les inputs sont des <strong>commands</strong> et les outputs sont les <strong>effets observables</strong> (valeurs de retour, état du repository, events émis).</p>
+<p>Pour un test low gear, les inputs sont des <strong>appels de méthodes</strong> sur le domaine et les outputs sont les <strong>propriétés publiques</strong> (<code>quantité_disponible</code>, <code>référence</code>, etc.).</p>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Classer vos tests</p>
+<p>Prenez un projet existant (le vôtre ou un projet open source). Classez chaque test en "low gear" ou "high gear". Quel est le ratio ? Est-il conforme à la pyramide ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Refactoring sans casser les tests</p>
+<p>Dans le modèle de domaine, remplacez le <code>set</code> <code>_allocations</code> de <code>Lot</code> par une <code>list</code> (en gérant l'unicité manuellement). Les tests high gear doivent-ils changer ? Et les tests low gear ?</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Supprimer un test redondant</p>
+<p>Identifiez un test low gear qui est déjà couvert par un test high gear. Supprimez-le et vérifiez que la couverture fonctionnelle n'a pas diminué. Êtes-vous à l'aise avec cette suppression ? Pourquoi ?</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<h3 id="principe-general">Principe général<a class="headerlink" href="#principe-general" title="Permanent link">&para;</a></h3>
+<p>Le TDD à deux vitesses nous invite à <strong>adapter notre niveau de test à la phase de développement</strong>. En basse vitesse, on construit et on explore. En haute vitesse, on protège et on stabilise.</p>
+<h3 id="tableau-comparatif">Tableau comparatif<a class="headerlink" href="#tableau-comparatif" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Low gear (domaine)</th>
+<th>High gear (service layer)</th>
+<th>E2E</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fichier</strong></td>
+<td><code>test_model.py</code></td>
+<td><code>test_handlers.py</code></td>
+<td><code>test_api.py</code></td>
+</tr>
+<tr>
+<td><strong>Vitesse</strong></td>
+<td>Très rapide</td>
+<td>Rapide (avec fakes)</td>
+<td>Lent</td>
+</tr>
+<tr>
+<td><strong>Granularité</strong></td>
+<td>Fine (une méthode)</td>
+<td>Moyenne (un use case)</td>
+<td>Large (tout le système)</td>
+</tr>
+<tr>
+<td><strong>Stabilité</strong></td>
+<td>Fragile si le domaine change</td>
+<td>Stable tant que le comportement tient</td>
+<td>Fragile (infra)</td>
+</tr>
+<tr>
+<td><strong>Quand l'utiliser</strong></td>
+<td>Développer une règle métier</td>
+<td>Tests de non-régression</td>
+<td>Smoke tests</td>
+</tr>
+<tr>
+<td><strong>Ce qu'on teste</strong></td>
+<td>Le "comment" du domaine</td>
+<td>Le "quoi" du use case</td>
+<td>Le système entier</td>
+</tr>
+<tr>
+<td><strong>Dépendances</strong></td>
+<td>Aucune</td>
+<td>Fakes (FakeRepository, FakeUoW)</td>
+<td>Vraie BDD, vrai serveur</td>
+</tr>
+</tbody>
+</table>
+<h3 id="points-cles-a-retenir">Points clés à retenir<a class="headerlink" href="#points-cles-a-retenir" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>La pyramide des tests</strong> guide la répartition : beaucoup de unit tests, peu de E2E</li>
+<li><strong>Les tests high gear</strong> passent par la service layer avec des fakes ; ils sont stables et couvrent les use cases</li>
+<li><strong>Les tests low gear</strong> testent le domaine directement ; ils sont utiles pour développer la logique</li>
+<li><strong>Commencez en low gear</strong> pour développer une règle, puis <strong>remontez en high gear</strong> pour la non-régression</li>
+<li><strong>Évitez le couplage à l'implémentation</strong> : testez le comportement (inputs/outputs), pas la mécanique interne</li>
+<li><strong>Moins de tests, mieux ciblés</strong> vaut mieux qu'une couverture exhaustive de chaque détail d'implémentation</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

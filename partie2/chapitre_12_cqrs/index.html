@@ -1,0 +1,1794 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Guide francophone des patterns d'architecture logicielle en Python">
+      
+      
+      
+      
+        <link rel="prev" href="../chapitre_11_events_externes/">
+      
+      
+        <link rel="next" href="../chapitre_13_injection_dependances/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Chapitre 12 - CQRS - Patterns d'Architecture en Python</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#chapitre-12-cqrs-command-query-responsibility-segregation" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-header__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Patterns d'Architecture en Python
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Chapitre 12 - CQRS
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Patterns d&#39;Architecture en Python" class="md-nav__button md-logo" aria-label="Patterns d'Architecture en Python" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Patterns d'Architecture en Python
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../chapitre_00_mise_en_route/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 0 - Mise en route
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 1 - Construire une architecture pour le Domain Modeling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_01_modele_domaine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 1 - Le modèle de domaine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_02_repository/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 2 - Le pattern Repository
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_03_abstractions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 3 - Couplage et abstractions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_04_service_layer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 4 - La Service Layer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_05_tdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 5 - TDD à haute et basse vitesse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_06_unit_of_work/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 6 - Le pattern Unit of Work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../partie1/chapitre_07_aggregats/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 7 - Agrégats et frontières de cohérence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Partie 2 - Architecture événementielle
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Partie 2 - Architecture événementielle
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_08_events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 8 - Events et le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_09_message_bus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 9 - Aller plus loin avec le Message Bus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_10_commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 10 - Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_11_events_externes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 11 - Events externes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 12 - CQRS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-de-la-lecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème de la lecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-principe-cqrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le principe CQRS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-read-model-allocations_view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le read model : allocations_view
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-views-des-fonctions-de-lecture-pure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les views : des fonctions de lecture pure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mise-a-jour-du-read-model-par-les-event-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mise à jour du read model par les event handlers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Mise à jour du read model par les event handlers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#eventual-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eventual consistency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aller-plus-loin-desalloue-et-le-read-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aller plus loin : Désalloué et le read model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-utiliser-cqrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand utiliser CQRS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand utiliser CQRS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cqrs-est-utile-quand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CQRS est utile quand :
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cqrs-est-superflu-quand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CQRS est superflu quand :
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../chapitre_13_injection_dependances/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chapitre 13 - Injection de dépendances
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epilogue/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Épilogue
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table des matières">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table des matières
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#le-probleme-de-la-lecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le problème de la lecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-principe-cqrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le principe CQRS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#le-read-model-allocations_view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Le read model : allocations_view
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#les-views-des-fonctions-de-lecture-pure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Les views : des fonctions de lecture pure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mise-a-jour-du-read-model-par-les-event-handlers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mise à jour du read model par les event handlers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Mise à jour du read model par les event handlers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#eventual-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Eventual consistency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#aller-plus-loin-desalloue-et-le-read-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Aller plus loin : Désalloué et le read model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quand-utiliser-cqrs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quand utiliser CQRS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quand utiliser CQRS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cqrs-est-utile-quand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CQRS est utile quand :
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cqrs-est-superflu-quand" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CQRS est superflu quand :
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Résumé
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exercices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exercices
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="chapitre-12-cqrs-command-query-responsibility-segregation">Chapitre 12 -- CQRS (Command Query Responsibility Segregation)<a class="headerlink" href="#chapitre-12-cqrs-command-query-responsibility-segregation" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Avant / Après</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Avant</strong></td>
+<td>Même modèle pour lecture et écriture</td>
+</tr>
+<tr>
+<td><strong>Après</strong></td>
+<td>Write model normalisé + Read model dénormalisé</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="le-probleme-de-la-lecture">Le problème de la lecture<a class="headerlink" href="#le-probleme-de-la-lecture" title="Permanent link">&para;</a></h2>
+<p>Dans les chapitres précédents, nous avons construit un modèle de domaine riche :
+des agrégats (<code>Produit</code>), des entités (<code>Lot</code>), des value objects (<code>LigneDeCommande</code>),
+des invariants métier, un repository pour la persistance et un message bus pour
+l'orchestration. Tout cela forme un chemin d'écriture solide et bien protégé.</p>
+<p>Mais posons-nous une question simple : que se passe-t-il quand un utilisateur
+veut simplement <strong>afficher</strong> les allocations d'une commande ?</p>
+<p>Avec notre architecture actuelle, le chemin ressemblerait à ceci :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   Requête GET /allocations/order-123
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>        │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        v
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   Repository.get(sku=...)          # Charge un Produit entier
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        v
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   Produit                           # Avec tous ses Lot
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>     ├── Lot(&quot;batch-001&quot;)            # Chaque Lot avec ses allocations
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>     │     └── {LigneDeCommande, LigneDeCommande, ...}
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>     ├── Lot(&quot;batch-002&quot;)
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>     │     └── {LigneDeCommande, LigneDeCommande, ...}
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>     └── Lot(&quot;batch-003&quot;)
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>           └── {LigneDeCommande, ...}
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        │
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>        v
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   Parcours de toutes les allocations pour trouver celles de &quot;order-123&quot;
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        v
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>   Sérialisation en JSON
+</code></pre></div>
+<p>Pour répondre à une question triviale -- "quels SKUs sont alloués à cette
+commande ?" -- on charge un agrégat complet avec tous ses lots, toutes ses
+allocations, on reconstruit le graphe d'objets, on traverse les relations...
+C'est comme sortir toute la bibliothèque pour trouver un seul livre.</p>
+<p>Le modèle de domaine est optimisé pour <strong>protéger les invariants en écriture</strong> :</p>
+<ul>
+<li>L'agrégat <code>Produit</code> garantit qu'on n'alloue pas plus que le stock disponible.</li>
+<li>Le numéro de version protège contre les accès concurrents.</li>
+<li>Les événements tracent chaque changement d'état.</li>
+</ul>
+<p>Mais pour la <strong>lecture</strong>, on n'a besoin d'aucune de ces garanties. Pas
+d'invariants à vérifier, pas de concurrence à gérer, pas d'events à émettre.
+On veut juste des données, le plus vite possible.</p>
+<div class="admonition note">
+<p class="admonition-title">Le constat fondamental</p>
+<p>Les besoins de lecture et d'écriture sont <strong>fondamentalement différents</strong>.
+Utiliser le même modèle pour les deux, c'est faire un compromis qui pénalise
+les deux côtés.</p>
+</div>
+<hr />
+<h2 id="le-principe-cqrs">Le principe CQRS<a class="headerlink" href="#le-principe-cqrs" title="Permanent link">&para;</a></h2>
+<p>CQRS -- Command Query Responsibility Segregation -- propose une solution
+radicale : <strong>séparer complètement les chemins d'écriture et de lecture</strong>.</p>
+<p>L'idée vient du principe CQS (Command Query Separation) de Bertrand Meyer,
+appliqué à l'échelle de l'architecture :</p>
+<ul>
+<li>Les <strong>commands</strong> (écriture) passent par le domaine, le message bus, le
+  repository. Elles modifient l'état du système.</li>
+<li>Les <strong>queries</strong> (lecture) interrogent directement la base de données.
+  Elles ne modifient rien.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>   CQRS : deux chemins distincts pour deux besoins distincts.
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>   ┌──────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>   │                          API Flask                               │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>   │                                                                  │
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>   │   POST /allocate              GET /allocations/&lt;id_commande&gt;     │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>   │        │                              │                          │
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>   └────────┼──────────────────────────────┼──────────────────────────┘
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>            │                              │
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>            v                              v
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>   ┌─────────────────┐           ┌─────────────────┐
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>   │   WRITE PATH    │           │   READ PATH     │
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>   │                 │           │                 │
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>   │   Command       │           │   View          │
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>   │     │           │           │     │           │
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>   │     v           │           │     v           │
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>   │   Message Bus   │           │   SQL direct    │
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>   │     │           │           │     │           │
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>   │     v           │           │     v           │
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>   │   Handler       │           │   allocations_  │
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>   │     │           │           │   view (table)  │
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>   │     v           │           │                 │
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>   │   Domain Model  │           └─────────────────┘
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>   │     │           │
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>   │     v           │
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a>   │   Repository    │
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>   │     │           │
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a>   │     v           │
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>   │   ORM / BDD     │
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a>   │                 │
+<a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>   └─────────────────┘
+</code></pre></div>
+<p>À gauche, le chemin d'écriture traverse toute la pile : validation, logique
+métier, persistance via le repository, émission d'events. À droite, le chemin
+de lecture va droit au but : une fonction, une requête SQL, un résultat.</p>
+<p>La clé de CQRS, c'est qu'on utilise <strong>deux modèles différents</strong> pour deux
+besoins différents :</p>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>Write model</th>
+<th>Read model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Objectif</strong></td>
+<td>Protéger les invariants métier</td>
+<td>Servir des données rapidement</td>
+</tr>
+<tr>
+<td><strong>Structure</strong></td>
+<td>Agrégats, entités, value objects</td>
+<td>Tables dénormalisées, vues</td>
+</tr>
+<tr>
+<td><strong>Accès</strong></td>
+<td>Via repository + domain model</td>
+<td>Via SQL direct</td>
+</tr>
+<tr>
+<td><strong>Complexité</strong></td>
+<td>Riche (logique métier)</td>
+<td>Simple (projection de données)</td>
+</tr>
+<tr>
+<td><strong>Optimisé pour</strong></td>
+<td>Cohérence et règles métier</td>
+<td>Performance de lecture</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="le-read-model-allocations_view">Le read model : <code>allocations_view</code><a class="headerlink" href="#le-read-model-allocations_view" title="Permanent link">&para;</a></h2>
+<p>Le read model est une table <strong>dénormalisée</strong> conçue spécifiquement pour
+répondre à une question de lecture. Contrairement aux tables du write model
+(qui sont normalisées avec des clés étrangères et des jointures), le read
+model contient exactement les colonnes dont la vue a besoin, dans un format
+directement exploitable.</p>
+<p>Dans notre ORM, la table <code>allocations_view</code> est définie ainsi :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># src/allocation/adapters/orm.py</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">allocations_view</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="s2">&quot;allocations_view&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">metadata</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autoincrement</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;id_commande&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="mi">255</span><span class="p">)),</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;sku&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="mi">255</span><span class="p">)),</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    <span class="n">Column</span><span class="p">(</span><span class="s2">&quot;réf_lot&quot;</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="mi">255</span><span class="p">)),</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="p">)</span>
+</code></pre></div>
+<p>Comparons avec les tables du write model, qui nécessiteraient des jointures
+pour obtenir la même information :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>   WRITE MODEL (normalisé)               READ MODEL (dénormalisé)
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>   ─────────────────────────             ─────────────────────────
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>   order_lines                            allocations_view
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>   ┌────────────────┬──────┬──────────┐   ┌──────────────┬──────┬──────────┐
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>   │id_commande     │ sku  │ quantité │   │ id_commande  │ sku  │ réf_lot  │
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>   ├────────────────┼──────┼──────────┤   ├──────────────┼──────┼──────────┤
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>   │order-1         │LAMP  │  10      │   │ order-1      │LAMP  │ batch-01 │
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>   └────┬───────────┴──────┴──────────┘   │ order-1      │TABLE │ batch-03 │
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        │                                 │ order-2      │LAMP  │ batch-02 │
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        │  allocations                    └──────────────┴──────┴──────────┘
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        │  ┌────────────┬──────────┐
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        └──│orderline_id│ batch_id │      Pas de jointure. Pas de
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>           ├────────────┼──────────┤      reconstruction d&#39;objet.
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>           │     1      │    3     │      Tout est déjà prêt à lire.
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>           └────────────┴──────────┘
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>                             │
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        lots                 │
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        ┌────┬──────────┬────┘
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>        │ id │référence │ ...
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        ├────┼──────────┤
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>        │  3 │batch-01  │
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>        └────┴──────────┘
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>   Pour obtenir &quot;quels SKUs sont alloués à order-1&quot;, le write model
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>   exige 3 tables et 2 jointures. Le read model : 1 table, 0 jointure.
+</code></pre></div>
+<p>Le read model duplique de l'information -- oui, c'est volontaire. En
+dénormalisant, on échange de l'espace disque (bon marché) contre de la vitesse
+de lecture (précieuse). C'est un compromis classique et parfaitement justifié
+pour les chemins de lecture.</p>
+<hr />
+<h2 id="les-views-des-fonctions-de-lecture-pure">Les views : des fonctions de lecture pure<a class="headerlink" href="#les-views-des-fonctions-de-lecture-pure" title="Permanent link">&para;</a></h2>
+<p>Le côté query de CQRS est implémenté par des <strong>views</strong> : des fonctions simples
+qui exécutent des requêtes SQL directes sur le read model. Pas de domaine, pas
+de repository, pas d'agrégat. Juste une requête et un résultat.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># src/allocation/views/views.py</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="sd">Views (lecture) pour le pattern CQRS.</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="sd">Les views sont des fonctions de lecture pure qui interrogent</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="sd">directement la base de données, sans passer par le modèle de domaine.</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="sd">C&#39;est le côté Query de CQRS : on sépare les chemins d&#39;écriture</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="sd">(qui passent par le domaine et le message bus) des chemins de</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="sd">lecture (qui interrogent directement la BDD pour la performance).</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="kn">from</span><span class="w"> </span><span class="nn">allocation.service_layer</span><span class="w"> </span><span class="kn">import</span> <span class="n">unit_of_work</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocations</span><span class="p">(</span><span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">uow</span><span class="p">:</span> <span class="n">unit_of_work</span><span class="o">.</span><span class="n">AbstractUnitOfWork</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="sd">    Retourne les allocations pour un id_commande donné.</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="sd">    Requête SQL directe sur la table de lecture (read model).</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>        <span class="n">results</span> <span class="o">=</span> <span class="n">uow</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>            <span class="n">text</span><span class="p">(</span><span class="s2">&quot;SELECT sku, réf_lot FROM allocations_view WHERE id_commande = :id_commande&quot;</span><span class="p">),</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>            <span class="nb">dict</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">id_commande</span><span class="p">),</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>        <span class="p">)</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>        <span class="k">return</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">_mapping</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+</code></pre></div>
+<p>Remarquez à quel point c'est simple. La fonction <code>allocations</code> :</p>
+<ol>
+<li>Ouvre une session via le unit of work.</li>
+<li>Exécute une requête SQL brute sur <code>allocations_view</code>.</li>
+<li>Retourne une liste de dictionnaires.</li>
+</ol>
+<p>Pas de <code>Produit</code>, pas de <code>Lot</code>, pas de <code>LigneDeCommande</code>. Pas de reconstruction
+d'agrégat, pas de traversée de relations. La requête va directement chercher
+les données là où elles sont, dans le format exact dont l'API a besoin.</p>
+<p>Le endpoint Flask qui utilise cette view est tout aussi direct :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># src/allocation/entrypoints/flask_app.py</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s2">&quot;/allocations/&lt;id_commande&gt;&quot;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;GET&quot;</span><span class="p">])</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">allocations_view_endpoint</span><span class="p">(</span><span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="sd">    GET /allocations/&lt;id_commande&gt;</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="sd">    Retourne les allocations pour une commande donnée (lecture CQRS).</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">allocation.views</span><span class="w"> </span><span class="kn">import</span> <span class="n">views</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">views</span><span class="o">.</span><span class="n">allocations</span><span class="p">(</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">bus</span><span class="o">.</span><span class="n">uow</span><span class="p">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="k">return</span> <span class="s2">&quot;not found&quot;</span><span class="p">,</span> <span class="mi">404</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="mi">200</span>
+</code></pre></div>
+<p>Le contraste avec les endpoints d'écriture est frappant :</p>
+<table>
+<thead>
+<tr>
+<th>Endpoint d'écriture (<code>POST /allocate</code>)</th>
+<th>Endpoint de lecture (<code>GET /allocations</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Construit une <code>Command</code></td>
+<td>Appelle une view directement</td>
+</tr>
+<tr>
+<td>Envoie au message bus</td>
+<td>Pas de message bus</td>
+</tr>
+<tr>
+<td>Le handler charge un agrégat via le repository</td>
+<td>La view fait un <code>SELECT</code> SQL</td>
+</tr>
+<tr>
+<td>Le domaine vérifie les invariants</td>
+<td>Aucune vérification métier</td>
+</tr>
+<tr>
+<td>Des events sont émis</td>
+<td>Aucun event</td>
+</tr>
+<tr>
+<td>Le résultat est un effet de bord (allocation)</td>
+<td>Le résultat est une projection de données</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="mise-a-jour-du-read-model-par-les-event-handlers">Mise à jour du read model par les event handlers<a class="headerlink" href="#mise-a-jour-du-read-model-par-les-event-handlers" title="Permanent link">&para;</a></h2>
+<p>Si le read model est une table séparée, comment reste-t-il synchronisé avec le
+write model ? Par les <strong>event handlers</strong>. Quand une allocation est effectuée, le
+domaine émet un event <code>Alloué</code>. Un handler écoute cet event et met à jour la
+table <code>allocations_view</code>.</p>
+<p>Voici comment l'event <code>Alloué</code> est défini :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># src/allocation/domain/events.py</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Alloué</span><span class="p">(</span><span class="n">Event</span><span class="p">):</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Une LigneDeCommande a été allouée à un Lot.&quot;&quot;&quot;</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">id_commande</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">sku</span><span class="p">:</span> <span class="nb">str</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">quantité</span><span class="p">:</span> <span class="nb">int</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">réf_lot</span><span class="p">:</span> <span class="nb">str</span>
+</code></pre></div>
+<p>L'event contient toutes les informations nécessaires pour mettre à jour le read
+model : le <code>id_commande</code>, le <code>sku</code> et le <code>réf_lot</code>. C'est exactement ce que la
+table <code>allocations_view</code> attend.</p>
+<p>Le handler de mise à jour du read model ressemblerait à ceci :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># src/allocation/service_layer/handlers.py</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">text</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">def</span><span class="w"> </span><span class="nf">ajouter_allocation_vue</span><span class="p">(</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Alloué</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Met à jour le read model quand une allocation est effectuée.&quot;&quot;&quot;</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>            <span class="n">text</span><span class="p">(</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>                <span class="s2">&quot;INSERT INTO allocations_view (id_commande, sku, réf_lot)&quot;</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>                <span class="s2">&quot; VALUES (:id_commande, :sku, :réf_lot)&quot;</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>            <span class="p">),</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>            <span class="nb">dict</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="p">,</span> <span class="n">réf_lot</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">réf_lot</span><span class="p">),</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>        <span class="p">)</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</code></pre></div>
+<p>Et il serait enregistré dans le bootstrap :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># src/allocation/service_layer/bootstrap.py</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">EVENT_HANDLERS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">events</span><span class="o">.</span><span class="n">Event</span><span class="p">],</span> <span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Alloué</span><span class="p">:</span> <span class="p">[</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">publier_événement_allocation</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        <span class="n">handlers</span><span class="o">.</span><span class="n">ajouter_allocation_vue</span><span class="p">,</span>  <span class="c1"># &lt;-- mise à jour du read model</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="p">],</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">réallouer</span><span class="p">],</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">events</span><span class="o">.</span><span class="n">RuptureDeStock</span><span class="p">:</span> <span class="p">[</span><span class="n">handlers</span><span class="o">.</span><span class="n">envoyer_notification_rupture_stock</span><span class="p">],</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">}</span>
+</code></pre></div>
+<p>Le flux complet forme une boucle :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>   1. Command Allouer arrive
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>              │
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>              v
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>   2. Handler allouer() charge le Produit via le repository
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>              │
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>              v
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>   3. Produit.allouer() alloue et émet un event Alloué
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>              │
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>              v
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>   4. Message bus collecte l&#39;event Alloué
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>              │
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>              v
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>   5. Handler ajouter_allocation_vue() met à jour allocations_view
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>              │
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>              v
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>   6. GET /allocations/&lt;id_commande&gt; lit la table allocations_view
+</code></pre></div>
+<h3 id="eventual-consistency">Eventual consistency<a class="headerlink" href="#eventual-consistency" title="Permanent link">&para;</a></h3>
+<p>Le read model n'est pas mis à jour <strong>dans la même transaction</strong> que le write
+model. Il est mis à jour par un event handler, dans une transaction séparée.
+Cela signifie qu'il existe un court instant où le read model n'est pas encore
+à jour : c'est l'<strong>eventual consistency</strong>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Eventual consistency</p>
+<p>Après une écriture, le read model peut avoir un <strong>léger retard</strong> sur le
+write model. Si un utilisateur alloue une commande puis consulte
+immédiatement ses allocations, il est possible que le résultat n'apparaisse
+pas encore.</p>
+<p>En pratique, ce délai est de l'ordre de quelques millisecondes dans un
+système monolithique. Mais c'est un aspect à garder en tête, surtout
+si vous évoluez vers un système distribué (avec Redis ou Kafka entre
+les deux).</p>
+</div>
+<p>L'eventual consistency est le prix à payer pour la séparation propre des
+responsabilités. Dans la grande majorité des cas, ce compromis est largement
+acceptable. Les utilisateurs ne remarquent pas un délai de quelques
+millisecondes, et le système gagne en clarté, en performance de lecture et
+en capacité d'évolution.</p>
+<hr />
+<h2 id="aller-plus-loin-desalloue-et-le-read-model">Aller plus loin : Désalloué et le read model<a class="headerlink" href="#aller-plus-loin-desalloue-et-le-read-model" title="Permanent link">&para;</a></h2>
+<p>Le même principe s'applique symétriquement aux désallocations. Quand un lot
+change de quantité et que des lignes sont désallouées, le domaine émet des
+events <code>Désalloué</code>. Un handler peut alors nettoyer le read model :</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">supprimer_allocation_vue</span><span class="p">(</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">event</span><span class="p">:</span> <span class="n">events</span><span class="o">.</span><span class="n">Désalloué</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">uow</span><span class="p">:</span> <span class="n">AbstractUnitOfWork</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Supprime une allocation du read model quand une désallocation se produit.&quot;&quot;&quot;</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="k">with</span> <span class="n">uow</span><span class="p">:</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>            <span class="n">text</span><span class="p">(</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>                <span class="s2">&quot;DELETE FROM allocations_view&quot;</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>                <span class="s2">&quot; WHERE id_commande = :id_commande AND sku = :sku&quot;</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>            <span class="p">),</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>            <span class="nb">dict</span><span class="p">(</span><span class="n">id_commande</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">id_commande</span><span class="p">,</span> <span class="n">sku</span><span class="o">=</span><span class="n">event</span><span class="o">.</span><span class="n">sku</span><span class="p">),</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>        <span class="p">)</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="n">uow</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</code></pre></div>
+<p>Le read model reste ainsi cohérent avec le write model, en réagissant aux
+mêmes events que le reste du système. C'est l'un des grands avantages de
+l'architecture event-driven : ajouter un nouveau "consommateur" d'events
+(ici, la mise à jour du read model) ne modifie en rien les producteurs
+d'events (le domaine).</p>
+<hr />
+<h2 id="quand-utiliser-cqrs">Quand utiliser CQRS<a class="headerlink" href="#quand-utiliser-cqrs" title="Permanent link">&para;</a></h2>
+<p>CQRS n'est pas un pattern qu'il faut appliquer partout. C'est un outil
+puissant, mais qui ajoute de la complexité : une table supplémentaire à
+maintenir, des event handlers à écrire, de l'eventual consistency à gérer.</p>
+<h3 id="cqrs-est-utile-quand">CQRS est utile quand :<a class="headerlink" href="#cqrs-est-utile-quand" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Les patterns de lecture et d'écriture divergent fortement.</strong> Si le read
+  model ressemblerait de toute façon au write model, la séparation n'apporte
+  pas grand-chose. Mais quand les lectures nécessitent des jointures complexes,
+  des agrégations, ou des projections spécifiques, un read model dénormalisé
+  simplifie énormément les choses.</p>
+</li>
+<li>
+<p><strong>Les performances de lecture sont critiques.</strong> Un dashboard qui affiche des
+  statistiques en temps réel ne peut pas se permettre de reconstruire des
+  agrégats à chaque requête. Un read model pré-calculé résout ce problème.</p>
+</li>
+<li>
+<p><strong>Le système est déjà event-driven.</strong> Si vous avez déjà un message bus et
+  des events, ajouter un handler qui met à jour un read model est trivial.
+  L'infrastructure est déjà en place.</p>
+</li>
+<li>
+<p><strong>Le ratio lecture/écriture est fortement déséquilibré.</strong> La plupart des
+  systèmes font beaucoup plus de lectures que d'écritures. Optimiser le chemin
+  de lecture a un impact disproportionné sur les performances globales.</p>
+</li>
+</ul>
+<h3 id="cqrs-est-superflu-quand">CQRS est superflu quand :<a class="headerlink" href="#cqrs-est-superflu-quand" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>L'application est un simple CRUD.</strong> Si les lectures et écritures portent
+  sur les mêmes structures, un ORM classique suffit amplement.</p>
+</li>
+<li>
+<p><strong>Le domaine est simple.</strong> Si vous n'avez ni agrégats ni invariants
+  complexes, vous n'avez probablement pas besoin de séparer les chemins.</p>
+</li>
+<li>
+<p><strong>L'équipe est petite et le système jeune.</strong> La complexité ajoutée peut
+  ralentir le développement au début. Mieux vaut commencer simple et évoluer
+  vers CQRS quand le besoin se fait sentir.</p>
+</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Approche progressive</p>
+<p>On peut adopter CQRS de manière incrémentale. Commencez par utiliser le
+même ORM pour les lectures et les écritures, mais dans des modules séparés.
+Puis, quand les performances l'exigent, introduisez un read model
+dénormalisé pour les requêtes les plus coûteuses. Pas besoin de tout
+séparer d'un coup.</p>
+</div>
+<hr />
+<h2 id="resume">Résumé<a class="headerlink" href="#resume" title="Permanent link">&para;</a></h2>
+<p>CQRS sépare les responsabilités de lecture et d'écriture en deux chemins
+distincts, chacun optimisé pour son cas d'usage.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>   ┌─────────────────────────────────────────────────────────────┐
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>   │                                                             │
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>   │                      WRITE PATH                             │
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>   │                                                             │
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>   │   Command ──&gt; Message Bus ──&gt; Handler ──&gt; Domain Model      │
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>   │                                              │              │
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>   │                                              v              │
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>   │                                         Repository          │
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>   │                                              │              │
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>   │                                              v              │
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>   │              Event émis ◄──────────── Tables normalisées    │
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>   │                │                      (write model)         │
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>   │                v                                            │
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>   │         Event Handler                                       │
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>   │                │                                            │
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>   │                v                                            │
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>   │   ┌─────────────────────────┐                               │
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>   │   │  Table dénormalisée     │                               │
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>   │   │  (read model)           │                               │
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>   │   │  ex: allocations_view   │                               │
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>   │   └────────────┬────────────┘                               │
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>   │                │                                            │
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>   │                v                                            │
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>   │                                                             │
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>   │                      READ PATH                              │
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>   │                                                             │
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>   │   Query ──&gt; View function ──&gt; SELECT SQL ──&gt; JSON           │
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>   │                                                             │
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>   └─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Concept</th>
+<th>Rôle</th>
+<th>Dans notre code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Command</strong></td>
+<td>Intention d'écriture</td>
+<td><code>commands.Allouer</code></td>
+</tr>
+<tr>
+<td><strong>Write model</strong></td>
+<td>Tables normalisées, protégées par le domaine</td>
+<td><code>order_lines</code>, <code>lots</code>, <code>allocations</code></td>
+</tr>
+<tr>
+<td><strong>Event</strong></td>
+<td>Fait qui s'est produit</td>
+<td><code>events.Alloué</code></td>
+</tr>
+<tr>
+<td><strong>Read model</strong></td>
+<td>Table dénormalisée, optimisée pour la lecture</td>
+<td><code>allocations_view</code></td>
+</tr>
+<tr>
+<td><strong>View</strong></td>
+<td>Fonction de lecture pure, SQL direct</td>
+<td><code>views.allocations()</code></td>
+</tr>
+<tr>
+<td><strong>Event handler</strong></td>
+<td>Met à jour le read model en réaction aux events</td>
+<td><code>ajouter_allocation_vue()</code></td>
+</tr>
+<tr>
+<td><strong>Eventual consistency</strong></td>
+<td>Le read model peut avoir un léger retard</td>
+<td>Délai entre commit write et update read</td>
+</tr>
+</tbody>
+</table>
+<h2 id="exercices">Exercices<a class="headerlink" href="#exercices" title="Permanent link">&para;</a></h2>
+<div class="admonition example">
+<p class="admonition-title">Exercice 1 -- Nouvelle vue</p>
+<p>Créez un read model <code>stock_view</code> qui montre la quantité disponible par SKU. Définissez la table, l'event handler qui la met à jour (sur <code>Alloué</code> et <code>Désalloué</code>), et la fonction de lecture.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 2 -- Rebuild du read model</p>
+<p>Si la table <code>allocations_view</code> est corrompue, comment la reconstruire à partir des tables du write model ? Écrivez un script SQL qui le fait.</p>
+</div>
+<div class="admonition example">
+<p class="admonition-title">Exercice 3 -- Tester l'eventual consistency</p>
+<p>Écrivez un test qui vérifie que après un <code>bus.handle(commands.Allouer(...))</code>, la vue <code>allocations</code> retourne bien l'allocation. Ce test prouve-t-il la consistency ou l'eventual consistency ?</p>
+</div>
+<hr />
+<div class="admonition tip">
+<p class="admonition-title">À retenir</p>
+<ul>
+<li>Le modèle de domaine est optimisé pour l'écriture. Ne le forcez pas à servir les lectures.</li>
+<li>CQRS sépare les chemins : commands vers le domaine, queries vers le read model.</li>
+<li>Le read model est une table dénormalisée, mise à jour par des event handlers.</li>
+<li>Les views sont des fonctions simples : un SELECT SQL, un résultat. Pas de domaine.</li>
+<li>L'eventual consistency est le prix à payer. Il est presque toujours acceptable.</li>
+<li>Adoptez CQRS quand les besoins de lecture et d'écriture divergent. Pas avant.</li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "content.code.annotate", "navigation.sections", "navigation.expand", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
