@@ -1,98 +1,50 @@
-# Chapitre 9 -- Aller plus loin avec le Message Bus
+# Chapitre 9 -- Le Message Bus
 
-## Le Message Bus comme cœur de l'architecture
-
-Dans les chapitres précédents, le message bus était un mécanisme secondaire :
-l'API appelait directement les service layer handlers, et le bus servait
-uniquement à propager les events en tant que side-effects. Cette approche
-fonctionnait, mais elle créait une asymétrie gênante : les commands et les
-events empruntaient des chemins différents dans l'application.
-
-L'idée centrale de ce chapitre est simple mais transformatrice : **tout passe
-par le bus**. Le message bus n'est plus un outil annexe -- il devient le point
-d'entrée unique de l'application. Toute opération transite par le même
-pipeline, qu'elle soit déclenchée par une requête HTTP, un message Redis ou un
-event interne. Conséquences :
-
-- **Uniformité** : commands et events suivent le même chemin de dispatch.
-- **Découplage** : l'API ne connaît plus les handlers, seulement le bus.
-- **Extensibilité** : ajouter un comportement = ajouter un handler.
-
-```text
-                  +-----------+
-  HTTP Request -->|  Flask    |
-                  |  (thin    |---> Command ---> MessageBus
-                  |  adapter) |                     |
-                  +-----------+                     |
-                                            +-------+-------+
-                                            |               |
-                                      Command           Event
-                                      Handler           Handlers
-                                            |               |
-                                            v               v
-                                          UoW           UoW / Adapters
-```
+> **Pattern** : Message Bus
+> **Problème résolu** : Comment distribuer Commands et Events vers les bons handlers, gérer les cascades, et injecter les dépendances ?
 
 ---
 
-## Avant / Après : l'évolution du point d'entrée
+## Le cœur de l'architecture
 
-### Avant : l'API appelle directement les handlers
+Aux chapitres 7 et 8, nous avons défini deux types de messages : les **Commands** (intentions) et les **Events** (faits). Mais nous n'avons pas encore montré **comment** ces messages arrivent aux bons handlers. C'est le rôle du **Message Bus**.
 
-Dans une architecture classique, le endpoint Flask aurait ressemblé à ceci :
+Le Message Bus est le point central de notre architecture. **Tout passe par lui** :
 
-```python
-@app.route("/allocate", methods=["POST"])
-def allocate_endpoint():
-    data = request.json
-    ligne = LigneDeCommande(data["id_commande"], data["sku"], data["quantité"])
-    réf_lot = services.allouer(ligne, unit_of_work.SqlAlchemyUnitOfWork())
-    return jsonify({"réf_lot": réf_lot}), 201
+```
+                         ┌──────────────────────────┐
+                         │                          │
+  Flask (HTTP) ─────────>│                          │──> ajouter_lot()
+                         │                          │──> allouer()
+  Redis (events) ──────>│      Message Bus          │──> modifier_quantite_lot()
+                         │                          │──> réallouer()
+  Tests ────────────────>│                          │──> envoyer_notification()
+                         │                          │──> ajouter_allocation_vue()
+                         │                          │
+                         └──────────────────────────┘
 ```
 
-L'API connaissait les fonctions du service layer et instanciait elle-même les
-dépendances. Après, dans `src/allocation/entrypoints/flask_app.py` :
-
-```python
-bus = bootstrap.bootstrap()
-
-@app.route("/allocate", methods=["POST"])
-def allocate_endpoint():
-    data = request.json
-    try:
-        cmd = commands.Allouer(
-            id_commande=data["orderid"],
-            sku=data["sku"],
-            quantité=data["qty"],
-        )
-        results = bus.handle(cmd)
-        réf_lot = results.pop(0)
-    except handlers.SkuInconnu as e:
-        return jsonify({"message": str(e)}), 400
-
-    return jsonify({"batchref": réf_lot}), 201
-```
-
-Le endpoint ne connaît plus aucun handler. Son travail se résume à :
-
-1. Extraire les données de la requête HTTP.
-2. Construire un objet `Command`.
-3. Le soumettre au `MessageBus` via `bus.handle(cmd)`.
-4. Convertir le résultat en réponse HTTP.
-
-C'est un **thin adapter** au sens propre : une fine couche de traduction entre
-le protocole HTTP et le langage interne du domaine (les commands). Toute la
-configuration -- quels handlers répondent à quels messages, quelles dépendances
-sont injectées -- est définie dans le bootstrap, pas dans l'API.
+L'API Flask ne connaît pas les handlers. Les handlers ne connaissent pas Flask. Le bus est l'intermédiaire qui découple tout.
 
 ---
 
-## La file d'attente interne
+## La classe `MessageBus`
 
-Le cœur du mécanisme réside dans la méthode `handle()` du `MessageBus` et
-dans son attribut `self.queue` (`src/allocation/service_layer/messagebus.py`) :
+Voici la classe complète, telle qu'elle apparaît dans `src/allocation/service_layer/messagebus.py` :
 
 ```python
+import inspect
+import logging
+from typing import Any, Callable, Union
+
+from allocation.domain import commands, events
+from allocation.service_layer import unit_of_work
+
+logger = logging.getLogger(__name__)
+
+Message = Union[commands.Command, events.Event]
+
+
 class MessageBus:
 
     def __init__(
@@ -121,18 +73,74 @@ class MessageBus:
             else:
                 raise ValueError(f"Message de type inconnu : {type(message)}")
         return results
+
+    def _handle_event(self, event: events.Event) -> None:
+        for handler in self.event_handlers.get(type(event), []):
+            try:
+                logger.debug("Traitement de l'event %s avec %s", event, handler)
+                self._call_handler(handler, event)
+                self.queue.extend(self.uow.collect_new_events())
+            except Exception:
+                logger.exception("Erreur lors du traitement de l'event %s", event)
+
+    def _handle_command(self, command: commands.Command) -> Any:
+        logger.debug("Traitement de la command %s", command)
+        handler = self.command_handlers.get(type(command))
+        if handler is None:
+            raise ValueError(f"Aucun handler pour la command {type(command)}")
+        result = self._call_handler(handler, command)
+        self.queue.extend(self.uow.collect_new_events())
+        return result
+
+    def _call_handler(self, handler: Callable, message: Message) -> Any:
+        params = inspect.signature(handler).parameters
+        kwargs: dict[str, Any] = {}
+        for name, param in params.items():
+            if name == list(params.keys())[0]:
+                continue  # premier paramètre = le message
+            if name == "uow":
+                kwargs[name] = self.uow
+            elif name in self.dependencies:
+                kwargs[name] = self.dependencies[name]
+        return handler(message, **kwargs)
 ```
 
-Le fonctionnement est le suivant :
+Décomposons chaque partie.
 
-1. Le message initial (en général une `Command`) est placé dans `self.queue`.
-2. La boucle `while self.queue` dépile les messages un par un.
-3. Chaque message est dispatché vers le handler correspondant.
-4. Après l'exécution d'un handler, les events émis par les agrégats sont
-   collectés via `self.uow.collect_new_events()` et ajoutés à la queue.
-5. La boucle continue jusqu'à ce que la queue soit vide.
+---
 
-Ce mécanisme est visible dans `_handle_command` et `_handle_event` :
+## `handle()` : le point d'entrée et la queue
+
+```python
+def handle(self, message: Message) -> list[Any]:
+    self.queue = [message]
+    results: list[Any] = []
+    while self.queue:
+        message = self.queue.pop(0)
+        if isinstance(message, events.Event):
+            self._handle_event(message)
+        elif isinstance(message, commands.Command):
+            result = self._handle_command(message)
+            results.append(result)
+        else:
+            raise ValueError(f"Message de type inconnu : {type(message)}")
+    return results
+```
+
+Le principe est simple :
+
+1. Le message initial est placé dans une **queue** (file d'attente).
+2. La boucle `while` traite les messages un par un, en FIFO (`pop(0)`).
+3. Chaque handler peut émettre de nouveaux events (via `collect_new_events()`), qui sont ajoutés à la fin de la queue.
+4. La boucle continue jusqu'à ce que la queue soit vide.
+
+C'est cette boucle qui permet les **cascades** : un event peut déclencher un handler, qui modifie un agrégat, qui émet un nouvel event, qui déclenche un autre handler, et ainsi de suite.
+
+Le type `Message = Union[commands.Command, events.Event]` permet au bus d'accepter indifféremment les deux types. Le dispatch se fait par `isinstance`.
+
+---
+
+## `_handle_command()` : strict, un seul handler
 
 ```python
 def _handle_command(self, command: commands.Command) -> Any:
@@ -140,212 +148,83 @@ def _handle_command(self, command: commands.Command) -> Any:
     if handler is None:
         raise ValueError(f"Aucun handler pour la command {type(command)}")
     result = self._call_handler(handler, command)
-    self.queue.extend(self.uow.collect_new_events())  # (1)
+    self.queue.extend(self.uow.collect_new_events())
     return result
+```
 
+Trois points clés :
+
+1. **Un seul handler** par command. Le dictionnaire mappe un type de command à une seule fonction. Si le handler n'existe pas, c'est une `ValueError`.
+2. **L'exception remonte** directement à l'appelant. Pas de `try/except` ici -- contrairement aux events. Si `allouer` lève `SkuInconnu`, Flask reçoit l'exception et retourne une erreur 400.
+3. **Le résultat est retourné**. Par exemple, `allouer` retourne la référence du lot choisi, que Flask inclut dans la réponse JSON.
+4. **Les events sont collectés** après l'exécution du handler et ajoutés à la queue pour traitement ultérieur.
+
+---
+
+## `_handle_event()` : tolérant, N handlers
+
+```python
 def _handle_event(self, event: events.Event) -> None:
     for handler in self.event_handlers.get(type(event), []):
         try:
             self._call_handler(handler, event)
-            self.queue.extend(self.uow.collect_new_events())  # (2)
+            self.queue.extend(self.uow.collect_new_events())
         except Exception:
             logger.exception("Erreur lors du traitement de l'event %s", event)
 ```
 
-**(1)** et **(2)** : après chaque exécution de handler, on collecte les events
-du domaine et on les réinjecte dans la queue. C'est ce qui permet la
-propagation en cascade. La méthode `collect_new_events` du Unit of Work
-parcourt tous les agrégats observés pendant la transaction :
+Les différences avec `_handle_command()` sont délibérées (voir chapitre 8) :
 
-```python
-def collect_new_events(self):
-    for produit in self.produits.seen:
-        while produit.événements:
-            yield produit.événements.pop(0)
-```
-
-### Différence de traitement entre commands et events
-
-| Aspect             | Command                          | Event                                                  |
-|--------------------|----------------------------------|--------------------------------------------------------|
-| Nombre de handlers | Exactement 1                     | 0, 1 ou N                                             |
-| En cas d'erreur    | L'exception remonte à l'appelant | L'exception est loggée, les autres handlers continuent |
-| Valeur de retour   | Oui (ajoutée à `results`)        | Non                                                    |
-
-Une command est une intention qui **doit** aboutir ou échouer explicitement.
-Un event est une notification qui ne doit pas bloquer le flux principal.
+1. **Plusieurs handlers** possibles. Le dictionnaire mappe un type d'event à une **liste** de fonctions.
+2. **Tolérance aux pannes** : chaque handler est dans son propre `try/except`. Si l'envoi d'email échoue, la mise à jour du read model continue quand même.
+3. **Pas de retour**. Un event est un fait broadcast -- personne n'attend de résultat.
+4. **Les events sont collectés après chaque handler**, pas seulement à la fin de tous. Cela garantit que les events émis par un handler sont disponibles pour les suivants.
 
 ---
 
-## Handlers en cascade
-
-Le vrai intérêt de la queue interne apparaît quand les handlers déclenchent
-eux-mêmes de nouveaux events. Prenons un scénario concret.
-
-### Scénario : réduction de la quantité d'un lot
-
-Un fournisseur nous informe qu'un lot de 50 unités ne contiendra finalement
-que 25 unités. Certaines lignes de commande déjà allouées à ce lot doivent
-être désallouées puis réallouées à d'autres lots.
-
-```text
-1. ModifierQuantitéLot (command)
-   --> modifier_quantité_lot handler
-       --> Produit.modifier_quantité_lot()
-           --> émet Désalloué event(s)
-2. Désalloué (event) ajouté à la queue
-   --> réallouer handler
-       --> Produit.allouer()
-           --> peut émettre RuptureDeStock
-3. (optionnel) RuptureDeStock (event) ajouté à la queue
-   --> envoyer_notification_rupture_stock handler
-       --> envoie un email via l'adapter de notifications
-```
-
-Dans le domaine (`src/allocation/domain/model.py`), le modèle émet les events
-sans savoir ce qui va se passer ensuite :
-
-```python
-def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
-    lot = next(l for l in self.lots if l.référence == réf)
-    lot._quantité_achetée = quantité
-    while lot.quantité_disponible < 0:
-        ligne = lot.désallouer_une()
-        self.événements.append(
-            events.Désalloué(id_commande=ligne.id_commande, sku=ligne.sku, quantité=ligne.quantité)
-        )
-```
-
-Côté handlers (`src/allocation/service_layer/handlers.py`), `réallouer`
-réagit à l'event `Désalloué` :
-
-```python
-def réallouer(event: events.Désalloué, uow: AbstractUnitOfWork) -> None:
-    allouer(
-        commands.Allouer(id_commande=event.id_commande, sku=event.sku, quantité=event.quantité),
-        uow=uow,
-    )
-```
-
-Et si `allouer()` échoue par manque de stock, le domaine émet un `RuptureDeStock`
-event, dispatché vers `envoyer_notification_rupture_stock` :
-
-```python
-def envoyer_notification_rupture_stock(
-    event: events.RuptureDeStock, notifications: AbstractNotifications,
-) -> None:
-    notifications.send(
-        destination="stock@example.com",
-        message=f"Rupture de stock pour le SKU {event.sku}",
-    )
-```
-
-Personne n'a eu besoin d'orchestrer cette cascade. **Le comportement émerge de
-la composition des handlers**, pas d'un code d'orchestration central.
-
-### Diagramme de séquence : la boucle de la queue
-
-Voici le déroulé complet de la queue interne pour le scénario ci-dessus :
-
-```
-queue = [ModifierQuantitéLot]
-  │
-  ├─► modifier_quantité_lot() → Produit émet [Désalloué]
-  │   collect_new_events() → queue = [Désalloué]
-  │
-  ├─► réallouer() → appelle allouer(Allouer)
-  │   → Produit émet [Alloué]
-  │   collect_new_events() → queue = [Alloué]
-  │
-  ├─► publier_événement_allocation()
-  ├─► ajouter_allocation_vue()
-  │
-  └─► queue vide, fin
-```
-
-**Point clé** : un seul message initial (`ModifierQuantitéLot`) peut déclencher
-toute une cascade. Le bus dépile les messages un par un, et chaque handler peut
-en produire de nouveaux. La boucle `while queue:` continue tant qu'il reste des
-messages à traiter.
-
----
-
-## L'injection de dépendances dans le bus
-
-Les handlers ont besoin de dépendances (`uow`, `notifications`, etc.), mais on
-ne veut pas que l'appelant ait à les fournir. La solution : le bus les injecte
-automatiquement en inspectant la signature de chaque handler.
-
-### La méthode `_call_handler`
+## `_call_handler()` : injection de dépendances par introspection
 
 ```python
 def _call_handler(self, handler: Callable, message: Message) -> Any:
-    import inspect
-
     params = inspect.signature(handler).parameters
     kwargs: dict[str, Any] = {}
     for name, param in params.items():
         if name == list(params.keys())[0]:
-            continue  # Premier paramètre = le message lui-même
+            continue  # premier paramètre = le message
         if name == "uow":
             kwargs[name] = self.uow
         elif name in self.dependencies:
             kwargs[name] = self.dependencies[name]
-
     return handler(message, **kwargs)
 ```
 
-La logique est la suivante :
+Cette méthode est la clé de l'**injection de dépendances**. Elle fonctionne ainsi :
 
-1. `inspect.signature(handler).parameters` extrait les paramètres du handler.
-2. Le premier paramètre est toujours le message -- on le saute.
-3. Pour chaque paramètre suivant, le bus cherche une correspondance :
-    - `"uow"` : on injecte le Unit of Work.
-    - Autre nom : on cherche dans `self.dependencies`.
-4. Le handler est appelé avec le message en premier et les dépendances en
-   keyword arguments.
+1. **Introspection** : `inspect.signature(handler).parameters` retourne un dictionnaire ordonné des paramètres du handler.
+2. **Premier paramètre** : c'est toujours le message (command ou event), passé en positional. On le saute.
+3. **Paramètres suivants** : résolus par nom.
+   - Si le paramètre s'appelle `uow`, on injecte `self.uow`.
+   - Sinon, on cherche dans `self.dependencies`.
 
-Prenons `envoyer_notification_rupture_stock(event, notifications)`. Le bus
-inspecte la signature, trouve `"notifications"` dans `self.dependencies`, et
-appelle `handler(event, notifications=email_adapter)`. Le handler n'a jamais
-besoin de savoir d'où viennent ses dépendances.
-
-### Le bootstrap : la composition root
-
-L'assemblage se fait dans `src/allocation/service_layer/bootstrap.py` :
+Concrètement, pour le handler `envoyer_notification_rupture_stock` :
 
 ```python
-def bootstrap(
-    start_orm: bool = True,
-    uow: unit_of_work.AbstractUnitOfWork | None = None,
-    notifications_adapter: notifications.AbstractNotifications | None = None,
-    **extra_dependencies: Any,
-) -> messagebus.MessageBus:
-    if start_orm:
-        orm.start_mappers()
-    if uow is None:
-        uow = unit_of_work.SqlAlchemyUnitOfWork()
-    if notifications_adapter is None:
-        notifications_adapter = notifications.EmailNotifications()
-
-    dependencies: dict[str, Any] = {
-        "notifications": notifications_adapter,
-        **extra_dependencies,
-    }
-    return messagebus.MessageBus(
-        uow=uow,
-        event_handlers=EVENT_HANDLERS,
-        command_handlers=COMMAND_HANDLERS,
-        dependencies=dependencies,
-    )
+def envoyer_notification_rupture_stock(
+    event: events.RuptureDeStock,       # <-- 1er param, passé en positional
+    notifications: AbstractNotifications,  # <-- résolu par nom dans dependencies
+) -> None:
 ```
 
-La clé `"notifications"` dans le dictionnaire doit correspondre exactement au
-nom du paramètre dans la signature du handler. **Le nom du paramètre fait
-office de contrat**. Le mapping handlers/messages est déclaré explicitement :
+Le bus voit que le second paramètre s'appelle `notifications`, trouve cette clé dans `self.dependencies`, et injecte l'objet correspondant (`EmailNotifications` en production, `FakeNotifications` en test). Le handler n'a aucune idée de la provenance de ses dépendances. Nous approfondirons ce mécanisme au chapitre 13.
+
+---
+
+## Les dictionnaires de routage
+
+Le routage des messages vers les handlers est défini dans `src/allocation/service_layer/bootstrap.py` :
 
 ```python
-EVENT_HANDLERS = {
+EVENT_HANDLERS: dict[type[events.Event], list] = {
     events.Alloué: [
         handlers.publier_événement_allocation,
         handlers.ajouter_allocation_vue,
@@ -354,91 +233,335 @@ EVENT_HANDLERS = {
         handlers.réallouer,
         handlers.supprimer_allocation_vue,
     ],
-    events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
+    events.RuptureDeStock: [
+        handlers.envoyer_notification_rupture_stock,
+    ],
 }
-COMMAND_HANDLERS = {
+
+COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
     commands.CréerLot: handlers.ajouter_lot,
     commands.Allouer: handlers.allouer,
     commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
 }
 ```
 
-Pour les tests, on injecte des fakes sans toucher au code de production :
-
-```python
-bus = bootstrap.bootstrap(
-    start_orm=False,
-    uow=FakeUnitOfWork(),
-    notifications_adapter=FakeNotifications(),
-)
-bus.handle(commands.CréerLot(réf="batch-001", sku="TABLE", quantité=100))
-```
+C'est un simple dictionnaire. Ajouter un nouveau handler pour un event existant revient à ajouter une entrée dans une liste. Ajouter un nouveau type de command revient à ajouter une clé dans le dictionnaire. **Aucun code existant n'est modifié** -- c'est le principe Open/Closed.
 
 ---
 
-## Résumé : le nouveau schéma d'architecture
+## Flask comme adaptateur mince
 
-```text
-  Entrypoints             Service Layer              Domain
- (thin adapters)       (MessageBus + Handlers)       (Model)
- +--------------+     +--------------------+     +------------------+
- | Flask API    | cmd |    MessageBus      |     |  Produit         |
- | Redis sub    |---->|  1. queue = [cmd]  |     |  Lot             |
- | CLI          |     |  2. dispatch       |     |  LigneDeCommande |
- +--------------+     |  3. collect events |     +--------+---------+
-                      |  4. repeat         |              |
-                      |  Handlers + Deps   |<-- events----+
-                      +--------------------+
+Avec le Message Bus en place, Flask devient un simple **traducteur HTTP vers Commands** :
+
+```python
+from allocation.domain import commands
+from allocation.service_layer import bootstrap, handlers
+
+app = Flask(__name__)
+bus = bootstrap.bootstrap()
+
+
+@app.route("/add_batch", methods=["POST"])
+def add_batch_endpoint():
+    data = request.json
+    eta = data.get("eta")
+    if eta is not None:
+        eta = datetime.fromisoformat(eta).date()
+
+    cmd = commands.CréerLot(
+        réf=data["ref"], sku=data["sku"], quantité=data["qty"], eta=eta,
+    )
+    bus.handle(cmd)
+    return "OK", 201
+
+
+@app.route("/allocate", methods=["POST"])
+def allocate_endpoint():
+    data = request.json
+    try:
+        cmd = commands.Allouer(
+            id_commande=data["orderid"], sku=data["sku"], quantité=data["qty"],
+        )
+        results = bus.handle(cmd)
+        réf_lot = results.pop(0)
+    except handlers.SkuInconnu as e:
+        return jsonify({"message": str(e)}), 400
+    return jsonify({"batchref": réf_lot}), 201
+
+
+@app.route("/allocations/<id_commande>", methods=["GET"])
+def allocations_view_endpoint(id_commande):
+    from allocation.views import views
+    result = views.allocations(id_commande, bus.uow)
+    if not result:
+        return "not found", 404
+    return jsonify(result), 200
 ```
 
-### Principes clés
+Chaque endpoint fait trois choses et rien de plus :
 
-1. **Un seul point d'entrée** : tout passe par `bus.handle(message)`. Que
-   l'appelant soit un endpoint Flask, un subscriber Redis ou un test unitaire,
-   le chemin est identique.
+1. **Désérialise** la requête HTTP en une Command (ou appelle une view pour les lectures).
+2. **Envoie** la Command au bus via `bus.handle(cmd)`.
+3. **Sérialise** le résultat en réponse HTTP.
 
-2. **Propagation automatique** : les events émis par le domaine sont collectés
-   et traités sans intervention. Aucun code d'orchestration n'est nécessaire.
+Aucune logique métier, aucun appel direct aux handlers, aucune connaissance du domaine. Si demain on remplace Flask par FastAPI ou par une CLI, seule cette couche change.
 
-3. **Injection par introspection** : le bus injecte les dépendances dans les
-   handlers en inspectant leurs signatures. Les handlers déclarent ce dont ils
-   ont besoin, le bus fournit.
+---
 
-4. **Séparation des responsabilités** :
-    - Les **entrypoints** traduisent les entrées externes en commands.
-    - Le **bus** dispatche et orchestre.
-    - Les **handlers** contiennent la logique applicative.
-    - Le **domaine** contient les règles métier et émet des events.
+## Scénario de cascade : `ModifierQuantitéLot`
 
-5. **Testabilité** : le bootstrap accepte des fakes pour chaque dépendance,
-   rendant les tests rapides et isolés.
+Le scénario le plus intéressant est celui de la modification de quantité, qui déclenche une cascade d'events :
 
-### Ce que nous avons gagné
+```
+1. ModifierQuantitéLot(réf="lot-001", quantité=25)        [COMMAND]
+   │
+   │  handler: modifier_quantité_lot()
+   │  -> produit.modifier_quantité_lot("lot-001", 25)
+   │  -> l'agrégat désalloue les lignes en excédent
+   │  -> émet Désalloué(id_commande="cmd-001", sku="CHAISE", quantité=20)
+   │
+   v
+2. Désalloué(id_commande="cmd-001", sku="CHAISE", quantité=20)    [EVENT]
+   │
+   ├── handler 1: réallouer()
+   │   -> appelle allouer(Allouer(...), uow)
+   │   -> l'agrégat alloue la ligne à un autre lot
+   │   -> émet Alloué(id_commande="cmd-001", sku="CHAISE", réf_lot="lot-002")
+   │
+   ├── handler 2: supprimer_allocation_vue()
+   │   -> DELETE FROM allocations_view WHERE ...
+   │
+   v
+3. Alloué(id_commande="cmd-001", sku="CHAISE", réf_lot="lot-002")  [EVENT]
+   │
+   ├── handler 1: publier_événement_allocation()
+   │   -> log l'allocation
+   │
+   ├── handler 2: ajouter_allocation_vue()
+   │   -> INSERT INTO allocations_view ...
+   │
+   v
+   (queue vide, fin)
+```
 
-| Avant                                            | Après                                                  |
-|--------------------------------------------------|--------------------------------------------------------|
-| L'API appelle les handlers directement           | L'API envoie des commands au bus                       |
-| Les dépendances sont passées manuellement        | Les dépendances sont injectées automatiquement         |
-| Les side-effects sont gérés à part               | Tout transite par le bus, commands comme events        |
-| Ajouter un comportement = modifier du code       | Ajouter un handler + l'enregistrer dans le bootstrap   |
-| Tests couplés aux détails d'implémentation       | Tests via le bus avec des fakes injectées              |
+Voici le même flux sous forme de diagramme de séquence :
+
+```
+┌───────┐    ┌───────────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
+│  Bus  │    │modifier_quan- │    │ Produit  │    │réallouer │    │ allouer  │
+│       │    │ tité_lot()    │    │(agrégat) │    │          │    │          │
+└───┬───┘    └──────┬────────┘    └────┬─────┘    └────┬─────┘    └────┬─────┘
+    │               │                  │               │               │
+    │ Command       │                  │               │               │
+    │──────────────>│                  │               │               │
+    │               │  modifier_       │               │               │
+    │               │  quantité_lot()  │               │               │
+    │               │─────────────────>│               │               │
+    │               │                  │ émet          │               │
+    │               │                  │ Désalloué     │               │
+    │               │<─────────────────│               │               │
+    │               │                  │               │               │
+    │  collect_new_events()            │               │               │
+    │  => [Désalloué]                  │               │               │
+    │               │                  │               │               │
+    │ Event: Désalloué                 │               │               │
+    │──────────────────────────────────────────────────>│               │
+    │               │                  │               │  allouer()    │
+    │               │                  │               │──────────────>│
+    │               │                  │               │               │
+    │  collect_new_events()            │               │               │
+    │  => [Alloué]                     │               │               │
+    │               │                  │               │               │
+    │ Event: Alloué                    │               │               │
+    │ -> publier_événement_allocation()│               │               │
+    │ -> ajouter_allocation_vue()      │               │               │
+    │               │                  │               │               │
+    │ (queue vide)  │                  │               │               │
+    v               v                  v               v               v
+```
+
+Tout cela se passe dans un **seul appel** à `bus.handle(ModifierQuantitéLot(...))`. L'appelant envoie une Command et récupère le résultat. Il ne sait rien des events intermédiaires, des réallocations, ni des mises à jour du read model.
+
+---
+
+## Tester avec le bus
+
+Pour tester le système complet (commands, events, cascades), on utilise une fonction `bootstrap_test_bus()` qui assemble le bus avec des fakes :
+
+```python
+class FakeRepository(AbstractRepository):
+    def __init__(self, produits=None):
+        super().__init__()
+        self._produits = set(produits or [])
+
+    def _add(self, produit):
+        self._produits.add(produit)
+
+    def _get(self, sku):
+        return next((p for p in self._produits if p.sku == sku), None)
+
+    def _get_par_réf_lot(self, réf_lot):
+        return next(
+            (p for p in self._produits for l in p.lots if l.référence == réf_lot),
+            None,
+        )
+
+
+class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
+    def __init__(self):
+        self.produits = FakeRepository()
+
+    def __enter__(self):
+        return super().__enter__()
+
+    def _commit(self):
+        pass
+
+    def rollback(self):
+        pass
+
+
+class FakeNotifications(AbstractNotifications):
+    def __init__(self):
+        self.envoyées: list[tuple[str, str]] = []
+
+    def send(self, destination, message):
+        self.envoyées.append((destination, message))
+
+
+def bootstrap_test_bus(uow=None, notifications=None):
+    """Même wiring que la production, mais avec des fakes."""
+    if uow is None:
+        uow = FakeUnitOfWork()
+    if notifications is None:
+        notifications = FakeNotifications()
+    return bootstrap.bootstrap(
+        start_orm=False,
+        uow=uow,
+        notifications_adapter=notifications,
+    )
+```
+
+Le point important : `bootstrap_test_bus()` appelle le **même** `bootstrap.bootstrap()` que la production. Les dictionnaires EVENT_HANDLERS et COMMAND_HANDLERS sont identiques. On teste le vrai wiring avec de fausses dépendances.
+
+### Exemple : tester la cascade de réallocation
+
+```python
+class TestModifierQuantitéLot:
+    def test_réalloue_si_quantité_réduite(self):
+        bus = bootstrap_test_bus()
+        bus.handle(commands.CréerLot("lot-001", "CHAISE-BLEUE", 50, None))
+        bus.handle(commands.CréerLot("lot-002", "CHAISE-BLEUE", 50, None))
+        bus.handle(commands.Allouer("cmd-001", "CHAISE-BLEUE", 20))
+        bus.handle(commands.Allouer("cmd-002", "CHAISE-BLEUE", 20))
+
+        # Réduction de lot-001 : 40 allouées, mais seulement 25 de capacité
+        bus.handle(commands.ModifierQuantitéLot("lot-001", 25))
+
+        produit = bus.uow.produits.get("CHAISE-BLEUE")
+        lot_001 = next(l for l in produit.lots if l.référence == "lot-001")
+        lot_002 = next(l for l in produit.lots if l.référence == "lot-002")
+        # Le total alloué reste 40, réparti entre les deux lots
+        assert lot_001.quantité_allouée + lot_002.quantité_allouée == 40
+```
+
+Ce test vérifie la cascade complète :
+`ModifierQuantitéLot` -> `Désalloué` -> `réallouer` -> `Alloué`.
+Tout passe par le bus, exactement comme en production.
+
+### Exemple : tester la notification de rupture de stock
+
+```python
+class TestNotificationRuptureDeStock:
+    def test_envoie_notification_si_rupture(self):
+        notifications = FakeNotifications()
+        bus = bootstrap_test_bus(notifications=notifications)
+        bus.handle(commands.CréerLot("lot-001", "LAMPE-RARE", 10, None))
+        bus.handle(commands.Allouer("cmd-001", "LAMPE-RARE", 10))
+
+        bus.handle(commands.Allouer("cmd-002", "LAMPE-RARE", 1))
+
+        assert len(notifications.envoyées) == 1
+        assert "LAMPE-RARE" in notifications.envoyées[0][1]
+```
+
+On injecte un `FakeNotifications` pour capturer les emails. Le test vérifie la cascade :
+`Allouer` -> `RuptureDeStock` -> `envoyer_notification_rupture_stock`.
+
+---
+
+## Le bus comme seul point d'entrée
+
+Avec le Message Bus, l'architecture prend cette forme :
+
+```
+┌──────────────┐     ┌──────────────────────────────────────────────┐
+│              │     │              Message Bus                     │
+│   Flask      │     │                                              │
+│   (HTTP)     │────>│  handle(Command)                             │
+│              │     │      │                                       │
+└──────────────┘     │      v                                       │
+                     │  command_handler(cmd, uow, ...)              │
+┌──────────────┐     │      │                                       │
+│              │     │      │ collect_new_events()                   │
+│   Redis      │     │      v                                       │
+│   (events)   │────>│  event_handler_1(event, uow, ...)           │
+│              │     │  event_handler_2(event, notifications, ...)  │
+└──────────────┘     │      │                                       │
+                     │      │ collect_new_events()                   │
+┌──────────────┐     │      v                                       │
+│              │     │  ... (cascade jusqu'à queue vide)            │
+│   Tests      │────>│                                              │
+│              │     │  return results                              │
+└──────────────┘     └──────────────────────────────────────────────┘
+```
+
+Les avantages de cette architecture :
+
+| Avantage | Explication |
+|----------|------------|
+| **Découplage** | Les points d'entrée (Flask, Redis, tests) ne connaissent pas les handlers. |
+| **Extensibilité** | Ajouter un handler = ajouter une entrée dans un dictionnaire. Open/Closed. |
+| **Testabilité** | Le même bus avec des fakes permet de tester toute la logique sans I/O. |
+| **Cascade** | Les events déclenchent automatiquement de nouvelles actions via la queue. |
+| **Injection** | Les dépendances sont injectées automatiquement par introspection des signatures. |
+
+---
+
+## Résumé
+
+| Concept | Ce qu'il faut retenir |
+|---------|----------------------|
+| **MessageBus** | Le point central qui distribue commands et events aux bons handlers. |
+| **Queue** | Les messages sont traités en FIFO. Les nouveaux events sont ajoutés à la fin. |
+| **`_handle_command`** | Un handler, exception propagée, résultat retourné. |
+| **`_handle_event`** | N handlers, exceptions loggées, pas de retour. |
+| **`_call_handler`** | Injection de dépendances par introspection de la signature du handler. |
+| **Cascade** | Un handler peut émettre des events qui déclenchent d'autres handlers, en chaîne. |
+| **Flask adaptateur** | L'API convertit HTTP en Commands et les envoie au bus. Zéro logique métier. |
+| **`bootstrap_test_bus()`** | Assemble le bus avec des fakes. Même wiring que la production. |
+
+---
 
 ## Exercices
 
-!!! example "Exercice 1 -- Ajouter un middleware"
-    Modifiez `_call_handler` pour logger le temps d'exécution de chaque handler. Vérifiez que les tests passent toujours.
+!!! example "Exercice 1 -- Tracer la cascade"
+    Ajoutez des `print()` dans `handle()`, `_handle_command()` et `_handle_event()` pour tracer l'ordre de traitement des messages. Envoyez une `ModifierQuantitéLot` qui provoque une désallocation et observez la cascade complète dans la sortie.
 
-!!! example "Exercice 2 -- Handler asynchrone"
-    Comment adapteriez-vous le message bus pour supporter des handlers `async` ? Quelles parties de l'architecture changeraient ?
+!!! example "Exercice 2 -- Event sans handler"
+    Que se passe-t-il si un event est émis mais n'a aucun handler dans `EVENT_HANDLERS` ? Vérifiez dans le code de `_handle_event()`. Écrivez un test qui émet un event orphelin et vérifiez qu'aucune erreur n'est levée.
 
-!!! example "Exercice 3 -- Compteur de messages"
-    Ajoutez un attribut `self.messages_processed: int` au `MessageBus` qui compte le nombre total de messages (commands + events) traités. Écrivez un test qui vérifie que le compteur est correct après une cascade command → event → handler.
+!!! example "Exercice 3 -- Command sans handler"
+    Que se passe-t-il si on envoie une Command inconnue au bus ? Écrivez un test qui le vérifie. Est-ce le bon comportement ?
+
+!!! example "Exercice 4 -- Protection contre les boucles"
+    Imaginez un event handler qui émet le même type d'event qu'il traite. Que se passerait-il ? Implémentez un compteur de profondeur dans `handle()` qui lève une exception après 100 itérations pour protéger contre les boucles infinies.
 
 ---
 
-Le message bus est devenu la colonne vertébrale de l'application. Toute
-l'intelligence est dans les handlers et le domaine ; le bus ne fait que
-distribuer les messages et injecter les dépendances. Cette simplicité apparente
-cache une grande puissance : on peut ajouter des comportements complexes
-(cascades d'events, notifications, publication externe) sans jamais modifier
-le code existant.
+!!! quote "À retenir"
+    Le Message Bus transforme l'application en une architecture réactive où tout est message. Les Commands entrent, les Events cascadent, et les handlers réagissent. Le bus est le seul point d'entrée -- Flask, Redis, et les tests ne sont que des adaptateurs qui fabriquent des messages et les envoient au bus.
+
+---
+
+*Chapitre suivant : [TDD à haute et basse vitesse](chapitre_10_tdd.md) -- comment tester efficacement une architecture orientée messages.*

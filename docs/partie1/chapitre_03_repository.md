@@ -1,10 +1,10 @@
-# Chapitre 2 -- Le pattern Repository
+# Chapitre 3 -- Le pattern Repository
 
 ## Le problème de la persistance
 
 Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, une fonction `allouer()` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
 
-Pour persister ces objets, nous avons besoin d'un **conteneur** qui regroupe les lots d'un même SKU. C'est le rôle de la classe `Produit` : un objet simple qui possède un `sku` et une liste de `lots`. Nous verrons au [chapitre 7](chapitre_07_aggregats.md) pourquoi ce conteneur est en réalité un **Agrégat** au sens du DDD, mais pour l'instant, il suffit de le voir comme un regroupement pratique.
+Pour persister ces objets, nous avons besoin d'un **conteneur** qui regroupe les lots d'un même SKU. C'est le rôle de la classe `Produit` : un objet simple qui possède un `sku` et une liste de `lots`. Nous avons vu au [chapitre 2](chapitre_02_aggregats.md) pourquoi ce conteneur est en réalité un **Agrégat** au sens du DDD, mais pour l'instant, il suffit de le voir comme un regroupement pratique.
 
 Mais une application réelle doit **sauvegarder ses données**. Les objets du domaine doivent être persistés dans une base de données, puis rechargées plus tard. Et c'est là que les ennuis commencent.
 
@@ -123,7 +123,7 @@ Ce pattern (parfois appelé **Template Method**) garantit que le comportement de
 
 ### L'attribut `seen`
 
-L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au chapitre 6) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels events doivent être collectés et traités.
+L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 4](chapitre_04_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels events doivent être collectés et traités.
 
 ```python
 repo.add(produit)          # produit est ajouté à seen
@@ -386,7 +386,7 @@ class TestAjouterLot:
         bus.handle(commands.CréerLot("b1", "COUSSIN-CARRE", 100, None))
 
         assert bus.uow.produits.get("COUSSIN-CARRE") is not None
-        assert bus.uow.committed
+        assert bus.uow._committed
 
     def test_ajouter_lot_produit_existant(self):
         bus = bootstrap_test_bus()
@@ -397,7 +397,7 @@ class TestAjouterLot:
         assert len(produit.lots) == 2
 ```
 
-Le `FakeRepository` est imbriqué dans un `FakeUnitOfWork` (que nous détaillerons au chapitre 6), mais le principe est le même : on remplace l'adapter concret par un fake, et le code métier ne voit pas la différence.
+Le `FakeRepository` est imbriqué dans un `FakeUnitOfWork` (que nous détaillerons au [chapitre 4](chapitre_04_unit_of_work.md)), mais le principe est le même : on remplace l'adapter concret par un fake, et le code métier ne voit pas la différence.
 
 !!! info "Fake vs Mock"
     Un **fake** est une implémentation simplifiée mais fonctionnelle d'une interface. Il a un vrai comportement (ici : stocker et retrouver des objets). Un **mock**, en revanche, se contente de vérifier que certaines méthodes ont été appelées avec certains arguments. Les fakes sont généralement préférables car ils testent le **comportement** plutôt que l'**implémentation**.
@@ -474,4 +474,4 @@ Le flux est toujours le même :
 
 ---
 
-**Prochain chapitre** : [Chapitre 3 -- Couplage et abstractions](chapitre_03_abstractions.md), où nous approfondirons le principe d'inversion des dépendances et les stratégies pour introduire des abstractions pertinentes.
+**Prochain chapitre** : [Le pattern Unit of Work](chapitre_04_unit_of_work.md), où nous verrons comment encapsuler la transaction dans un context manager pour garantir l'atomicité des opérations.

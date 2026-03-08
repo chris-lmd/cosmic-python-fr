@@ -34,19 +34,22 @@ class AbstractUnitOfWork(abc.ABC):
 
     Fournit un repository `produits` et gère commit/rollback.
     Le rollback est automatique si commit() n'est pas appelé
-    (grâce au __exit__ du context manager).
+    (grâce au flag `_committed` vérifié dans __exit__).
     """
 
     produits: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
+        self._committed = False
         return self
 
     def __exit__(self, *args: object) -> None:
-        self.rollback()
+        if not self._committed:
+            self.rollback()
 
     def commit(self) -> None:
         self._commit()
+        self._committed = True
 
     def collect_new_events(self):
         """
@@ -55,7 +58,13 @@ class AbstractUnitOfWork(abc.ABC):
 
         Parcourt les agrégats trackés par le repository (via `seen`)
         et vide leur liste d'événements pour les passer au message bus.
+
+        Ne yield rien si la transaction n'a pas été committée,
+        pour éviter de propager des events correspondant à des
+        opérations non persistées.
         """
+        if not self._committed:
+            return
         for produit in self.produits.seen:
             while produit.événements:
                 yield produit.événements.pop(0)

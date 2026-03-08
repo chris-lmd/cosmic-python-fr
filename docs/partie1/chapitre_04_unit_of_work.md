@@ -1,4 +1,4 @@
-# Chapitre 6 -- Le pattern Unit of Work
+# Chapitre 4 -- Le pattern Unit of Work
 
 > **Comment garantir que les opérations en base de données sont atomiques, sans coupler nos handlers à SQLAlchemy ?**
 
@@ -79,8 +79,8 @@ Les règles sont simples :
 
 - `with uow:` ouvre la transaction et initialise le repository
 - `uow.produits` donne accès au repository (sans savoir comment il est construit)
-- `uow.commit()` valide la transaction
-- Si une exception survient avant le commit, `__exit__` déclenche un **rollback automatique**
+- `uow.commit()` valide la transaction et marque le flag `_committed`
+- Si une exception survient avant le commit, `__exit__` déclenche un **rollback automatique** (uniquement si `_committed` est `False`)
 - La session est fermée dans tous les cas
 
 ---
@@ -101,13 +101,31 @@ class AbstractUnitOfWork(abc.ABC):
     produits: repository.AbstractRepository
 
     def __enter__(self) -> AbstractUnitOfWork:
+        self._committed = False
         return self
 
     def __exit__(self, *args: object) -> None:
-        self.rollback()
+        if not self._committed:
+            self.rollback()
 
     def commit(self) -> None:
         self._commit()
+        self._committed = True
+
+    def collect_new_events(self):
+        """
+        Collecte tous les événements émis par les agrégats vus
+        au cours de cette transaction.
+
+        Ne yield rien si la transaction n'a pas été committée,
+        pour éviter de propager des events correspondant à des
+        opérations non persistées.
+        """
+        if not self._committed:
+            return
+        for produit in self.produits.seen:
+            while produit.événements:
+                yield produit.événements.pop(0)
 
     @abc.abstractmethod
     def _commit(self) -> None:
@@ -118,19 +136,49 @@ class AbstractUnitOfWork(abc.ABC):
         raise NotImplementedError
 ```
 
+### Le flag `_committed` : un rollback conditionnel
+
+Contrairement à une approche naïve où `__exit__` appellerait `self.rollback()` de manière inconditionnelle, notre implémentation utilise un **flag `_committed`** pour ne faire le rollback que si nécessaire. Voici pourquoi cette approche est meilleure :
+
+1. **`__enter__`** initialise `self._committed = False` à chaque entrée dans le context manager. Cela garantit un état propre pour chaque transaction.
+
+2. **`commit()`** appelle d'abord `_commit()` (l'implémentation concrète), puis positionne `self._committed = True`. L'ordre est important : si `_commit()` lève une exception, le flag reste `False` et le rollback sera effectué.
+
+3. **`__exit__`** vérifie `self._committed` avant d'appeler `rollback()`. Après un commit réussi, le rollback est inutile et pourrait même être problématique (certains drivers de base de données n'apprécient pas un rollback après un commit).
+
+```python
+# Scénario 1 : commit réussi
+with uow:                    # _committed = False
+    # ... opérations ...
+    uow.commit()             # _commit() OK → _committed = True
+# __exit__ : _committed est True → pas de rollback
+
+# Scénario 2 : exception avant le commit
+with uow:                    # _committed = False
+    # ... opérations ...
+    raise ValueError("oops") # exception !
+# __exit__ : _committed est False → rollback()
+
+# Scénario 3 : erreur pendant le commit
+with uow:                    # _committed = False
+    # ... opérations ...
+    uow.commit()             # _commit() lève une exception → _committed reste False
+# __exit__ : _committed est False → rollback()
+```
+
 ### Anatomie du context manager protocol
 
 Le protocol `with` de Python repose sur deux méthodes spéciales :
 
 | Méthode       | Quand ?                                 | Rôle dans le UoW                          |
 |---------------|----------------------------------------|-------------------------------------------|
-| `__enter__`   | À l'entrée du bloc `with`              | Retourne `self` pour le `as`              |
-| `__exit__`    | À la sortie du bloc `with` (toujours)  | Rollback automatique en cas d'erreur      |
+| `__enter__`   | À l'entrée du bloc `with`              | Initialise `_committed = False`, retourne `self` |
+| `__exit__`    | À la sortie du bloc `with` (toujours)  | Rollback conditionnel si pas de commit    |
 
-Le point crucial est que `__exit__` est **toujours appelé**, même si une exception a lieu. C'est ce qui garantit le rollback automatique : si `commit()` n'a pas été appelé explicitement, `__exit__` appelle `rollback()`.
+Le point crucial est que `__exit__` est **toujours appelé**, même si une exception a lieu. Grâce au flag `_committed`, le rollback n'est déclenché que quand il est réellement nécessaire.
 
 !!! note "Pourquoi `_commit` avec un underscore ?"
-    La méthode publique `commit()` est définie dans la classe abstraite. Elle délègue à `_commit()`, la méthode abstraite que les sous-classes implémentent. Ce découpage permet d'ajouter de la logique commune dans `commit()` (par exemple collecter les events) sans que chaque implémentation doive y penser.
+    La méthode publique `commit()` est définie dans la classe abstraite. Elle délègue à `_commit()`, la méthode abstraite que les sous-classes implémentent, puis positionne le flag `_committed`. Ce découpage permet d'ajouter de la logique commune dans `commit()` (le tracking du flag, la collecte des events) sans que chaque implémentation doive y penser.
 
 ---
 
@@ -181,11 +229,12 @@ Voici ce qui se passe concrètement lors de l'exécution d'un handler :
 with uow:                          # (1) __enter__ est appelé
     |                              #     -> session = session_factory()
     |                              #     -> produits = SqlAlchemyRepository(session)
+    |                              #     -> _committed = False
     produit = uow.produits.get()   # (2) lecture via la session
     produit.allouer(ligne)         # (3) logique métier pure
-    uow.commit()                   # (4) session.commit()
+    uow.commit()                   # (4) session.commit() + _committed = True
                                    # (5) __exit__ est appelé
-                                   #     -> rollback() (sans effet après commit)
+                                   #     -> _committed est True → pas de rollback
                                    #     -> session.close()
 ```
 
@@ -193,7 +242,7 @@ Trois points importants :
 
 1. **La session est créée à l'entrée** (`__enter__`), pas dans le constructeur. Cela signifie qu'on peut réutiliser un UoW pour plusieurs transactions successives.
 
-2. **Le rollback dans `__exit__` est un filet de sécurité.** Après un `commit()` réussi, le `rollback()` n'a aucun effet. Mais si une exception survient avant le commit, il annule toutes les modifications.
+2. **Le rollback dans `__exit__` est conditionnel.** Grâce au flag `_committed`, le rollback n'est appelé que si `commit()` n'a pas été exécuté avec succès. C'est plus propre qu'un rollback inconditionnel qui serait exécuté même après un commit réussi.
 
 3. **La session est toujours fermée** à la sortie, que la transaction ait réussi ou non. Pas de fuite de connexion.
 
@@ -217,11 +266,21 @@ def collect_new_events(self):
     """
     Collecte tous les événements émis par les agrégats vus
     au cours de cette transaction.
+
+    Ne yield rien si la transaction n'a pas été committée,
+    pour éviter de propager des events correspondant à des
+    opérations non persistées.
     """
+    if not self._committed:
+        return
     for produit in self.produits.seen:
         while produit.événements:
             yield produit.événements.pop(0)
 ```
+
+### Le guard `_committed` dans `collect_new_events`
+
+Un détail important : la méthode vérifie `if not self._committed: return` avant de parcourir les agrégats. Cela signifie que **les events ne sont collectés que si la transaction a été committée avec succès**. Si une exception survient et que le rollback est effectué, les events émis par les agrégats pendant cette transaction avortée ne seront pas propagés au message bus. C'est un mécanisme de sécurité crucial : on ne veut pas déclencher des effets de bord (envoyer un email de rupture de stock, par exemple) pour une opération qui n'a pas été persistée.
 
 ### Comment ça fonctionne
 
@@ -230,7 +289,7 @@ Le mécanisme repose sur la collaboration entre le repository et le UoW :
 1. Le repository garde une trace de tous les agrégats qu'il a **vus** (via `add` ou `get`), dans son attribut `seen`.
 2. Chaque agrégat `Produit` maintient une liste `événements` où il accumule ses domain events.
 3. Après chaque handler, le message bus appelle `uow.collect_new_events()`.
-4. Cette méthode itère sur les agrégats vus et **vide** leur liste `événements` (avec `pop`).
+4. Cette méthode vérifie que la transaction a bien été committée, puis itère sur les agrégats vus et **vide** leur liste `événements` (avec `pop`).
 5. Les events récupérés sont réinjectés dans la queue du message bus pour être traités à leur tour.
 
 ```python title="src/allocation/service_layer/messagebus.py (extrait)"
@@ -254,33 +313,32 @@ L'un des avantages majeurs du pattern est la **testabilité**. Puisque les handl
 ```python title="tests/unit/test_handlers.py"
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """
-    Fake Unit of Work utilisant le FakeRepository.
-    Permet de tester sans base de données.
+    Unit of Work en mémoire pour les tests.
+
+    Le flag `_committed` est géré par la classe parente (AbstractUnitOfWork).
     """
 
-    def __init__(self):
-        self.produits = FakeRepository([])
-        self.committed = False  # (1)
+    def __init__(self) -> None:
+        self.produits = FakeRepository()
 
-    def __enter__(self):
+    def __enter__(self) -> FakeUnitOfWork:
         return super().__enter__()
 
-    def __exit__(self, *args):
+    def _commit(self) -> None:
         pass
 
-    def _commit(self):
-        self.committed = True  # (2)
-
-    def rollback(self):
+    def rollback(self) -> None:
         pass
 ```
 
-1. L'attribut `committed` est initialisé à `False`.
-2. Quand `commit()` est appelé (via `_commit`), il passe à `True`.
+### Le flag `_committed` géré par la classe parente
 
-### L'attribut `committed` : vérifier l'atomicité
+Contrairement à une implémentation où le `FakeUnitOfWork` gérerait lui-même un attribut `committed`, ici le tracking est entièrement délégué à la classe parente `AbstractUnitOfWork` via le flag `_committed`. C'est la méthode `commit()` de la classe abstraite qui :
 
-L'attribut `committed` est un outil de test simple mais puissant. Il permet de **vérifier que le handler a bien commité la transaction** :
+1. Appelle `_commit()` (ici un no-op dans le fake)
+2. Positionne `self._committed = True`
+
+Les tests peuvent alors vérifier que le commit a bien eu lieu en accédant à `uow._committed` :
 
 ```python
 class TestAjouterLot:
@@ -289,17 +347,17 @@ class TestAjouterLot:
         bus.handle(commands.CréerLot("b1", "COUSSIN-CARRE", 100, None))
 
         assert bus.uow.produits.get("COUSSIN-CARRE") is not None
-        assert bus.uow.committed  # on vérifie que le commit a eu lieu
+        assert bus.uow._committed  # on vérifie que le commit a eu lieu
 ```
 
-Sans cet attribut, on ne pourrait pas distinguer un handler qui modifie le repository sans commiter (ce qui serait un bug) d'un handler qui commite correctement.
+Cette approche est plus fiable car elle teste le même chemin de code que la production : `commit()` -> `_commit()` -> `_committed = True`. Si la logique de `commit()` change dans la classe abstraite (par exemple, ajout de la collecte des events), les tests en bénéficient automatiquement.
 
 ### Le `FakeRepository` et l'attribut `seen`
 
-Le `FakeRepository` hérite de `AbstractRepository`, qui définit l'attribut `seen`. Cela signifie que `collect_new_events()` fonctionne **exactement de la même manière** avec le fake qu'avec l'implémentation réelle. Les tests unitaires vérifient donc le comportement complet, y compris la propagation des events.
+Le `FakeRepository` hérite de `AbstractRepository`, qui définit l'attribut `seen`. Cela signifie que `collect_new_events()` fonctionne **exactement de la même manière** avec le fake qu'avec l'implémentation réelle. Les tests unitaires vérifient donc le comportement complet, y compris la propagation des events (uniquement après un commit réussi, grâce au guard `_committed`).
 
 !!! tip "Le pattern général des fakes"
-    Un bon fake implémente la même interface que le composant réel, avec un stockage en mémoire. Il peut aussi exposer des attributs supplémentaires (comme `committed`) pour les assertions. C'est plus fiable qu'un mock car on teste le **comportement** réel de l'interface, pas juste les appels de méthodes.
+    Un bon fake implémente la même interface que le composant réel, avec un stockage en mémoire. La logique partagée (comme le flag `_committed`) vit dans la classe abstraite, ce qui garantit un comportement identique entre le fake et l'implémentation réelle. C'est plus fiable qu'un mock car on teste le **comportement** réel de l'interface, pas juste les appels de méthodes.
 
 ---
 
@@ -315,6 +373,7 @@ handler: allouer(cmd, uow)
     |
     +---> with uow:                          # UoW.__enter__
     |         |                               #   crée session + repository
+    |         |                               #   _committed = False
     |         +---> uow.produits.get(sku)     # Repository.get()
     |         |         |                     #   marque le Produit comme "seen"
     |         |         v
@@ -322,13 +381,14 @@ handler: allouer(cmd, uow)
     |         |         |                     #   peut émettre des events
     |         |         v
     |         +---> uow.commit()              # UoW.commit()
-    |                   |                     #   session.commit()
+    |                   |                     #   _commit() + _committed = True
     |                   v
     +---> (sortie du with)                    # UoW.__exit__
-              |                               #   rollback() + session.close()
+              |                               #   _committed=True → pas de rollback
+              |                               #   session.close()
               v
 MessageBus: uow.collect_new_events()          # Collecte les events
-    |                                         #   émis par les agrégats "seen"
+    |                                         #   (_committed=True → yield events)
     v
 Traitement des events suivants...
 ```
@@ -345,6 +405,7 @@ Le diagramme en couches correspondant :
 +------------------------------------------------------+
 |                   Unit of Work                        |
 |   __enter__  |  commit  |  rollback  |  __exit__     |
+|   _committed flag pour rollback conditionnel          |
 |   fournit: repository (produits)                     |
 +------------------------------------------------------+
           |                          ^
@@ -377,6 +438,7 @@ Le pattern **Unit of Work** résout le problème de la gestion des transactions 
 | Couplage              | Handler couplé à SQLAlchemy           | Handler dépend d'une abstraction         |
 | Testabilité           | Nécessite une base de données         | Fake UoW en mémoire                      |
 | Collecte des events   | Pas de mécanisme standard             | `collect_new_events()` centralisé        |
+| Rollback              | Inconditionnel ou oublié              | Conditionnel via le flag `_committed`    |
 
 ### Les fichiers clés
 
@@ -391,9 +453,9 @@ Le pattern **Unit of Work** résout le problème de la gestion des transactions 
 
 1. **Le UoW est un context manager** qui gère le cycle de vie de la transaction : ouverture, commit, rollback, fermeture.
 2. **Le handler ne connaît que l'abstraction** (`AbstractUnitOfWork`), jamais SQLAlchemy directement.
-3. **Le rollback est automatique** : si `commit()` n'est pas appelé explicitement, `__exit__` annule tout.
-4. **Le UoW collecte les events** émis par les agrégats au cours de la transaction, servant de pont vers le message bus.
-5. **Le `FakeUnitOfWork` rend les tests rapides** et déterministes, sans base de données.
+3. **Le rollback est conditionnel** : grâce au flag `_committed`, `__exit__` ne fait le rollback que si `commit()` n'a pas été appelé avec succès.
+4. **Le UoW collecte les events** émis par les agrégats au cours de la transaction, mais uniquement si la transaction a été committée (`_committed = True`).
+5. **Le `FakeUnitOfWork` hérite du comportement `_committed`** de la classe parente, garantissant un comportement identique entre les tests et la production.
 
 ## Exercices
 
@@ -409,4 +471,6 @@ Le pattern **Unit of Work** résout le problème de la gestion des transactions 
 ---
 
 !!! abstract "Dans le prochain chapitre"
-    Nous verrons le pattern **Aggregate** et la notion de **frontière de cohérence**. L'agrégat `Produit` définit le périmètre à l'intérieur duquel les invariants métier sont garantis -- et le Unit of Work commite exactement un agrégat par transaction.
+    Nous verrons la **Service Layer** -- une couche mince d'orchestration qui coordonne le domaine, le repository et le Unit of Work pour implémenter les cas d'utilisation de l'application.
+
+*Prochain chapitre : [La Service Layer](chapitre_05_service_layer.md)*

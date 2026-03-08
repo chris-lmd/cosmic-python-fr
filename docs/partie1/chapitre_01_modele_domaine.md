@@ -18,19 +18,19 @@ Le Domain Model est une représentation en code des concepts, des règles et des
 Dans notre cas, les experts métier parlent de **lignes de commande**, de **lots de stock**, de **SKU** (Stock Keeping Unit), d'**allocation** et de **quantité disponible**. Le Domain Model reprend exactement ce vocabulaire.
 
 ```
-Vocabulaire metier          Code
+Vocabulaire métier          Code
 -----------------          ----
 Ligne de commande    -->   LigneDeCommande
 Lot de stock         -->   Lot
 Allouer              -->   allouer()
-Quantite disponible  -->   quantité_disponible
-Reference produit    -->   SKU (str)
+Quantité disponible  -->   quantité_disponible
+Référence produit    -->   SKU (str)
 ```
 
 La distinction fondamentale avec un transaction script, c'est l'endroit où vivent les règles. Dans un transaction script, la logique est dans le handler :
 
 ```python
-# Transaction script -- a eviter
+# Transaction script -- à éviter
 def allouer(id_commande, sku, quantité, session):
     lots = session.query(Lot).filter_by(sku=sku).all()
     lots.sort(key=lambda l: (l.eta is not None, l.eta))
@@ -84,13 +84,13 @@ Le décorateur `@dataclass(unsafe_hash=True)` fait deux choses essentielles :
 On peut vérifier le comportement d'égalité :
 
 ```python
-def test_equality():
+def test_égalité():
     """Deux LigneDeCommande avec les mêmes attributs sont égales (value object)."""
     ligne1 = LigneDeCommande("commande1", "SKU-001", 10)
     ligne2 = LigneDeCommande("commande1", "SKU-001", 10)
     assert ligne1 == ligne2
 
-def test_inequality():
+def test_inégalité():
     ligne1 = LigneDeCommande("commande1", "SKU-001", 10)
     ligne2 = LigneDeCommande("commande2", "SKU-001", 10)
     assert ligne1 != ligne2
@@ -114,8 +114,8 @@ class Lot:
     avec une date d'arrivée (ETA) optionnelle.
     """
 
-    def __init__(self, réf: str, sku: str, quantité: int, eta: Optional[date] = None):
-        self.référence = réf
+    def __init__(self, ref: str, sku: str, quantité: int, eta: Optional[date] = None):
+        self.référence = ref
         self.sku = sku
         self.eta = eta
         self._quantité_achetée = quantité
@@ -257,7 +257,7 @@ class RuptureDeStock(Exception):
     Python a besoin d'un seul opérateur de comparaison pour que `sorted()` fonctionne. On aurait pu définir `__lt__` à la place, avec la logique inversée. Le choix de `__gt__` est une convention : on considère que les lots les "plus grands" sont ceux qui arrivent le plus tard, ce qui est naturel quand on pense aux dates.
 
 !!! note "Et ensuite ?"
-    Cette fonction libre `allouer()` fonctionne bien, mais elle a un défaut : rien ne garantit qu'on lui passe les bons lots, ni qu'on ne manipule pas un lot directement sans passer par la stratégie. Au [chapitre 7](chapitre_07_aggregats.md), nous introduirons le concept d'**Agrégat** avec la classe `Produit`, qui regroupera les lots d'un même SKU et servira de **point d'entrée unique** pour toutes les opérations d'allocation. Cette évolution n'est pas nécessaire pour l'instant -- concentrons-nous d'abord sur les fondamentaux.
+    Cette fonction libre `allouer()` fonctionne bien, mais elle a un défaut : rien ne garantit qu'on lui passe les bons lots, ni qu'on ne manipule pas un lot directement sans passer par la stratégie. Au [chapitre 2](chapitre_02_aggregats.md), nous introduirons le concept d'**Agrégat** avec la classe `Produit`, qui regroupera les lots d'un même SKU et servira de **point d'entrée unique** pour toutes les opérations d'allocation. La fonction libre deviendra une méthode de cet agrégat. Cette évolution n'est pas nécessaire pour l'instant -- concentrons-nous d'abord sur les fondamentaux.
 
 ## Tester le modèle de domaine
 
@@ -268,45 +268,50 @@ L'avantage majeur d'un Domain Model pur, c'est la testabilité. Les tests sont s
 ```python
 import pytest
 from datetime import date, timedelta
-from allocation.domain.model import Lot, LigneDeCommande, allouer, RuptureDeStock
+from allocation.domain.model import Lot, LigneDeCommande
 
 
-def make_lot_et_ligne(
+def créer_lot_et_ligne(
     sku: str, quantité_lot: int, quantité_ligne: int
 ) -> tuple[Lot, LigneDeCommande]:
     return (
         Lot("lot-001", sku, quantité_lot, eta=date.today()),
-        LigneDeCommande("ref-commande", sku, quantité_ligne),
+        LigneDeCommande("commande-ref", sku, quantité_ligne),
     )
 
 
 class TestLot:
-    def test_allouer_reduit_quantite_disponible(self):
-        lot, ligne = make_lot_et_ligne("PETITE-TABLE", 20, 2)
+    def test_allouer_réduit_la_quantité_disponible(self):
+        lot, ligne = créer_lot_et_ligne("PETITE-TABLE", 20, 2)
         lot.allouer(ligne)
         assert lot.quantité_disponible == 18
 
-    def test_peut_allouer_si_disponible_superieur_au_requis(self):
-        lot, ligne = make_lot_et_ligne("ELEGANTE-LAMPE", 20, 2)
+    def test_peut_allouer_si_disponible_supérieur(self):
+        lot, ligne = créer_lot_et_ligne("ELEGANTE-LAMPE", 20, 2)
         assert lot.peut_allouer(ligne)
 
-    def test_ne_peut_pas_allouer_si_disponible_inferieur_au_requis(self):
-        lot, ligne = make_lot_et_ligne("ELEGANTE-LAMPE", 2, 20)
+    def test_ne_peut_pas_allouer_si_disponible_insuffisant(self):
+        lot, ligne = créer_lot_et_ligne("ELEGANTE-LAMPE", 2, 20)
         assert not lot.peut_allouer(ligne)
 
-    def test_ne_peut_pas_allouer_si_skus_differents(self):
-        lot = Lot("lot-001", "CHAISE-INCOMFORTABLE", 100, eta=None)
-        ligne = LigneDeCommande("ref-commande", "COUSSIN-MOELLEUX", 10)
+    def test_peut_allouer_si_disponible_égal(self):
+        lot, ligne = créer_lot_et_ligne("ELEGANTE-LAMPE", 2, 2)
+        assert lot.peut_allouer(ligne)
+
+    def test_ne_peut_pas_allouer_si_sku_différent(self):
+        lot = Lot("lot-001", "CHAISE-INCONFORTABLE", 100, eta=None)
+        ligne = LigneDeCommande("commande-ref", "COUSSIN-MOELLEUX", 10)
         assert not lot.peut_allouer(ligne)
 
-    def test_allocation_est_idempotente(self):
-        lot, ligne = make_lot_et_ligne("ANGULAR-DESK", 20, 2)
+    def test_allocation_idempotente(self):
+        """Allouer deux fois la même ligne n'a aucun effet (grâce au set)."""
+        lot, ligne = créer_lot_et_ligne("BUREAU-ANGULAIRE", 20, 2)
         lot.allouer(ligne)
         lot.allouer(ligne)
         assert lot.quantité_disponible == 18
 
-    def test_desallouer(self):
-        lot, ligne = make_lot_et_ligne("ANGULAR-DESK", 20, 2)
+    def test_désallouer(self):
+        lot, ligne = créer_lot_et_ligne("BUREAU-ANGULAIRE", 20, 2)
         lot.allouer(ligne)
         lot.désallouer(ligne)
         assert lot.quantité_disponible == 20
@@ -318,21 +323,21 @@ Remarquez la structure : chaque test crée ses objets, exécute une action et v�
 
 ```python
 class TestAllouer:
-    def test_prefere_lots_en_stock_aux_livraisons(self):
+    def test_préfère_lots_en_stock_aux_livraisons(self):
         """Les lots en stock (sans ETA) sont préférés aux livraisons."""
         lot_en_stock = Lot("lot-en-stock", "HORLOGE-RETRO", 100, eta=None)
         lot_en_livraison = Lot(
             "lot-en-livraison", "HORLOGE-RETRO", 100,
             eta=date.today() + timedelta(days=1)
         )
-        ligne = LigneDeCommande("réf-cmd", "HORLOGE-RETRO", 10)
+        ligne = LigneDeCommande("ref-cmd", "HORLOGE-RETRO", 10)
 
         allouer(ligne, [lot_en_stock, lot_en_livraison])
 
         assert lot_en_stock.quantité_disponible == 90
         assert lot_en_livraison.quantité_disponible == 100
 
-    def test_prefere_lots_plus_proches(self):
+    def test_préfère_lots_plus_proches(self):
         """Parmi les livraisons, on préfère la plus proche."""
         le_plus_tot = Lot("lot-rapide", "LAMPE-MINIMALE", 100, eta=date.today())
         moyen = Lot(
@@ -351,7 +356,7 @@ class TestAllouer:
         assert moyen.quantité_disponible == 100
         assert le_plus_tard.quantité_disponible == 100
 
-    def test_leve_rupture_de_stock_si_impossible(self):
+    def test_lève_rupture_de_stock_si_impossible(self):
         """RuptureDeStock est levée quand aucun lot ne convient."""
         lot = Lot("lot-001", "PETITE-FOURCHETTE", 10, eta=date.today())
         ligne = LigneDeCommande("commande1", "PETITE-FOURCHETTE", 20)
@@ -360,7 +365,7 @@ class TestAllouer:
             allouer(ligne, [lot])
 ```
 
-Notez comment les tests appellent directement la fonction `allouer()` avec une ligne et une liste de lots. Le test `test_prefere_lots_en_stock_aux_livraisons` passe les lots dans un ordre qui ne correspond pas à la priorité attendue, pour vérifier que le tri fonctionne. Le test `test_prefere_lots_plus_proches` mélange volontairement l'ordre (`moyen, le_plus_tot, le_plus_tard`) pour la même raison. Le test `test_leve_rupture_de_stock_si_impossible` vérifie que l'exception `RuptureDeStock` est bien levée quand aucun lot ne peut satisfaire la demande.
+Notez comment les tests appellent directement la fonction `allouer()` avec une ligne et une liste de lots. Le test `test_préfère_lots_en_stock_aux_livraisons` passe les lots dans un ordre qui ne correspond pas à la priorité attendue, pour vérifier que le tri fonctionne. Le test `test_préfère_lots_plus_proches` mélange volontairement l'ordre (`moyen, le_plus_tot, le_plus_tard`) pour la même raison. Le test `test_lève_rupture_de_stock_si_impossible` vérifie que l'exception `RuptureDeStock` est bien levée quand aucun lot ne peut satisfaire la demande.
 
 Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines sans que la suite de tests ne ralentisse. C'est un avantage considérable par rapport aux tests d'intégration qui nécessitent une base de données.
 
@@ -398,7 +403,7 @@ Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines
 ### Inconvénients du pattern
 
 - **Complexité initiale** -- Pour des CRUD simples, un Domain Model est excessif. Un transaction script suffit.
-- **Mapping objet-relationnel** -- Le domaine étant découplé de la persistance, il faut une couche de mapping (c'est le sujet du prochain chapitre sur le Repository pattern).
+- **Mapping objet-relationnel** -- Le domaine étant découplé de la persistance, il faut une couche de mapping (c'est le sujet d'un prochain chapitre sur le Repository pattern).
 - **Courbe d'apprentissage** -- Les concepts de DDD (Entity, Value Object, Aggregate) demandent un investissement initial.
 
 !!! tip "Quand utiliser ce pattern ?"
@@ -406,4 +411,4 @@ Ces tests s'exécutent en quelques millisecondes. On peut en avoir des centaines
 
 ---
 
-*Dans le prochain chapitre, nous verrons comment persister ce modèle de domaine sans le contaminer avec des détails techniques, grâce au pattern **Repository**.*
+*Dans le prochain chapitre, nous verrons comment regrouper les lots d'un même produit dans un **Agrégat**, avec la classe `Produit` comme point d'entrée unique pour les opérations d'allocation.*

@@ -1,4 +1,4 @@
-# Chapitre 12 -- CQRS (Command Query Responsibility Segregation)
+# Chapitre 11 -- CQRS (Command Query Responsibility Segregation)
 
 ## Le problème de la lecture
 
@@ -518,3 +518,7 @@ distincts, chacun optimisé pour son cas d'usage.
     - Les views sont des fonctions simples : un SELECT SQL, un résultat. Pas de domaine.
     - L'eventual consistency est le prix à payer. Il est presque toujours acceptable.
     - Adoptez CQRS quand les besoins de lecture et d'écriture divergent. Pas avant.
+
+---
+
+*Prochain chapitre : [Events externes](chapitre_12_events_externes.md)*

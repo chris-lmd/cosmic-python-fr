@@ -1,4 +1,4 @@
-# Chapitre 4 -- La Service Layer
+# Chapitre 5 -- La Service Layer
 
 ## Le problème : des routes Flask qui grossissent
 
@@ -184,7 +184,7 @@ L'un des gains majeurs de la Service Layer est la **testabilité**. On peut test
 
 ### FakeRepository et FakeUnitOfWork
 
-On utilise le `FakeRepository` défini au [chapitre 2](chapitre_02_repository.md) et un `FakeUnitOfWork` qui l'encapsule (détaillé au [chapitre 6](chapitre_06_unit_of_work.md)). Ces fakes sont des implémentations **en mémoire** des abstractions : le `FakeRepository` stocke les produits dans un `set` Python, et le `FakeUnitOfWork` trace les commits via un booléen `self.committed` sans toucher à aucune base de données.
+On utilise le `FakeRepository` défini au [chapitre 3](chapitre_03_repository.md) et un `FakeUnitOfWork` qui l'encapsule (détaillé au [chapitre 4](chapitre_04_unit_of_work.md)). Ces fakes sont des implémentations **en mémoire** des abstractions : le `FakeRepository` stocke les produits dans un `set` Python, et le `FakeUnitOfWork` trace les commits via le flag `_committed` de la classe parente sans toucher à aucune base de données.
 
 ### Les tests des handlers
 
@@ -197,7 +197,7 @@ class TestAjouterLot:
         bus.handle(commands.CréerLot("l1", "COUSSIN-CARRE", 100, None))
 
         assert bus.uow.produits.get("COUSSIN-CARRE") is not None
-        assert bus.uow.committed
+        assert bus.uow._committed
 
     def test_ajouter_lot_pour_produit_existant(self):
         bus = bootstrap_test_bus()
@@ -289,4 +289,4 @@ Quelques principes à retenir :
 
 ---
 
-*Prochain chapitre : [TDD à haute et basse vitesse](chapitre_05_tdd.md) -- comment exploiter cette architecture en couches pour écrire des tests à la fois rapides et fiables.*
+*Prochain chapitre : [Couplage et abstractions](chapitre_06_abstractions.md) -- comment le Dependency Inversion Principle et l'architecture Ports and Adapters structurent les dépendances du système.*

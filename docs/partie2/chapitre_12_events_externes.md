@@ -1,4 +1,4 @@
-# Chapitre 11 -- Events externes et communication entre services
+# Chapitre 12 -- Events externes et communication entre services
 
 ## Events internes vs events externes
 
@@ -401,3 +401,7 @@ Le domaine ne sait pas d'où viennent les commands ni où partent les events.
     architecture distribuée : il informe les autres de ce qui s'est passé
     chez lui, et réagit à ce qui se passe ailleurs, le tout sans couplage
     direct.
+
+---
+
+*Prochain chapitre : [Injection de dépendances](chapitre_13_injection_dependances.md)*

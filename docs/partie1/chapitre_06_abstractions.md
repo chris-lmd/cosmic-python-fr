@@ -1,4 +1,4 @@
-# Chapitre 3 -- Couplage et abstractions
+# Chapitre 6 -- Couplage et abstractions
 
 ## Le problème du couplage
 
@@ -286,7 +286,7 @@ bout sans infrastructure réelle, en remplaçant les adapters par des **fakes**.
 
 ### Le FakeRepository
 
-On réutilise le `FakeRepository` défini au [chapitre 2](chapitre_02_repository.md) : une implémentation en mémoire qui stocke les produits dans un simple `set` Python, respectant exactement le même contrat que `SqlAlchemyRepository`. Pas de base de données, pas de connexion, pas de migration. Les tests s'exécutent en millisecondes.
+On réutilise le `FakeRepository` défini au [chapitre 3](chapitre_03_repository.md) : une implémentation en mémoire qui stocke les produits dans un simple `set` Python, respectant exactement le même contrat que `SqlAlchemyRepository`. Pas de base de données, pas de connexion, pas de migration. Les tests s'exécutent en millisecondes.
 
 ### Le FakeNotifications
 
@@ -364,6 +364,6 @@ permettent de construire un système découplé et testable.
     - N'abstraire que quand c'est justifié : la règle des 3 est un bon guide.
     - Les fakes permettent un edge-to-edge testing rapide et fiable.
 
-Dans le [chapitre suivant](chapitre_04_service_layer.md), nous verrons comment
-la **Service Layer** orchestre les cas d'utilisation en s'appuyant sur ces
-abstractions.
+---
+
+*Prochain chapitre : [Domain Events](../partie2/chapitre_07_events.md) -- comment les événements émis par les agrégats déclenchent des actions dans le reste du système.*

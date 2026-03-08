@@ -1,4 +1,4 @@
-# Chapitre 7 -- Agrégats et frontières de cohérence
+# Chapitre 2 -- Agrégats et frontières de cohérence
 
 ## Le problème : un domaine sans frontières
 
@@ -71,7 +71,7 @@ Cette règle a une conséquence directe sur le **Repository** : il manipule des 
 
 ## La classe `Produit` : notre Aggregate Root
 
-La fonction libre `allouer(ligne, lots)` du chapitre 1 va maintenant **devenir une méthode** de `Produit`. L'agrégat possède les lots et prend la responsabilité de la stratégie d'allocation. La différence clé : au lieu de lever une exception `RuptureDeStock`, l'agrégat **émet un événement** (nous verrons pourquoi au chapitre 8).
+La fonction libre `allouer(ligne, lots)` du chapitre 1 va maintenant **devenir une méthode** de `Produit`. L'agrégat possède les lots et prend la responsabilité de la stratégie d'allocation. La différence clé : au lieu de lever une exception `RuptureDeStock`, l'agrégat **émet un événement** (nous verrons pourquoi au [chapitre 7](../partie2/chapitre_07_events.md)).
 
 Voici la classe `Produit` telle qu'elle apparaît dans notre code source
 (`src/allocation/domain/model.py`) :
@@ -113,13 +113,13 @@ Et une liste `événements` qui collecte les domain events émis par les opérat
 ```python
 def allouer(self, ligne: LigneDeCommande) -> str:
     """
-    Alloue une ligne de commande au lot le plus approprie.
+    Alloue une ligne de commande au lot le plus approprié.
 
-    La strategie d'allocation privilegie les lots en stock
+    La stratégie d'allocation privilégie les lots en stock
     (sans ETA) puis les lots avec l'ETA la plus proche.
 
-    Retourne la reference du lot choisi.
-    Emet un evenement RuptureDeStock s'il n'y a plus de stock.
+    Retourne la référence du lot choisi.
+    Émet un événement RuptureDeStock s'il n'y a plus de stock.
     """
     try:
         lot = next(
@@ -132,6 +132,14 @@ def allouer(self, ligne: LigneDeCommande) -> str:
 
     lot.allouer(ligne)
     self.numéro_version += 1
+    self.événements.append(
+        events.Alloué(
+            id_commande=ligne.id_commande,
+            sku=ligne.sku,
+            quantité=ligne.quantité,
+            réf_lot=lot.référence,
+        )
+    )
     return lot.référence
 ```
 
@@ -141,7 +149,8 @@ Observons les responsabilités de cette méthode :
 2. **Elle trouve le premier lot capable** d'accueillir la ligne (`l.peut_allouer(ligne)`).
 3. **Elle gère le cas d'erreur** : si aucun lot ne convient, elle émet un événement `RuptureDeStock` au lieu de lever une exception.
 4. **Elle incrémente le `numéro_version`** après chaque allocation réussie.
-5. **Elle retourne la référence du lot choisi**, permettant au code appelant de savoir où l'allocation a été faite.
+5. **Elle émet un événement `Alloué`** contenant les informations de l'allocation.
+6. **Elle retourne la référence du lot choisi**, permettant au code appelant de savoir où l'allocation a été faite.
 
 Le code appelant (la service layer) n'a aucune connaissance des `Lot` individuels. Il demande simplement au `Produit` d'allouer.
 
@@ -150,11 +159,11 @@ Le code appelant (la service layer) n'a aucune connaissance des `Lot` individuel
 ```python
 def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
     """
-    Modifie la quantite d'un lot et realloue si necessaire.
+    Modifie la quantité d'un lot et réalloue si nécessaire.
 
-    Si la nouvelle quantite est inferieure aux allocations existantes,
-    les lignes en excedent sont desallouees et des evenements
-    Désalloué sont emis pour chacune.
+    Si la nouvelle quantité est inférieure aux allocations existantes,
+    les lignes en excédent sont désallouées et des événements
+    Désalloué sont émis pour chacune.
     """
     lot = next(l for l in self.lots if l.référence == réf)
     lot._quantité_achetée = quantité
@@ -174,7 +183,7 @@ Cette méthode illustre un scénario plus complexe :
 1. Elle retrouve le lot concerné **à l'intérieur de l'agrégat** (pas via le repository).
 2. Elle modifie la quantité achetée.
 3. Si la quantité disponible devient négative, elle **désalloue progressivement** des lignes de commande.
-4. Pour chaque ligne désallouée, elle émet un événement `Désalloué`. Ce sont ces events qui déclencheront une réallocation ailleurs dans le système (via le message bus, que nous verrons au chapitre 8).
+4. Pour chaque ligne désallouée, elle émet un événement `Désalloué`. Ce sont ces events qui déclencheront une réallocation ailleurs dans le système (via le message bus, que nous verrons au [chapitre 7](../partie2/chapitre_07_events.md)).
 
 ---
 
@@ -299,6 +308,7 @@ L'agrégat `Produit` ne se contente pas de modifier son état interne. Il **éme
 
 | Événement | Quand | Déclencheur |
 |-----------|-------|-------------|
+| `Alloué` | Une ligne a été allouée avec succès | `allouer()` |
 | `RuptureDeStock` | Aucun lot ne peut accueillir la ligne | `allouer()` |
 | `Désalloué` | Une ligne est désallouée suite à un changement de quantité | `modifier_quantité_lot()` |
 
@@ -383,4 +393,4 @@ Les **Agrégats** sont la réponse du Domain-Driven Design au problème de la co
 
 ---
 
-*Chapitre suivant : [Events et le Message Bus](../partie2/chapitre_08_events.md) -- comment les événements émis par l'agrégat déclenchent des actions dans le reste du système.*
+*Chapitre suivant : [Le pattern Repository](chapitre_03_repository.md) -- comment abstraire la couche de persistance pour garder le domaine pur.*

@@ -21,20 +21,20 @@ theme:
 nav:
   - Accueil: index.md
   - "Chapitre 0 - Mise en route": chapitre_00_mise_en_route.md
-  - "Partie 1 - Construire une architecture pour le Domain Modeling":
+  - "Partie 1 - Construire l'architecture brique par brique":
     - "Chapitre 1 - Le modèle de domaine": partie1/chapitre_01_modele_domaine.md
-    - "Chapitre 2 - Le pattern Repository": partie1/chapitre_02_repository.md
-    - "Chapitre 3 - Couplage et abstractions": partie1/chapitre_03_abstractions.md
-    - "Chapitre 4 - La Service Layer": partie1/chapitre_04_service_layer.md
-    - "Chapitre 5 - TDD à haute et basse vitesse": partie1/chapitre_05_tdd.md
-    - "Chapitre 6 - Le pattern Unit of Work": partie1/chapitre_06_unit_of_work.md
-    - "Chapitre 7 - Agrégats et frontières de cohérence": partie1/chapitre_07_aggregats.md
+    - "Chapitre 2 - Agrégats et frontières de cohérence": partie1/chapitre_02_aggregats.md
+    - "Chapitre 3 - Le pattern Repository": partie1/chapitre_03_repository.md
+    - "Chapitre 4 - Le pattern Unit of Work": partie1/chapitre_04_unit_of_work.md
+    - "Chapitre 5 - La Service Layer": partie1/chapitre_05_service_layer.md
+    - "Chapitre 6 - Couplage et abstractions": partie1/chapitre_06_abstractions.md
   - "Partie 2 - Architecture événementielle":
-    - "Chapitre 8 - Events et le Message Bus": partie2/chapitre_08_events.md
-    - "Chapitre 9 - Aller plus loin avec le Message Bus": partie2/chapitre_09_message_bus.md
-    - "Chapitre 10 - Commands": partie2/chapitre_10_commands.md
-    - "Chapitre 11 - Events externes": partie2/chapitre_11_events_externes.md
-    - "Chapitre 12 - CQRS": partie2/chapitre_12_cqrs.md
+    - "Chapitre 7 - Domain Events": partie2/chapitre_07_events.md
+    - "Chapitre 8 - Commands vs Events": partie2/chapitre_08_commands.md
+    - "Chapitre 9 - Le Message Bus": partie2/chapitre_09_message_bus.md
+    - "Chapitre 10 - TDD à haute et basse vitesse": partie2/chapitre_10_tdd.md
+    - "Chapitre 11 - CQRS": partie2/chapitre_11_cqrs.md
+    - "Chapitre 12 - Events externes": partie2/chapitre_12_events_externes.md
     - "Chapitre 13 - Injection de dépendances": partie2/chapitre_13_injection_dependances.md
   - "Épilogue": epilogue.md
 

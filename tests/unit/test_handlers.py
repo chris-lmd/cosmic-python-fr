@@ -51,19 +51,17 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     """
     Unit of Work en mémoire pour les tests.
 
-    L'attribut `committed` permet de vérifier que le commit
-    a bien été appelé dans les tests.
+    Le flag `_committed` est géré par la classe parente (AbstractUnitOfWork).
     """
 
     def __init__(self) -> None:
         self.produits = FakeRepository()
-        self.committed = False
 
     def __enter__(self) -> FakeUnitOfWork:
         return super().__enter__()
 
     def _commit(self) -> None:
-        self.committed = True
+        pass
 
     def rollback(self) -> None:
         pass
