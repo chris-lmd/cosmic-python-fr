@@ -47,7 +47,8 @@ Le modèle de domaine est optimisé pour **protéger les invariants en écriture
 
 Mais pour la **lecture**, on n'a besoin d'aucune de ces garanties. Pas
 d'invariants à vérifier, pas de concurrence à gérer, pas d'events à émettre.
-On veut juste des données, le plus vite possible.
+Le domaine est conçu pour protéger les écritures -- l'utiliser pour les lectures
+serait du gaspillage. On veut juste des données, le plus vite possible.
 
 !!! note "Le constat fondamental"
     Les besoins de lecture et d'écriture sont **fondamentalement différents**.

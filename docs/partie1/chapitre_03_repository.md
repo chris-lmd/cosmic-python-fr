@@ -4,7 +4,7 @@
 
 Au chapitre précédent, nous avons construit un modèle de domaine riche : des `LigneDeCommande`, des `Lot`, une fonction `allouer()` avec des règles métier claires. Tout fonctionne en mémoire, les tests passent, la logique est pure.
 
-Pour persister ces objets, nous avons besoin d'un **conteneur** qui regroupe les lots d'un même SKU. C'est le rôle de la classe `Produit` : un objet simple qui possède un `sku` et une liste de `lots`. Nous avons vu au [chapitre 2](chapitre_02_aggregats.md) pourquoi ce conteneur est en réalité un **Agrégat** au sens du DDD, mais pour l'instant, il suffit de le voir comme un regroupement pratique.
+Comme nous l'avons vu au [chapitre 2](chapitre_02_aggregats.md), la classe `Produit` est l'**Agrégat** qui regroupe tous les lots d'un même SKU et garantit la cohérence des opérations d'allocation. Le Repository travaille au niveau de cet agrégat — on persiste et on récupère des `Produit`, jamais des `Lot` individuels.
 
 Mais une application réelle doit **sauvegarder ses données**. Les objets du domaine doivent être persistés dans une base de données, puis rechargées plus tard. Et c'est là que les ennuis commencent.
 
@@ -123,7 +123,7 @@ Ce pattern (parfois appelé **Template Method**) garantit que le comportement de
 
 ### L'attribut `seen`
 
-L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 4](chapitre_05_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels agrégats doivent être pris en compte lors du commit.
+L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 5](chapitre_05_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels agrégats doivent être pris en compte lors du commit.
 
 ```python
 repo.add(produit)          # produit est ajouté à seen
@@ -137,6 +137,9 @@ Dans l'architecture **Ports and Adapters** (aussi appelée architecture hexagona
 
 !!! info "Port = interface définie par le domaine"
     Le port appartient au domaine. C'est le domaine qui dicte le contrat : "Je veux pouvoir ajouter un `Produit` et en récupérer un par son SKU." La couche infrastructure doit s'y conformer.
+
+!!! note "Pourquoi le port vit-il dans `adapters/` ?"
+    On pourrait s'étonner de trouver le port (`AbstractRepository`) dans le dossier `adapters/` plutôt que dans un dossier `ports/`. C'est un choix pragmatique : le port et son adapter concret vivent dans le même fichier pour simplifier la navigation. Dans un projet plus gros, on pourrait les séparer.
 
 
 ## L'adapter concret : SQLAlchemy
@@ -335,7 +338,7 @@ Ce principe se généralise à toute communication avec le monde extérieur : en
 
 L'un des bénéfices les plus immédiats du pattern Repository est la possibilité de créer un **fake** pour les tests. Puisque le contrat est défini par l'interface abstraite, on peut écrire une implémentation qui stocke tout en mémoire, dans un simple `set` Python.
 
-Voici le `FakeRepository` utilisé dans `tests/unit/test_handlers.py` :
+Voici un `FakeRepository` minimal :
 
 ```python
 class FakeRepository(AbstractRepository):
@@ -398,7 +401,7 @@ class TestFakeRepository:
         assert repo.get("SKU-INCONNU") is None
 ```
 
-Le `FakeRepository` peut être utilisé directement ou encapsulé dans un `FakeUnitOfWork` (que nous détaillerons au [chapitre 5](chapitre_05_unit_of_work.md)).
+Ce `FakeRepository` sera réutilisé dans les chapitres suivants, notamment avec le Unit of Work ([chapitre 5](chapitre_05_unit_of_work.md)).
 
 !!! info "Fake vs Mock"
     Un **fake** est une implémentation simplifiée mais fonctionnelle d'une interface. Il a un vrai comportement (ici : stocker et retrouver des objets). Un **mock**, en revanche, se contente de vérifier que certaines méthodes ont été appelées avec certains arguments. Les fakes sont généralement préférables car ils testent le **comportement** plutôt que l'**implémentation**.
@@ -419,8 +422,7 @@ src/allocation/
         orm.py                <-- Classical mapping SQLAlchemy
                                    Fait le lien entre model.py et la BDD
 
-tests/unit/
-    test_handlers.py          <-- FakeRepository (fake adapter pour les tests)
+tests/unit/                   <-- FakeRepository (fake adapter pour les tests)
 ```
 
 Le flux est toujours le même :
@@ -455,7 +457,7 @@ Le flux est toujours le même :
 | **Adapter** (`SqlAlchemyRepository`) | Implémentation concrète du port | `adapters/repository.py` |
 | **Classical Mapping** | Liaison entre classes du domaine et tables SQL | `adapters/orm.py` |
 | **Persistence Ignorance** | Le domaine ne connaît pas la BDD | `domain/model.py` |
-| **Fake** (`FakeRepository`) | Implémentation en mémoire pour les tests | `tests/unit/test_handlers.py` |
+| **Fake** (`FakeRepository`) | Implémentation en mémoire pour les tests | `tests/unit/` |
 
 ### Avantages
 

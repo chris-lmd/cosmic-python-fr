@@ -69,6 +69,8 @@ Elle **ne contient pas** de logique métier. La logique métier reste dans le mo
 
 ## Les handlers : fins et procéduraux
 
+Un **handler** (ou gestionnaire) est une fonction qui orchestre un cas d'utilisation. Elle reçoit les paramètres nécessaires, coordonne les appels au domaine et à l'infrastructure, puis valide la transaction. C'est l'équivalent d'un *Use Case* dans la Clean Architecture -- mais ici, c'est une simple fonction plutôt qu'une classe.
+
 Nos handlers vivent dans `src/allocation/service_layer/handlers.py`. Chaque handler prend les paramètres métier ainsi que le **repository** et la **session**, puis orchestre le workflow en quelques lignes.
 
 ### `ajouter_lot` -- créer un lot de stock
@@ -276,6 +278,9 @@ Quelques principes à retenir :
 !!! quote "Règle d'or"
 
     Si vous ne savez pas où placer un bout de code, posez-vous la question : "Est-ce une **règle métier** (domaine), une **étape du workflow** (service layer), ou une **traduction de protocole** (entrypoint) ?"
+
+!!! note "Évolution à venir"
+    Nos handlers reçoivent actuellement les paramètres métier et les dépendances d'infrastructure séparément (`réf, sku, quantité, repo, session`). Au fil des prochains chapitres, cette signature évoluera : les paramètres métier seront encapsulés dans des objets **Command** (chapitre 8), et le repository + session seront regroupés dans un **Unit of Work** (chapitre 5). Le handler deviendra encore plus fin.
 
 ---
 

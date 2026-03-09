@@ -2,6 +2,8 @@
 
 > **Comment garantir que les opérations en base de données sont atomiques, sans coupler nos handlers à SQLAlchemy ?**
 
+Une opération **atomique** est une opération indivisible : soit toutes les étapes réussissent ensemble, soit aucune n'est appliquée. Il n'y a jamais d'état intermédiaire visible.
+
 Jusqu'ici, notre architecture repose sur un repository qui abstrait l'accès à la base de données, et une service layer qui orchestre les cas d'usage. Mais une question reste ouverte : **qui gère la transaction ?**
 
 Dans ce chapitre, nous introduisons le pattern **Unit of Work** -- un context manager qui encapsule la session, le repository et la transaction dans un seul objet cohérent.
@@ -125,7 +127,7 @@ class AbstractUnitOfWork(abc.ABC):
 
 ### Le flag `_committed` : un rollback conditionnel
 
-Contrairement à une approche naïve où `__exit__` appellerait `self.rollback()` de manière inconditionnelle, notre implémentation utilise un **flag `_committed`** pour ne faire le rollback que si nécessaire. Voici pourquoi cette approche est meilleure :
+Notre implémentation utilise un **flag `_committed`** pour ne faire le rollback que si nécessaire, plutôt que d'appeler `self.rollback()` de manière inconditionnelle dans `__exit__`. Voici l'intérêt de cette approche :
 
 1. **`__enter__`** initialise `self._committed = False` à chaque entrée dans le context manager. Cela garantit un état propre pour chaque transaction.
 
@@ -272,12 +274,12 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
 
 ### Le flag `_committed` géré par la classe parente
 
-Contrairement à une implémentation où le `FakeUnitOfWork` gérerait lui-même un attribut `committed`, ici le tracking est entièrement délégué à la classe parente `AbstractUnitOfWork` via le flag `_committed`. C'est la méthode `commit()` de la classe abstraite qui :
+Le tracking du commit est délégué à la classe parente `AbstractUnitOfWork` via le flag `_committed`. C'est la méthode `commit()` de la classe abstraite qui :
 
 1. Appelle `_commit()` (ici un no-op dans le fake)
 2. Positionne `self._committed = True`
 
-Les tests peuvent alors vérifier que le commit a bien eu lieu en accédant à `uow._committed` :
+Le `FakeUnitOfWork` n'a pas besoin de gérer ce flag lui-même. Les tests peuvent vérifier que le commit a bien eu lieu en accédant à `uow._committed` :
 
 ```python
 class TestAjouterLot:
@@ -289,7 +291,7 @@ class TestAjouterLot:
         assert uow._committed  # on vérifie que le commit a eu lieu
 ```
 
-Cette approche est plus fiable car elle teste le même chemin de code que la production : `commit()` -> `_commit()` -> `_committed = True`. Si la logique de `commit()` change dans la classe abstraite, les tests en bénéficient automatiquement.
+Cette approche teste le même chemin de code que la production (`commit()` -> `_commit()` -> `_committed = True`). Si la logique de `commit()` change dans la classe abstraite, les tests en bénéficient automatiquement.
 
 ### Le `FakeRepository` et l'attribut `seen`
 

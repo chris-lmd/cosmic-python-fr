@@ -9,6 +9,8 @@
 
 Nos handlers ont besoin de collaborateurs pour fonctionner. Le handler `allouer` a besoin d'un `AbstractUnitOfWork`. Le handler `envoyer_notification_rupture_stock` a besoin d'un `AbstractNotifications`. Mais **qui fournit ces objets ?**
 
+L'**injection de dépendances** (Dependency Injection) est un pattern simple : au lieu qu'une fonction crée elle-même les objets dont elle a besoin, elle les reçoit en paramètre. C'est exactement ce que nous faisons depuis le [chapitre 4](../partie1/chapitre_04_service_layer.md) quand nos handlers reçoivent `repo` et `session` (puis `uow`) en argument plutôt que de les instancier eux-mêmes. Ce chapitre formalise cette pratique et montre comment assembler toutes les dépendances en un seul endroit.
+
 ### Option 1 : le handler crée ses propres dépendances (mauvais)
 
 ```python
@@ -168,67 +170,23 @@ Chaque command est mappée à **un seul** handler :
 
 ---
 
-## L'injection automatique : `_call_handler()`
+## Comment les dépendances arrivent aux handlers
 
-Le mécanisme d'injection est au cœur du Message Bus (chapitre 9). Revistons-le en détail :
+Le dictionnaire `dependencies` construit par `bootstrap()` est passé au `MessageBus`. Quand le bus appelle un handler, il inspecte sa signature pour déterminer quelles dépendances injecter automatiquement. Le mécanisme détaillé (`_call_handler()`) est présenté au [chapitre 10](chapitre_10_message_bus.md).
 
-```python
-def _call_handler(self, handler: Callable, message: Message) -> Any:
-    params = inspect.signature(handler).parameters
-    kwargs: dict[str, Any] = {}
-    for name, param in params.items():
-        if name == list(params.keys())[0]:
-            continue  # premier paramètre = le message
-        if name == "uow":
-            kwargs[name] = self.uow
-        elif name in self.dependencies:
-            kwargs[name] = self.dependencies[name]
-    return handler(message, **kwargs)
-```
-
-### Comment ça marche, pas à pas
-
-Prenons le handler `envoyer_notification_rupture_stock` :
+Le principe est simple : chaque handler déclare ce dont il a besoin dans sa signature, et le bus fournit les objets correspondants à partir du dictionnaire de dépendances.
 
 ```python
+# Le handler déclare ses besoins :
 def envoyer_notification_rupture_stock(
-    event: events.RuptureDeStock,       # paramètre 1 : le message
-    notifications: AbstractNotifications, # paramètre 2 : une dépendance
+    event: events.RuptureDeStock,         # le message (passé par le bus)
+    notifications: AbstractNotifications,  # dépendance (injectée par le bus)
 ) -> None:
     notifications.send(...)
+
+# Le bus résout "notifications" dans le dictionnaire de dépendances
+# et appelle : handler(event, notifications=<EmailNotifications>)
 ```
-
-1. **`inspect.signature(handler).parameters`** retourne :
-   ```
-   OrderedDict([
-       ('event', <Parameter "event: events.RuptureDeStock">),
-       ('notifications', <Parameter "notifications: AbstractNotifications">),
-   ])
-   ```
-
-2. **Premier paramètre** (`event`) : c'est le message. On le saute -- il sera passé en positional.
-
-3. **Deuxième paramètre** (`notifications`) :
-   - Ce n'est pas `uow`, donc on cherche dans `self.dependencies`.
-   - `self.dependencies["notifications"]` existe (il a été mis là par `bootstrap()`).
-   - On l'ajoute aux kwargs.
-
-4. **Appel final** : `handler(event, notifications=<EmailNotifications>)`.
-
-### Autre exemple : un handler avec `uow`
-
-```python
-def allouer(cmd: commands.Allouer, uow: AbstractUnitOfWork) -> str:
-    ...
-```
-
-1. Premier paramètre (`cmd`) : le message, passé en positional.
-2. Deuxième paramètre (`uow`) : le nom est `uow`, donc on injecte `self.uow` directement.
-3. Appel : `handler(cmd, uow=<SqlAlchemyUnitOfWork>)`.
-
-### Le UoW est traité à part
-
-Notez que le `uow` n'est pas dans le dictionnaire `dependencies` : il est géré séparément car le MessageBus en a besoin pour `collect_new_events()`. C'est un cas spécial justifié par le rôle central du UoW dans le cycle de vie des events.
 
 ---
 
@@ -405,4 +363,4 @@ Trois points d'entrée différents, **le même bus**, **le même wiring**. Seule
 
 ---
 
-*Fin de la Partie 2. Consultez l'[épilogue](../epilogue.md) pour un récapitulatif de l'architecture complète.*
+*Chapitre suivant : [Le Message Bus](chapitre_10_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*

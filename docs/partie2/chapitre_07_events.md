@@ -5,9 +5,16 @@
 
 ---
 
+!!! abstract "Bienvenue dans la partie 2"
+    Dans la partie 1, nous avons construit les fondations : un modèle de domaine pur, un Repository pour la persistance, une Service Layer pour l'orchestration, et un Unit of Work pour les transactions. Nos handlers recevaient les paramètres métier directement (`allouer(id_commande, sku, quantité, uow)`).
+
+    Dans cette partie 2, nous allons faire évoluer cette architecture. Les paramètres métier seront encapsulés dans des objets **Command** et **Event**, et un **Message Bus** distribuera ces messages aux bons handlers. Cette évolution permet le découplage et l'extensibilité, au prix d'un niveau d'indirection supplémentaire. Chaque chapitre introduira un concept en renvoyant aux suivants quand nécessaire -- l'image complète se formera progressivement.
+
+---
+
 ## Le problème : des effets de bord couplés aux handlers
 
-Au chapitre 5, nous avons introduit la service layer avec des handlers fins qui orchestrent les opérations métier. Nos handlers `allouer` et `ajouter_lot` font bien leur travail : ils coordonnent le domaine et le Unit of Work.
+Dans les chapitres précédents, nous avons introduit la service layer avec des handlers fins qui orchestrent les opérations métier. Nos handlers `allouer` et `ajouter_lot` font bien leur travail : ils coordonnent le domaine et le Unit of Work.
 
 Mais la réalité rattrape vite une architecture simple. Quand une allocation réussit, le système doit probablement :
 
@@ -112,6 +119,9 @@ L'immutabilité est essentielle pour les events :
 2. **Sécurité** : plusieurs handlers peuvent réagir au même event sans risque qu'un handler modifie l'event pour les suivants.
 3. **Traçabilité** : les events forment un journal fiable de ce qui s'est passé dans le système.
 
+!!! note "Pourquoi `frozen=True` ici mais `unsafe_hash=True` au chapitre 1 ?"
+    Au chapitre 1, nous avons expliqué que `frozen=True` est incompatible avec le mapping ORM de SQLAlchemy (l'ORM a besoin d'assigner `_sa_instance_state` aux objets qu'il charge). Les events n'ont pas ce problème : ils ne sont pas persistés via l'ORM et ne sont jamais chargés depuis la base de données. Leur immutabilité est donc une pure garantie de sécurité, sans compromis.
+
 ### La classe de base `Event`
 
 La classe `Event` est un simple marqueur (marker class). Elle ne porte aucun comportement, mais elle permet de distinguer les events des autres types de messages dans le système. Nous verrons au chapitre 8 qu'il existe un autre type de message, les **Commands**, qui héritent d'une classe `Command` séparée.
@@ -194,7 +204,7 @@ Quand la quantité d'un lot est réduite en dessous des allocations existantes, 
 
 ## La récolte des events : `collect_new_events()`
 
-Les events sont émis par les agrégats, mais qui les récupère ? C'est le **Unit of Work** (introduit au chapitre 4) qui s'en charge, grâce à la méthode `collect_new_events()` :
+Les events sont émis par les agrégats, mais qui les récupère ? C'est le **Unit of Work** (introduit au [chapitre 5](../partie1/chapitre_05_unit_of_work.md)) qui s'en charge, grâce à la méthode `collect_new_events()` :
 
 ```python
 class AbstractUnitOfWork(abc.ABC):
@@ -255,6 +265,9 @@ Scénario AVEC garde-fou :
 ## Les handlers d'events : réagir aux faits
 
 Maintenant que nous savons comment les events sont émis et collectés, voyons comment le système **réagit** à ces events. Chaque event peut avoir un ou plusieurs **handlers** -- des fonctions qui réagissent au fait passé.
+
+!!! info "Qui distribue les events aux handlers ?"
+    Les events collectés par le UoW doivent être distribués aux bons handlers. C'est le rôle du **Message Bus**, que nous détaillerons au [chapitre 10](chapitre_10_message_bus.md). Pour l'instant, retenez le principe : le UoW collecte les events émis par les agrégats, et un mécanisme central (le bus) se charge de les dispatcher aux handlers enregistrés. Ce chapitre se concentre sur la définition des events et de leurs handlers -- le câblage viendra plus tard.
 
 ### `envoyer_notification_rupture_stock`
 

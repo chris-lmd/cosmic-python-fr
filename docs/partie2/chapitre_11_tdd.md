@@ -45,7 +45,7 @@ La raison est économique. Plus un test est haut dans la pyramide :
 
 Les tests **high gear** sont ceux qui passent par la **service layer**. Ils ne connaissent pas les détails internes du domaine. Ils envoient des commands et vérifient les résultats.
 
-C'est notre fichier `tests/unit/test_handlers.py`, qui utilise les fakes définis aux chapitres précédents : le `FakeRepository` ([chapitre 3](../partie1/chapitre_03_repository.md)) et le `FakeUnitOfWork` ([chapitre 4](../partie1/chapitre_05_unit_of_work.md)). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
+C'est notre fichier `tests/unit/test_handlers.py`, qui utilise les fakes définis aux chapitres précédents : le `FakeRepository` ([chapitre 3](../partie1/chapitre_03_repository.md)) et le `FakeUnitOfWork` ([chapitre 5](../partie1/chapitre_05_unit_of_work.md)). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
 
 ### Des tests qui expriment le "quoi"
 

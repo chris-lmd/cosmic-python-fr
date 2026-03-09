@@ -2,6 +2,8 @@
 
 ## Le problème du couplage
 
+Dans les chapitres 3 à 5, nous avons introduit des abstractions -- `AbstractRepository`, `AbstractUnitOfWork` -- sans toujours formaliser le principe sous-jacent. Ce chapitre prend du recul : pourquoi abstraire, quand le faire, et quel cadre conceptuel utiliser.
+
 Imaginez un système d'allocation de stock où chaque composant connaît directement
 tous les autres. Le service layer appelle SQLAlchemy. Les handlers envoient des
 emails via `smtplib`. Les tests doivent démarrer une base de données et un serveur

@@ -404,4 +404,4 @@ Le domaine ne sait pas d'où viennent les commands ni où partent les events.
 
 ---
 
-*Prochain chapitre : [Injection de dépendances](chapitre_09_bootstrap_di.md)*
+*Chapitre suivant : [Épilogue -- Pièges, compromis et conseils pragmatiques](../epilogue.md)*
