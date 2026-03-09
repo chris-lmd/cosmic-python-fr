@@ -1,4 +1,4 @@
-# Chapitre 9 -- Le Message Bus
+# Chapitre 10 -- Le Message Bus
 
 > **Pattern** : Message Bus
 > **Problème résolu** : Comment distribuer Commands et Events vers les bons handlers, gérer les cascades, et injecter les dépendances ?
@@ -14,7 +14,7 @@ Le Message Bus est le point central de notre architecture. **Tout passe par lui*
 ```
                          ┌──────────────────────────┐
                          │                          │
-  Flask (HTTP) ─────────>│                          │──> ajouter_lot()
+  FastAPI (HTTP) ────────>│                          │──> ajouter_lot()
                          │                          │──> allouer()
   Redis (events) ──────>│      Message Bus          │──> modifier_quantite_lot()
                          │                          │──> réallouer()
@@ -24,7 +24,7 @@ Le Message Bus est le point central de notre architecture. **Tout passe par lui*
                          └──────────────────────────┘
 ```
 
-L'API Flask ne connaît pas les handlers. Les handlers ne connaissent pas Flask. Le bus est l'intermédiaire qui découple tout.
+L'API FastAPI ne connaît pas les handlers. Les handlers ne connaissent pas FastAPI. Le bus est l'intermédiaire qui découple tout.
 
 ---
 
@@ -155,8 +155,8 @@ def _handle_command(self, command: commands.Command) -> Any:
 Trois points clés :
 
 1. **Un seul handler** par command. Le dictionnaire mappe un type de command à une seule fonction. Si le handler n'existe pas, c'est une `ValueError`.
-2. **L'exception remonte** directement à l'appelant. Pas de `try/except` ici -- contrairement aux events. Si `allouer` lève `SkuInconnu`, Flask reçoit l'exception et retourne une erreur 400.
-3. **Le résultat est retourné**. Par exemple, `allouer` retourne la référence du lot choisi, que Flask inclut dans la réponse JSON.
+2. **L'exception remonte** directement à l'appelant. Pas de `try/except` ici -- contrairement aux events. Si `allouer` lève `SkuInconnu`, FastAPI reçoit l'exception et retourne une erreur 400.
+3. **Le résultat est retourné**. Par exemple, `allouer` retourne la référence du lot choisi, que FastAPI inclut dans la réponse JSON.
 4. **Les events sont collectés** après l'exécution du handler et ajoutés à la queue pour traitement ultérieur.
 
 ---
@@ -249,21 +249,20 @@ C'est un simple dictionnaire. Ajouter un nouveau handler pour un event existant 
 
 ---
 
-## Flask comme adaptateur mince
+## FastAPI comme adaptateur mince
 
-Avec le Message Bus en place, Flask devient un simple **traducteur HTTP vers Commands** :
+Avec le Message Bus en place, FastAPI devient un simple **adaptateur HTTP vers Commands** :
 
 ```python
 from allocation.domain import commands
 from allocation.service_layer import bootstrap, handlers
 
-app = Flask(__name__)
+app = FastAPI()
 bus = bootstrap.bootstrap()
 
 
-@app.route("/add_batch", methods=["POST"])
-def add_batch_endpoint():
-    data = request.json
+@app.post("/add_batch", status_code=201)
+def add_batch_endpoint(data: dict):
     eta = data.get("eta")
     if eta is not None:
         eta = datetime.fromisoformat(eta).date()
@@ -272,12 +271,11 @@ def add_batch_endpoint():
         réf=data["ref"], sku=data["sku"], quantité=data["qty"], eta=eta,
     )
     bus.handle(cmd)
-    return "OK", 201
+    return "OK"
 
 
-@app.route("/allocate", methods=["POST"])
-def allocate_endpoint():
-    data = request.json
+@app.post("/allocate", status_code=201)
+def allocate_endpoint(data: dict):
     try:
         cmd = commands.Allouer(
             id_commande=data["orderid"], sku=data["sku"], quantité=data["qty"],
@@ -285,17 +283,17 @@ def allocate_endpoint():
         results = bus.handle(cmd)
         réf_lot = results.pop(0)
     except handlers.SkuInconnu as e:
-        return jsonify({"message": str(e)}), 400
-    return jsonify({"batchref": réf_lot}), 201
+        return {"message": str(e)}
+    return {"batchref": réf_lot}
 
 
-@app.route("/allocations/<id_commande>", methods=["GET"])
-def allocations_view_endpoint(id_commande):
+@app.get("/allocations/{id_commande}")
+def allocations_view_endpoint(id_commande: str):
     from allocation.views import views
     result = views.allocations(id_commande, bus.uow)
     if not result:
-        return "not found", 404
-    return jsonify(result), 200
+        return "not found"
+    return result
 ```
 
 Chaque endpoint fait trois choses et rien de plus :
@@ -304,7 +302,7 @@ Chaque endpoint fait trois choses et rien de plus :
 2. **Envoie** la Command au bus via `bus.handle(cmd)`.
 3. **Sérialise** le résultat en réponse HTTP.
 
-Aucune logique métier, aucun appel direct aux handlers, aucune connaissance du domaine. Si demain on remplace Flask par FastAPI ou par une CLI, seule cette couche change.
+Aucune logique métier, aucun appel direct aux handlers, aucune connaissance du domaine. Si demain on remplace FastAPI par une CLI, seule cette couche change.
 
 ---
 
@@ -497,7 +495,7 @@ Avec le Message Bus, l'architecture prend cette forme :
 ```
 ┌──────────────┐     ┌──────────────────────────────────────────────┐
 │              │     │              Message Bus                     │
-│   Flask      │     │                                              │
+│   FastAPI    │     │                                              │
 │   (HTTP)     │────>│  handle(Command)                             │
 │              │     │      │                                       │
 └──────────────┘     │      v                                       │
@@ -520,7 +518,7 @@ Les avantages de cette architecture :
 
 | Avantage | Explication |
 |----------|------------|
-| **Découplage** | Les points d'entrée (Flask, Redis, tests) ne connaissent pas les handlers. |
+| **Découplage** | Les points d'entrée (FastAPI, Redis, tests) ne connaissent pas les handlers. |
 | **Extensibilité** | Ajouter un handler = ajouter une entrée dans un dictionnaire. Open/Closed. |
 | **Testabilité** | Le même bus avec des fakes permet de tester toute la logique sans I/O. |
 | **Cascade** | Les events déclenchent automatiquement de nouvelles actions via la queue. |
@@ -538,7 +536,7 @@ Les avantages de cette architecture :
 | **`_handle_event`** | N handlers, exceptions loggées, pas de retour. |
 | **`_call_handler`** | Injection de dépendances par introspection de la signature du handler. |
 | **Cascade** | Un handler peut émettre des events qui déclenchent d'autres handlers, en chaîne. |
-| **Flask adaptateur** | L'API convertit HTTP en Commands et les envoie au bus. Zéro logique métier. |
+| **FastAPI adaptateur** | L'API convertit HTTP en Commands et les envoie au bus. Zéro logique métier. |
 | **`bootstrap_test_bus()`** | Assemble le bus avec des fakes. Même wiring que la production. |
 
 ---
@@ -560,8 +558,8 @@ Les avantages de cette architecture :
 ---
 
 !!! quote "À retenir"
-    Le Message Bus transforme l'application en une architecture réactive où tout est message. Les Commands entrent, les Events cascadent, et les handlers réagissent. Le bus est le seul point d'entrée -- Flask, Redis, et les tests ne sont que des adaptateurs qui fabriquent des messages et les envoient au bus.
+    Le Message Bus transforme l'application en une architecture réactive où tout est message. Les Commands entrent, les Events cascadent, et les handlers réagissent. Le bus est le seul point d'entrée -- FastAPI, Redis, et les tests ne sont que des adaptateurs qui fabriquent des messages et les envoient au bus.
 
 ---
 
-*Chapitre suivant : [TDD à haute et basse vitesse](chapitre_10_tdd.md) -- comment tester efficacement une architecture orientée messages.*
+*Chapitre suivant : [TDD à haute et basse vitesse](chapitre_11_tdd.md) -- comment tester efficacement une architecture orientée messages.*

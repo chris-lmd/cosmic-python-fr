@@ -72,74 +72,25 @@ et ce sont les couches d'infrastructure qui fournissent les implémentations con
 
 ### Illustration avec le Repository
 
-Voici comment notre projet applique ce principe. D'abord, l'abstraction -- le
-**port** -- qui définit le contrat :
+Voici comment notre projet applique ce principe. L'abstraction -- le **port** --
+définit le contrat :
 
 ```python
-# src/allocation/adapters/repository.py
-
+# Rappel : l'interface définie au chapitre 3
 class AbstractRepository(abc.ABC):
-    """
-    Interface abstraite du repository.
-    Définit le contrat que tout repository doit respecter.
-    """
-
-    def __init__(self) -> None:
-        self.seen: set[model.Produit] = set()
-
-    def add(self, produit: model.Produit) -> None:
-        """Ajoute un produit au repository et le marque comme vu."""
-        self._add(produit)
-        self.seen.add(produit)
-
-    def get(self, sku: str) -> model.Produit | None:
-        """Récupère un produit par son SKU et le marque comme vu."""
-        produit = self._get(sku)
-        if produit:
-            self.seen.add(produit)
-        return produit
-
-    @abc.abstractmethod
-    def _add(self, produit: model.Produit) -> None:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _get(self, sku: str) -> model.Produit | None:
-        raise NotImplementedError
+    def add(self, produit: model.Produit) -> None: ...
+    def get(self, sku: str) -> model.Produit | None: ...
 ```
 
-Remarquez la structure : les méthodes publiques `add` et `get` contiennent la
-logique commune (le tracking via `self.seen`), tandis que les méthodes préfixées
-par `_` sont les points d'extension que chaque implémentation concrète doit fournir.
-C'est le **Template Method** pattern au service du DIP.
+L'interface complète a été présentée au [chapitre 3](chapitre_03_repository.md).
+L'essentiel est que le domaine dépend de cette **abstraction**, jamais de
+l'implémentation concrète.
 
-Ensuite, l'implémentation concrète -- l'**adapter** -- qui sait parler à
-SQLAlchemy :
-
-```python
-# src/allocation/adapters/repository.py
-
-class SqlAlchemyRepository(AbstractRepository):
-    """Implémentation concrète du repository avec SQLAlchemy."""
-
-    def __init__(self, session: Session):
-        super().__init__()
-        self.session = session
-
-    def _add(self, produit: model.Produit) -> None:
-        self.session.add(produit)
-
-    def _get(self, sku: str) -> model.Produit | None:
-        return (
-            self.session.query(model.Produit)
-            .filter_by(sku=sku)
-            .first()
-        )
-```
-
-Le Service Layer reçoit un `AbstractRepository`. Il ne sait pas -- et **n'a pas
-besoin de savoir** -- si derrière se cache PostgreSQL, un fichier CSV, ou un
-simple dictionnaire en mémoire.
+L'implémentation concrète `SqlAlchemyRepository` (détaillée au
+[chapitre 3](chapitre_03_repository.md)) respecte ce contrat en déléguant à une
+session SQLAlchemy. Le Service Layer reçoit un `AbstractRepository` : il ne sait
+pas -- et **n'a pas besoin de savoir** -- si derrière se cache PostgreSQL, un
+fichier CSV, ou un simple dictionnaire en mémoire.
 
 ### Illustration avec les notifications
 
@@ -233,48 +184,17 @@ toucher au domaine ni à la logique d'orchestration.
 
 ## Quand abstraire, quand ne pas abstraire
 
-L'abstraction est un outil puissant, mais elle a un coût : l'**indirection**.
-Chaque couche d'abstraction ajoute un fichier, une interface, un niveau
-supplémentaire à comprendre pour le développeur qui lit le code.
+L'abstraction a un coût : l'**indirection**. Une heuristique utile est la
+**règle des 3** : si vous avez (ou prévoyez) au moins 3 implémentations ou
+3 raisons de changer un composant, l'abstraction se justifie. Dans notre cas,
+le `Repository` a déjà `SqlAlchemyRepository`, `FakeRepository` et pourrait
+accueillir un `RedisRepository` -- le pattern est évident.
 
-!!! warning "Le piège de l'abstraction prématurée"
-    Abstraire trop tôt, c'est construire un pont avant de savoir où passe la
-    rivière. On risque de créer des abstractions inutiles qui compliquent le
-    code sans apporter de valeur.
-
-### La règle des 3
-
-Une heuristique utile est la **règle des 3** :
-
-1. **3 implémentations** : Si vous n'avez qu'une seule implémentation (par
-   exemple, un seul type de base de données), l'abstraction est peut-être
-   prématurée. Quand vous en avez 3 (SQL, fichier, in-memory pour les tests),
-   le pattern devient évident.
-
-2. **3 raisons de changer** : Si un composant pourrait changer pour 3 raisons
-   différentes (changer de BDD, améliorer les performances, supporter un
-   nouveau format), c'est un bon candidat pour une abstraction.
-
-Dans notre cas, le `Repository` a au moins deux implémentations dès le départ :
-
-- `SqlAlchemyRepository` pour la production
-- `FakeRepository` pour les tests
-
-Et on pourrait facilement imaginer un `RedisRepository` pour du cache, ou un
-`FileRepository` pour de l'export. L'abstraction se justifie pleinement.
-
-### Quand NE PAS abstraire
-
-Ne créez pas d'abstraction si :
-
-- Il n'y a qu'une seule implémentation et aucune raison prévisible d'en avoir
-  une deuxième.
-- Le code est si simple qu'une abstraction le rendrait **plus** difficile à lire.
-- Vous le faites "au cas où". Le **YAGNI** (You Ain't Gonna Need It) est
-  un contrepoids sain au DIP.
-
-Le bon réflexe : commencez concret, puis extrayez l'abstraction quand le
-besoin se manifeste. Le refactoring est moins coûteux qu'une mauvaise abstraction.
+À l'inverse, ne créez pas d'abstraction si une seule implémentation suffit,
+si le code est si simple qu'une interface le rendrait plus obscur, ou si vous
+le faites « au cas où ». Le **YAGNI** (You Ain't Gonna Need It) est un
+contrepoids sain au DIP. Commencez concret, puis extrayez l'abstraction quand
+le besoin se manifeste.
 
 ---
 
@@ -284,13 +204,11 @@ L'un des bénéfices les plus immédiats de l'architecture Ports and Adapters
 est la possibilité de faire du **edge-to-edge testing** : tester de bout en
 bout sans infrastructure réelle, en remplaçant les adapters par des **fakes**.
 
-### Le FakeRepository
+### Les Fakes
 
-On réutilise le `FakeRepository` défini au [chapitre 3](chapitre_03_repository.md) : une implémentation en mémoire qui stocke les produits dans un simple `set` Python, respectant exactement le même contrat que `SqlAlchemyRepository`. Pas de base de données, pas de connexion, pas de migration. Les tests s'exécutent en millisecondes.
-
-### Le FakeNotifications
-
-Le même principe s'applique aux notifications. Le `FakeNotifications` stocke les appels dans une liste au lieu d'envoyer de vrais emails :
+Le `FakeRepository` défini au [chapitre 3](chapitre_03_repository.md) respecte
+le même contrat avec un simple `set` Python. Le même principe s'applique aux
+notifications :
 
 ```python
 class FakeNotifications(AbstractNotifications):

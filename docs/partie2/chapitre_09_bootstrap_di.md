@@ -1,4 +1,4 @@
-# Chapitre 13 -- Injection de dépendances et bootstrap
+# Chapitre 9 -- Bootstrap et injection de dépendances
 
 > **Pattern** : Dependency Injection + Composition Root
 > **Problème résolu** : Comment assembler tous les composants (handlers, UoW, notifications, bus) sans créer de couplage entre eux ?
@@ -350,7 +350,7 @@ Et voici comment les différents points d'entrée utilisent le bus :
 
 ```
 ┌───────────────┐
-│   flask_app   │  bus = bootstrap.bootstrap()
+│  fastapi_app  │  bus = bootstrap.bootstrap()
 │               │  bus.handle(commands.CréerLot(...))
 │               │  bus.handle(commands.Allouer(...))
 └───────────────┘

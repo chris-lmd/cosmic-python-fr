@@ -44,8 +44,8 @@ Les patterns présentés ici résolvent ces problèmes en :
 | [1. Le modèle de domaine](partie1/chapitre_01_modele_domaine.md) | Domain Model | Où mettre la logique métier ? |
 | [2. Agrégats et frontières](partie1/chapitre_02_aggregats.md) | Aggregate | Comment garantir la cohérence ? |
 | [3. Le pattern Repository](partie1/chapitre_03_repository.md) | Repository | Comment découpler le domaine de la BDD ? |
-| [4. Le pattern Unit of Work](partie1/chapitre_04_unit_of_work.md) | Unit of Work | Comment gérer les transactions ? |
-| [5. La Service Layer](partie1/chapitre_05_service_layer.md) | Service Layer | Où placer l'orchestration ? |
+| [4. La Service Layer](partie1/chapitre_04_service_layer.md) | Service Layer | Où placer l'orchestration ? |
+| [5. Le pattern Unit of Work](partie1/chapitre_05_unit_of_work.md) | Unit of Work | Comment gérer les transactions ? |
 | [6. Couplage et abstractions](partie1/chapitre_06_abstractions.md) | Dependency Inversion | Pourquoi et comment introduire des abstractions ? |
 
 ### Partie 2 — Architecture événementielle
@@ -54,11 +54,11 @@ Les patterns présentés ici résolvent ces problèmes en :
 |----------|---------|-----------------|
 | [7. Domain Events](partie2/chapitre_07_events.md) | Domain Events | Comment réagir aux changements du domaine ? |
 | [8. Commands vs Events](partie2/chapitre_08_commands.md) | Command | Comment distinguer intentions et faits ? |
-| [9. Le Message Bus](partie2/chapitre_09_message_bus.md) | Message Bus | Comment le bus devient le coeur de l'architecture ? |
-| [10. TDD à haute et basse vitesse](partie2/chapitre_10_tdd.md) | Testing Pyramid | Comment tester efficacement ? |
-| [11. CQRS](partie2/chapitre_11_cqrs.md) | CQRS | Comment optimiser lectures et écritures séparément ? |
-| [12. Events externes](partie2/chapitre_12_events_externes.md) | Integration Events | Comment communiquer entre services ? |
-| [13. Injection de dépendances](partie2/chapitre_13_injection_dependances.md) | Dependency Injection | Comment assembler les composants proprement ? |
+| [9. Bootstrap et injection de dépendances](partie2/chapitre_09_bootstrap_di.md) | Bootstrap + DI | Comment assembler les composants proprement ? |
+| [10. Le Message Bus](partie2/chapitre_10_message_bus.md) | Message Bus | Comment le bus devient le cœur de l'architecture ? |
+| [11. TDD à haute et basse vitesse](partie2/chapitre_11_tdd.md) | Testing Pyramid | Comment tester efficacement ? |
+| [12. CQRS](partie2/chapitre_12_cqrs.md) | CQRS | Comment optimiser lectures et écritures séparément ? |
+| [13. Events externes](partie2/chapitre_13_events_externes.md) | Integration Events | Comment communiquer entre services ? |
 
 ### Épilogue
 

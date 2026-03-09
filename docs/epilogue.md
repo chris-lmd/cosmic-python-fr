@@ -19,7 +19,7 @@ Mais ces patterns ne sont pas gratuits. Ils ajoutent de la complexité, de l'ind
                            │
         ┌──────────────────▼──────────────────────┐
         │              ENTRYPOINTS                 │
-        │   Flask API  │  Redis Consumer  │  CLI   │
+        │  FastAPI     │  Redis Consumer  │  CLI   │
         │   (thin adapters — traduisent le         │
         │    protocole externe en commands)         │
         └──────────────────┬──────────────────────┘

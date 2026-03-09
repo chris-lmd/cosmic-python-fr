@@ -220,4 +220,4 @@ Monde extérieur                     Domaine                    Réactions
 
 ---
 
-*Chapitre suivant : [Le Message Bus](chapitre_09_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*
+*Chapitre suivant : [Le Message Bus](chapitre_10_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*

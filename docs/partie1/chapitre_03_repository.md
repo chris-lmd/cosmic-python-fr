@@ -123,7 +123,7 @@ Ce pattern (parfois appelé **Template Method**) garantit que le comportement de
 
 ### L'attribut `seen`
 
-L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 4](chapitre_04_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels events doivent être collectés et traités.
+L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 4](chapitre_05_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels agrégats doivent être pris en compte lors du commit.
 
 ```python
 repo.add(produit)          # produit est ajouté à seen
@@ -207,7 +207,7 @@ class Produit:
         self.sku = sku
         self.lots = lots or []
         self.numéro_version = numéro_version
-        self.événements: list[events.Event] = []
+        self.événements: list[events.Event] = []  # (nous verrons le rôle de cette liste au [chapitre 7](../partie2/chapitre_07_events.md))
 
     def allouer(self, ligne: LigneDeCommande) -> str:
         # ... logique métier pure ...
@@ -380,24 +380,25 @@ Les tests qui utilisent le `FakeRepository` sont :
 Voici un exemple de test concret utilisant le fake :
 
 ```python
-class TestAjouterLot:
-    def test_ajouter_un_lot(self):
-        bus = bootstrap_test_bus()
-        bus.handle(commands.CréerLot("b1", "COUSSIN-CARRE", 100, None))
+class TestFakeRepository:
+    def test_ajouter_et_recuperer_un_produit(self):
+        repo = FakeRepository()
+        produit = model.Produit(sku="COUSSIN-CARRE", lots=[
+            model.Lot(réf="b1", sku="COUSSIN-CARRE", quantité=100)
+        ])
+        repo.add(produit)
 
-        assert bus.uow.produits.get("COUSSIN-CARRE") is not None
-        assert bus.uow._committed
+        récupéré = repo.get("COUSSIN-CARRE")
+        assert récupéré is not None
+        assert récupéré.sku == "COUSSIN-CARRE"
+        assert len(récupéré.lots) == 1
 
-    def test_ajouter_lot_produit_existant(self):
-        bus = bootstrap_test_bus()
-        bus.handle(commands.CréerLot("b1", "LAMPE-RONDE", 100, None))
-        bus.handle(commands.CréerLot("b2", "LAMPE-RONDE", 99, None))
-
-        produit = bus.uow.produits.get("LAMPE-RONDE")
-        assert len(produit.lots) == 2
+    def test_get_retourne_none_si_inexistant(self):
+        repo = FakeRepository()
+        assert repo.get("SKU-INCONNU") is None
 ```
 
-Le `FakeRepository` est imbriqué dans un `FakeUnitOfWork` (que nous détaillerons au [chapitre 4](chapitre_04_unit_of_work.md)), mais le principe est le même : on remplace l'adapter concret par un fake, et le code métier ne voit pas la différence.
+Le `FakeRepository` peut être utilisé directement ou encapsulé dans un `FakeUnitOfWork` (que nous détaillerons au [chapitre 5](chapitre_05_unit_of_work.md)).
 
 !!! info "Fake vs Mock"
     Un **fake** est une implémentation simplifiée mais fonctionnelle d'une interface. Il a un vrai comportement (ici : stocker et retrouver des objets). Un **mock**, en revanche, se contente de vérifier que certaines méthodes ont été appelées avec certains arguments. Les fakes sont généralement préférables car ils testent le **comportement** plutôt que l'**implémentation**.
@@ -474,4 +475,4 @@ Le flux est toujours le même :
 
 ---
 
-**Prochain chapitre** : [Le pattern Unit of Work](chapitre_04_unit_of_work.md), où nous verrons comment encapsuler la transaction dans un context manager pour garantir l'atomicité des opérations.
+**Prochain chapitre** : [Le pattern Unit of Work](chapitre_05_unit_of_work.md), où nous verrons comment encapsuler la transaction dans un context manager pour garantir l'atomicité des opérations.

@@ -1,4 +1,4 @@
-# Chapitre 11 -- CQRS (Command Query Responsibility Segregation)
+# Chapitre 12 -- CQRS (Command Query Responsibility Segregation)
 
 ## Le problème de la lecture
 
@@ -73,7 +73,7 @@ appliqué à l'échelle de l'architecture :
    CQRS : deux chemins distincts pour deux besoins distincts.
 
    ┌──────────────────────────────────────────────────────────────────┐
-   │                          API Flask                               │
+   │                          API FastAPI                              │
    │                                                                  │
    │   POST /allocate              GET /allocations/<id_commande>     │
    │        │                              │                          │
@@ -229,12 +229,12 @@ Pas de `Produit`, pas de `Lot`, pas de `LigneDeCommande`. Pas de reconstruction
 d'agrégat, pas de traversée de relations. La requête va directement chercher
 les données là où elles sont, dans le format exact dont l'API a besoin.
 
-Le endpoint Flask qui utilise cette view est tout aussi direct :
+Le endpoint FastAPI qui utilise cette view est tout aussi direct :
 
 ```python
-# src/allocation/entrypoints/flask_app.py
+# src/allocation/entrypoints/fastapi_app.py
 
-@app.route("/allocations/<id_commande>", methods=["GET"])
+@app.get("/allocations/{id_commande}")
 def allocations_view_endpoint(id_commande: str):
     """
     GET /allocations/<id_commande>
@@ -245,8 +245,8 @@ def allocations_view_endpoint(id_commande: str):
 
     result = views.allocations(id_commande, bus.uow)
     if not result:
-        return "not found", 404
-    return jsonify(result), 200
+        return "not found"
+    return result
 ```
 
 Le contraste avec les endpoints d'écriture est frappant :
@@ -521,4 +521,4 @@ distincts, chacun optimisé pour son cas d'usage.
 
 ---
 
-*Prochain chapitre : [Events externes](chapitre_12_events_externes.md)*
+*Prochain chapitre : [Events externes](chapitre_13_events_externes.md)*

@@ -69,7 +69,7 @@ cosmic-python-fr/
 │   │   ├── commands.py      # Messages de type Command
 │   │   └── events.py        # Messages de type Event
 │   ├── entrypoints/         # Points d'entrée
-│   │   └── flask_app.py     # API REST Flask
+│   │   └── fastapi_app.py   # API REST FastAPI
 │   ├── service_layer/       # Couche service
 │   │   ├── handlers.py      # Handlers (orchestration)
 │   │   ├── messagebus.py    # Message Bus
@@ -89,9 +89,9 @@ cosmic-python-fr/
 
 Le guide est organisé en **deux parties** qui se lisent dans l'ordre :
 
-**Partie 1 (Chapitres 1-6)** introduit les fondations : modèle de domaine, Agrégats, Repository, Unit of Work, Service Layer, et abstractions. Chaque chapitre ajoute un pattern et montre comment il résout un problème concret.
+**Partie 1 (Chapitres 1-6)** introduit les fondations : modèle de domaine, Agrégats, Repository, Service Layer, Unit of Work et abstractions. Chaque chapitre ajoute un pattern et montre comment il résout un problème concret.
 
-**Partie 2 (Chapitres 7-13)** construit l'architecture événementielle : Domain Events, Commands, Message Bus, TDD, CQRS, events externes et injection de dépendances.
+**Partie 2 (Chapitres 7-13)** construit l'architecture événementielle : Domain Events, Commands, Bootstrap et injection de dépendances, Message Bus, TDD, CQRS et events externes.
 
 !!! tip "Conseils de lecture"
 

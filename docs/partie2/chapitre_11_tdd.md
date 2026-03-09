@@ -1,4 +1,4 @@
-# Chapitre 10 -- TDD à haute et basse vitesse
+# Chapitre 11 -- TDD à haute et basse vitesse
 
 ## Où en sommes-nous ?
 
@@ -45,7 +45,7 @@ La raison est économique. Plus un test est haut dans la pyramide :
 
 Les tests **high gear** sont ceux qui passent par la **service layer**. Ils ne connaissent pas les détails internes du domaine. Ils envoient des commands et vérifient les résultats.
 
-C'est notre fichier `tests/unit/test_handlers.py`, qui utilise les fakes définis aux chapitres précédents : le `FakeRepository` ([chapitre 3](../partie1/chapitre_03_repository.md)) et le `FakeUnitOfWork` ([chapitre 4](../partie1/chapitre_04_unit_of_work.md)). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
+C'est notre fichier `tests/unit/test_handlers.py`, qui utilise les fakes définis aux chapitres précédents : le `FakeRepository` ([chapitre 3](../partie1/chapitre_03_repository.md)) et le `FakeUnitOfWork` ([chapitre 4](../partie1/chapitre_05_unit_of_work.md)). Ces fakes remplacent la base de données par de simples structures en mémoire. Les tests restent donc **rapides** (pas d'I/O) tout en traversant la logique réelle de la service layer et du domaine.
 
 ### Des tests qui expriment le "quoi"
 
@@ -342,4 +342,4 @@ Le TDD à deux vitesses nous invite à **adapter notre niveau de test à la phas
 
 ---
 
-*Prochain chapitre : [CQRS](chapitre_11_cqrs.md)*
+*Prochain chapitre : [CQRS](chapitre_12_cqrs.md)*

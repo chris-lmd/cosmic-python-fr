@@ -1,4 +1,4 @@
-# Chapitre 12 -- Events externes et communication entre services
+# Chapitre 13 -- Events externes et communication entre services
 
 ## Events internes vs events externes
 
@@ -133,7 +133,7 @@ def bootstrap(
 
 Notre service doit aussi **recevoir** des events d'autres services. Quand un
 système d'entrepôt modifie la quantité d'un lot, il publie un event sur Redis.
-Le consumer est un **processus séparé** de l'API Flask qui écoute Redis et
+Le consumer est un **processus séparé** de l'API FastAPI qui écoute Redis et
 convertit les messages en commands internes :
 
 ```python
@@ -338,7 +338,7 @@ def handle_modifier_quantité_lot(message, bus):
 ┌────────────────────────────────────────────────┐
 │           Service d'allocation                  │
 │                                                │
-│  Flask API ─┐   Consumer ─┐   Outbox Relay     │
+│  FastAPI ───┐   Consumer ─┐   Outbox Relay     │
 │             ▼              ▼        │          │
 │         ┌──────────────────────┐    │          │
 │         │     Message Bus      │    │          │
@@ -357,7 +357,7 @@ def handle_modifier_quantité_lot(message, bus):
      └───────────┘    └───────────────┘
 ```
 
-Trois points d'entrée convergent vers le message bus : l'API Flask (requêtes
+Trois points d'entrée convergent vers le message bus : l'API FastAPI (requêtes
 HTTP), le consumer Redis (events externes), et l'outbox relay (publication).
 Le domaine ne sait pas d'où viennent les commands ni où partent les events.
 
@@ -404,4 +404,4 @@ Le domaine ne sait pas d'où viennent les commands ni où partent les events.
 
 ---
 
-*Prochain chapitre : [Injection de dépendances](chapitre_13_injection_dependances.md)*
+*Prochain chapitre : [Injection de dépendances](chapitre_09_bootstrap_di.md)*

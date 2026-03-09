@@ -71,7 +71,7 @@ Cette règle a une conséquence directe sur le **Repository** : il manipule des 
 
 ## La classe `Produit` : notre Aggregate Root
 
-La fonction libre `allouer(ligne, lots)` du chapitre 1 va maintenant **devenir une méthode** de `Produit`. L'agrégat possède les lots et prend la responsabilité de la stratégie d'allocation. La différence clé : au lieu de lever une exception `RuptureDeStock`, l'agrégat **émet un événement** (nous verrons pourquoi au [chapitre 7](../partie2/chapitre_07_events.md)).
+La fonction libre `allouer(ligne, lots)` du chapitre 1 va maintenant **devenir une méthode** de `Produit`. L'agrégat possède les lots et prend la responsabilité de la stratégie d'allocation. Si aucun lot ne peut accueillir la ligne, l'agrégat **lève une exception `RuptureDeStock`**.
 
 Voici la classe `Produit` telle qu'elle apparaît dans notre code source
 (`src/allocation/domain/model.py`) :
@@ -95,7 +95,6 @@ class Produit:
         self.sku = sku
         self.lots = lots or []
         self.numéro_version = numéro_version
-        self.événements: list[events.Event] = []
 ```
 
 Trois attributs méritent une attention particulière :
@@ -105,8 +104,6 @@ Trois attributs méritent une attention particulière :
 | `sku` | L'identité de l'agrégat. C'est le SKU du produit. |
 | `lots` | Les objets internes à l'agrégat. La liste de tous les lots pour ce SKU. |
 | `numéro_version` | Le compteur de version pour l'optimistic locking (voir plus bas). |
-
-Et une liste `événements` qui collecte les domain events émis par les opérations métier.
 
 ### La méthode `allouer()`
 
@@ -119,7 +116,7 @@ def allouer(self, ligne: LigneDeCommande) -> str:
     (sans ETA) puis les lots avec l'ETA la plus proche.
 
     Retourne la référence du lot choisi.
-    Émet un événement RuptureDeStock s'il n'y a plus de stock.
+    Lève RuptureDeStock si aucun lot ne convient.
     """
     try:
         lot = next(
@@ -127,19 +124,10 @@ def allouer(self, ligne: LigneDeCommande) -> str:
             if l.peut_allouer(ligne)
         )
     except StopIteration:
-        self.événements.append(events.RuptureDeStock(sku=ligne.sku))
-        return ""
+        raise RuptureDeStock(f"Rupture de stock pour le SKU {ligne.sku}")
 
     lot.allouer(ligne)
     self.numéro_version += 1
-    self.événements.append(
-        events.Alloué(
-            id_commande=ligne.id_commande,
-            sku=ligne.sku,
-            quantité=ligne.quantité,
-            réf_lot=lot.référence,
-        )
-    )
     return lot.référence
 ```
 
@@ -147,10 +135,9 @@ Observons les responsabilités de cette méthode :
 
 1. **Elle trie les lots** (`sorted(self.lots)`) pour appliquer la stratégie d'allocation (stock d'abord, puis ETA la plus proche).
 2. **Elle trouve le premier lot capable** d'accueillir la ligne (`l.peut_allouer(ligne)`).
-3. **Elle gère le cas d'erreur** : si aucun lot ne convient, elle émet un événement `RuptureDeStock` au lieu de lever une exception.
+3. **Elle gère le cas d'erreur** : si aucun lot ne convient, elle **lève une exception** `RuptureDeStock`.
 4. **Elle incrémente le `numéro_version`** après chaque allocation réussie.
-5. **Elle émet un événement `Alloué`** contenant les informations de l'allocation.
-6. **Elle retourne la référence du lot choisi**, permettant au code appelant de savoir où l'allocation a été faite.
+5. **Elle retourne la référence du lot choisi**, permettant au code appelant de savoir où l'allocation a été faite.
 
 Le code appelant (la service layer) n'a aucune connaissance des `Lot` individuels. Il demande simplement au `Produit` d'allouer.
 
@@ -159,23 +146,15 @@ Le code appelant (la service layer) n'a aucune connaissance des `Lot` individuel
 ```python
 def modifier_quantité_lot(self, réf: str, quantité: int) -> None:
     """
-    Modifie la quantité d'un lot et réalloue si nécessaire.
+    Modifie la quantité d'un lot et désalloue si nécessaire.
 
     Si la nouvelle quantité est inférieure aux allocations existantes,
-    les lignes en excédent sont désallouées et des événements
-    Désalloué sont émis pour chacune.
+    les lignes en excédent sont désallouées.
     """
     lot = next(l for l in self.lots if l.référence == réf)
     lot._quantité_achetée = quantité
     while lot.quantité_disponible < 0:
-        ligne = lot.désallouer_une()
-        self.événements.append(
-            events.Désalloué(
-                id_commande=ligne.id_commande,
-                sku=ligne.sku,
-                quantité=ligne.quantité,
-            )
-        )
+        lot.désallouer_une()
 ```
 
 Cette méthode illustre un scénario plus complexe :
@@ -183,35 +162,14 @@ Cette méthode illustre un scénario plus complexe :
 1. Elle retrouve le lot concerné **à l'intérieur de l'agrégat** (pas via le repository).
 2. Elle modifie la quantité achetée.
 3. Si la quantité disponible devient négative, elle **désalloue progressivement** des lignes de commande.
-4. Pour chaque ligne désallouée, elle émet un événement `Désalloué`. Ce sont ces events qui déclencheront une réallocation ailleurs dans le système (via le message bus, que nous verrons au [chapitre 7](../partie2/chapitre_07_events.md)).
+
+!!! note "Accès direct à `_quantité_achetée`"
+    La méthode accède directement à l'attribut privé `lot._quantité_achetée`. C'est acceptable ici car le `Lot` fait partie de l'agrégat `Produit` -- les objets internes d'un agrégat n'ont pas besoin d'encapsuler leurs attributs vis-à-vis de l'Aggregate Root. L'encapsulation protège le monde **extérieur** de l'agrégat, pas ses composants internes.
 
 ---
 
-## Le Repository manipule des Agrégats
-
-Le repository est l'interface entre le domaine et la persistance. Il doit opérer au niveau de l'agrégat, pas au niveau de ses composants internes.
-
-```python
-class AbstractRepository(abc.ABC):
-
-    def add(self, produit: model.Produit) -> None:
-        """Ajoute un produit au repository."""
-        ...
-
-    def get(self, sku: str) -> model.Produit | None:
-        """Recupere un produit par son SKU."""
-        ...
-
-    def get_par_réf_lot(self, réf_lot: str) -> model.Produit | None:
-        """Recupere un produit contenant le lot de reference donnee."""
-        ...
-```
-
-On remarque :
-
-- **`add()` et `get()` travaillent avec des `Produit`**, jamais des `Lot`.
-- **`get_par_réf_lot()`** retrouve le `Produit` parent à partir d'une référence de lot. Même ici, c'est l'agrégat entier qui est retourné.
-- La méthode `seen` (un `set[Produit]`) permet de garder une trace de tous les agrégats chargés ou ajoutés, ce qui sera utile pour collecter les domain events.
+!!! note "Repository et Agrégats"
+    L'Agrégat détermine la **granularité du Repository** : on persiste et on récupère des `Produit`, jamais des `Lot` individuels. Nous verrons comment implémenter ce pattern au [chapitre 3](chapitre_03_repository.md).
 
 ---
 
@@ -302,33 +260,6 @@ return lot.référence
 
 ---
 
-## Les Domain Events émis par l'Agrégat
-
-L'agrégat `Produit` ne se contente pas de modifier son état interne. Il **émet des événements** qui signalent ce qui s'est passé :
-
-| Événement | Quand | Déclencheur |
-|-----------|-------|-------------|
-| `Alloué` | Une ligne a été allouée avec succès | `allouer()` |
-| `RuptureDeStock` | Aucun lot ne peut accueillir la ligne | `allouer()` |
-| `Désalloué` | Une ligne est désallouée suite à un changement de quantité | `modifier_quantité_lot()` |
-
-Ces événements sont collectés dans `self.événements` et seront publiés par l'infrastructure (le Unit of Work et le message bus) après la transaction. C'est une séparation nette entre "ce qui s'est passé" et "ce qu'il faut faire ensuite".
-
-```python
-# Dans Produit.__init__
-self.événements: list[events.Event] = []
-
-# Dans allouer(), si rupture de stock :
-self.événements.append(events.RuptureDeStock(sku=ligne.sku))
-
-# Dans modifier_quantité_lot(), pour chaque ligne désallouée :
-self.événements.append(
-    events.Désalloué(id_commande=ligne.id_commande, sku=ligne.sku, quantité=ligne.quantité)
-)
-```
-
----
-
 ## Schéma récapitulatif
 
 ```
@@ -338,7 +269,6 @@ self.événements.append(
 |                                                            |
 |   Identite :  sku = "BLUE-VASE"                            |
 |   Version :   numéro_version = 3                           |
-|   Events :    [RuptureDeStock(...), Désalloué(...)]        |
 |                                                            |
 |   +------------------------+  +------------------------+   |
 |   |  Lot                   |  |  Lot                   |   |
@@ -361,6 +291,9 @@ self.événements.append(
 
 ---
 
+!!! info "Et les Domain Events ?"
+    Vous remarquerez que notre agrégat lève des exceptions pour signaler les erreurs (comme `RuptureDeStock`). Au [chapitre 7](../partie2/chapitre_07_events.md), nous verrons comment transformer ces signaux en **Domain Events** -- un mécanisme plus puissant qui permet de découpler les réactions aux changements du domaine.
+
 ## Résumé
 
 Les **Agrégats** sont la réponse du Domain-Driven Design au problème de la cohérence dans un système concurrent. En délimitant des frontières claires, ils permettent de raisonner localement sur les invariants tout en préservant la performance globale du système.
@@ -373,7 +306,6 @@ Les **Agrégats** sont la réponse du Domain-Driven Design au problème de la co
 | **Frontière** | Un agrégat = une transaction = un verrou. Ni trop gros, ni trop petit. |
 | **Optimistic Locking** | Le `numéro_version` détecte les conflits entre transactions concurrentes. |
 | **Repository** | Il travaille au niveau de l'agrégat, pas de ses composants internes. |
-| **Domain Events** | L'agrégat émet des événements pour signaler ce qui s'est passé. |
 
 ## Exercices
 
