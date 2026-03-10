@@ -31,8 +31,8 @@ nav:
   - "Partie 2 - Architecture événementielle":
     - "Chapitre 7 - Domain Events": partie2/chapitre_07_events.md
     - "Chapitre 8 - Commands vs Events": partie2/chapitre_08_commands.md
-    - "Chapitre 9 - Bootstrap et injection de dépendances": partie2/chapitre_09_bootstrap_di.md
-    - "Chapitre 10 - Le Message Bus": partie2/chapitre_10_message_bus.md
+    - "Chapitre 9 - Le Message Bus": partie2/chapitre_09_message_bus.md
+    - "Chapitre 10 - Bootstrap et injection de dépendances": partie2/chapitre_10_bootstrap_di.md
     - "Chapitre 11 - TDD à haute et basse vitesse": partie2/chapitre_11_tdd.md
     - "Chapitre 12 - CQRS": partie2/chapitre_12_cqrs.md
     - "Chapitre 13 - Events externes": partie2/chapitre_13_events_externes.md
