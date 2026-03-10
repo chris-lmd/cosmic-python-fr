@@ -1,4 +1,4 @@
-# Chapitre 10 -- Le Message Bus
+# Chapitre 9 -- Le Message Bus
 
 > **Pattern** : Message Bus
 > **Problème résolu** : Comment distribuer Commands et Events vers les bons handlers, gérer les cascades, et injecter les dépendances ?
@@ -215,37 +215,15 @@ def envoyer_notification_rupture_stock(
 ) -> None:
 ```
 
-Le bus voit que le second paramètre s'appelle `notifications`, trouve cette clé dans `self.dependencies`, et injecte l'objet correspondant (`EmailNotifications` en production, `FakeNotifications` en test). Le handler n'a aucune idée de la provenance de ses dépendances. Nous approfondirons ce mécanisme au chapitre 13.
+Le bus voit que le second paramètre s'appelle `notifications`, trouve cette clé dans `self.dependencies`, et injecte l'objet correspondant (`EmailNotifications` en production, `FakeNotifications` en test). Le handler n'a aucune idée de la provenance de ses dépendances. Nous verrons comment ces dépendances sont assemblées au [chapitre 10](chapitre_10_bootstrap_di.md).
 
 ---
 
 ## Les dictionnaires de routage
 
-Le routage des messages vers les handlers est défini dans `src/allocation/service_layer/bootstrap.py` :
+Le bus reçoit deux dictionnaires qui associent chaque type de message à son ou ses handlers. Ces dictionnaires sont définis dans le **Composition Root** (`bootstrap.py`) et passés au bus lors de sa construction -- nous les détaillerons au [chapitre 10](chapitre_10_bootstrap_di.md). Ils ont été présentés au [chapitre 8](chapitre_08_commands.md) pour illustrer la distinction command/event.
 
-```python
-EVENT_HANDLERS: dict[type[events.Event], list] = {
-    events.Alloué: [
-        handlers.publier_événement_allocation,
-        handlers.ajouter_allocation_vue,
-    ],
-    events.Désalloué: [
-        handlers.réallouer,
-        handlers.supprimer_allocation_vue,
-    ],
-    events.RuptureDeStock: [
-        handlers.envoyer_notification_rupture_stock,
-    ],
-}
-
-COMMAND_HANDLERS: dict[type[commands.Command], Any] = {
-    commands.CréerLot: handlers.ajouter_lot,
-    commands.Allouer: handlers.allouer,
-    commands.ModifierQuantitéLot: handlers.modifier_quantité_lot,
-}
-```
-
-C'est un simple dictionnaire. Ajouter un nouveau handler pour un event existant revient à ajouter une entrée dans une liste. Ajouter un nouveau type de command revient à ajouter une clé dans le dictionnaire. **Aucun code existant n'est modifié** -- c'est le principe Open/Closed.
+Le principe est simple : ajouter un nouveau handler pour un event existant revient à ajouter une entrée dans une liste. Ajouter un nouveau type de command revient à ajouter une clé dans le dictionnaire. **Aucun code existant n'est modifié** -- c'est le principe Open/Closed.
 
 ---
 
@@ -562,4 +540,4 @@ Les avantages de cette architecture :
 
 ---
 
-*Chapitre suivant : [TDD à haute et basse vitesse](chapitre_11_tdd.md) -- comment tester efficacement une architecture orientée messages.*
+*Chapitre suivant : [Bootstrap et injection de dépendances](chapitre_10_bootstrap_di.md) -- comment assembler tous les composants proprement.*

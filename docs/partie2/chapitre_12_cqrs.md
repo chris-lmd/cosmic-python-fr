@@ -322,7 +322,10 @@ EVENT_HANDLERS: dict[type[events.Event], list] = {
         handlers.publier_événement_allocation,
         handlers.ajouter_allocation_vue,  # <-- mise à jour du read model
     ],
-    events.Désalloué: [handlers.réallouer],
+    events.Désalloué: [
+        handlers.réallouer,
+        handlers.supprimer_allocation_vue,  # <-- nettoyage du read model
+    ],
     events.RuptureDeStock: [handlers.envoyer_notification_rupture_stock],
 }
 ```

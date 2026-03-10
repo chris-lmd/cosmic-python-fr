@@ -1,4 +1,4 @@
-# Chapitre 9 -- Bootstrap et injection de dépendances
+# Chapitre 10 -- Bootstrap et injection de dépendances
 
 > **Pattern** : Dependency Injection + Composition Root
 > **Problème résolu** : Comment assembler tous les composants (handlers, UoW, notifications, bus) sans créer de couplage entre eux ?
@@ -145,7 +145,7 @@ Chaque event est mappé à une **liste** de handlers :
 | Event | Handlers | Effets |
 |-------|---------|--------|
 | `Alloué` | `publier_événement_allocation` | Log l'allocation (placeholder pour Redis/Kafka) |
-| | `ajouter_allocation_vue` | Insère dans le read model CQRS (chapitre 11) |
+| | `ajouter_allocation_vue` | Insère dans le read model CQRS (chapitre 12) |
 | `Désalloué` | `réallouer` | Crée une commande `Allouer` pour réallouer la ligne |
 | | `supprimer_allocation_vue` | Supprime du read model CQRS |
 | `RuptureDeStock` | `envoyer_notification_rupture_stock` | Envoie un email à l'équipe stock |
@@ -172,7 +172,7 @@ Chaque command est mappée à **un seul** handler :
 
 ## Comment les dépendances arrivent aux handlers
 
-Le dictionnaire `dependencies` construit par `bootstrap()` est passé au `MessageBus`. Quand le bus appelle un handler, il inspecte sa signature pour déterminer quelles dépendances injecter automatiquement. Le mécanisme détaillé (`_call_handler()`) est présenté au [chapitre 10](chapitre_10_message_bus.md).
+Le dictionnaire `dependencies` construit par `bootstrap()` est passé au `MessageBus`. Quand le bus appelle un handler, il inspecte sa signature pour déterminer quelles dépendances injecter automatiquement. Le mécanisme détaillé (`_call_handler()`) est présenté au [chapitre 9](chapitre_09_message_bus.md).
 
 Le principe est simple : chaque handler déclare ce dont il a besoin dans sa signature, et le bus fournit les objets correspondants à partir du dictionnaire de dépendances.
 
@@ -363,4 +363,4 @@ Trois points d'entrée différents, **le même bus**, **le même wiring**. Seule
 
 ---
 
-*Chapitre suivant : [Le Message Bus](chapitre_10_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*
+*Chapitre suivant : [TDD à haute et basse vitesse](chapitre_11_tdd.md) -- comment tester efficacement une architecture orientée messages.*

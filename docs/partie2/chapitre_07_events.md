@@ -147,6 +147,9 @@ L'attribut `self.événements` est une simple liste Python. L'agrégat y ajoute 
 
 ### Émission dans `allouer()`
 
+!!! warning "Changement de contrat par rapport aux chapitres 1 et 2"
+    Aux chapitres 1 et 2, `allouer()` levait une exception `RuptureDeStock` quand aucun lot ne pouvait accueillir la ligne. Avec les Domain Events, la méthode **ne lève plus d'exception** : elle émet un event `RuptureDeStock` à la place et retourne une chaîne vide. C'est un choix délibéré : les conséquences de la rupture (envoyer un email, notifier un service) sont désormais **découplées** via les event handlers, au lieu d'être gérées par l'appelant via un `try/except`.
+
 ```python
 def allouer(self, ligne: LigneDeCommande) -> str:
     try:
@@ -267,9 +270,9 @@ Scénario AVEC garde-fou :
 Maintenant que nous savons comment les events sont émis et collectés, voyons comment le système **réagit** à ces events. Chaque event peut avoir un ou plusieurs **handlers** -- des fonctions qui réagissent au fait passé.
 
 !!! info "Qui distribue les events aux handlers ?"
-    Les events collectés par le UoW doivent être distribués aux bons handlers. C'est le rôle du **Message Bus**, que nous détaillerons au [chapitre 10](chapitre_10_message_bus.md). Pour l'instant, retenez le principe : le UoW collecte les events émis par les agrégats, et un mécanisme central (le bus) se charge de les dispatcher aux handlers enregistrés. Ce chapitre se concentre sur la définition des events et de leurs handlers -- le câblage viendra plus tard.
+    Les events collectés par le UoW doivent être distribués aux bons handlers. C'est le rôle du **Message Bus**, que nous détaillerons au [chapitre 9](chapitre_09_message_bus.md). Pour l'instant, retenez le principe : le UoW collecte les events émis par les agrégats, et un mécanisme central (le bus) se charge de les dispatcher aux handlers enregistrés. Ce chapitre se concentre sur la définition des events et de leurs handlers -- le câblage viendra plus tard.
 
-### `envoyer_notification_rupture_stock`
+### Exemple : `envoyer_notification_rupture_stock`
 
 Quand le stock est épuisé, il faut prévenir l'équipe :
 
@@ -285,63 +288,12 @@ def envoyer_notification_rupture_stock(
     )
 ```
 
-Ce handler utilise l'abstraction `AbstractNotifications` (chapitre 6) pour envoyer un email. En test, on injecte un `FakeNotifications` ; en production, c'est `EmailNotifications` qui parle en SMTP.
+Ce handler utilise l'abstraction `AbstractNotifications` ([chapitre 6](../partie1/chapitre_06_abstractions.md)) pour envoyer un email. En test, on injecte un `FakeNotifications` ; en production, c'est `EmailNotifications` qui parle en SMTP.
 
-### `réallouer`
+C'est la puissance des Domain Events : le handler `allouer` n'a aucune idée qu'un email est envoyé. Il se contente de faire l'allocation, et le domaine émet les faits. Les réactions sont gérées ailleurs, par des handlers indépendants.
 
-Quand une ligne est désallouée (par exemple suite à une réduction de quantité d'un lot), il faut la réallouer automatiquement :
-
-```python
-def réallouer(
-    event: events.Désalloué,
-    uow: AbstractUnitOfWork,
-) -> None:
-    """Réalloue automatiquement une ligne désallouée."""
-    allouer(
-        commands.Allouer(
-            id_commande=event.id_commande,
-            sku=event.sku,
-            quantité=event.quantité,
-        ),
-        uow=uow,
-    )
-```
-
-Ce handler est particulièrement intéressant : il transforme un event (`Désalloué`) en une nouvelle action (appeler le handler `allouer`). C'est un exemple de **cascade** : un event déclenche une action, qui peut elle-même émettre de nouveaux events.
-
-### `publier_événement_allocation` et les handlers de vue
-
-Deux autres handlers réagissent à l'event `Alloué` :
-
-```python
-def publier_événement_allocation(
-    event: events.Alloué,
-    uow: AbstractUnitOfWork,
-) -> None:
-    """Publie un événement d'allocation vers l'extérieur."""
-    logger.info(
-        "Allocation publiée : %s -> %s (quantité: %d)",
-        event.id_commande, event.réf_lot, event.quantité,
-    )
-
-
-def ajouter_allocation_vue(
-    event: events.Alloué,
-    uow: AbstractUnitOfWork,
-) -> None:
-    """Met à jour le read model après une allocation."""
-    with uow:
-        uow.session.execute(
-            text(
-                "INSERT INTO allocations_view (id_commande, sku, réf_lot)"
-                " VALUES (:id_commande, :sku, :réf_lot)"
-            ),
-            dict(id_commande=event.id_commande, sku=event.sku, réf_lot=event.réf_lot),
-        )
-        uow.commit()
-```
-
-Un même event, **plusieurs réactions indépendantes**. C'est la puissance des Domain Events : le handler `allouer` n'a aucune idée qu'un email est envoyé ou qu'un read model est mis à jour. Il se contente de faire l'allocation, et le domaine émet les faits.
+!!! note "D'autres handlers seront ajoutés plus tard"
+    Un même event peut avoir **plusieurs handlers** indépendants. Par exemple, l'event `Alloué` pourra déclencher la mise à jour d'un read model ([chapitre 12](chapitre_12_cqrs.md)) ou la publication vers un broker externe ([chapitre 13](chapitre_13_events_externes.md)). L'event `Désalloué` pourra déclencher une réallocation automatique. Nous verrons tout cela dans les chapitres suivants.
 
 ---
 
@@ -363,9 +315,8 @@ Voici le flux complet, de l'émission à la réaction :
 │  4. collect_new_events() parcourt produits.seen              │
 │     => yield Alloué(...)                                    │
 │                                                             │
-│  5. Les event handlers réagissent :                         │
-│     - publier_événement_allocation(event, uow)              │
-│     - ajouter_allocation_vue(event, uow)                    │
+│  5. Les event handlers enregistrés réagissent               │
+│     (nous verrons lesquels dans les chapitres suivants)     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -401,19 +352,19 @@ Et voici le diagramme de séquence pour le scénario de rupture de stock :
 
 ---
 
-## Récapitulatif du routage des events
+## Aperçu du routage des events
 
-Voici la table de routage qui associe chaque event à ses handlers :
+Pour donner une vue d'ensemble de ce qui sera construit dans les chapitres suivants, voici la table de routage complète des events. Chaque event peut avoir un ou plusieurs handlers -- nous les détaillerons au fur et à mesure :
 
-| Event | Handler(s) | Effet |
-|-------|-----------|-------|
-| `Alloué` | `publier_événement_allocation` | Log l'allocation (placeholder pour Redis/Kafka) |
-| `Alloué` | `ajouter_allocation_vue` | Met à jour le read model CQRS |
-| `Désalloué` | `réallouer` | Crée une nouvelle commande d'allocation |
-| `Désalloué` | `supprimer_allocation_vue` | Met à jour le read model CQRS |
-| `RuptureDeStock` | `envoyer_notification_rupture_stock` | Envoie un email à l'équipe stock |
+| Event | Handler(s) | Effet | Introduit au |
+|-------|-----------|-------|--------------|
+| `Alloué` | `publier_événement_allocation` | Publie vers un broker externe | [Chapitre 13](chapitre_13_events_externes.md) |
+| `Alloué` | `ajouter_allocation_vue` | Met à jour le read model CQRS | [Chapitre 12](chapitre_12_cqrs.md) |
+| `Désalloué` | `réallouer` | Réalloue la ligne à un autre lot | [Chapitre 9](chapitre_09_message_bus.md) |
+| `Désalloué` | `supprimer_allocation_vue` | Met à jour le read model CQRS | [Chapitre 12](chapitre_12_cqrs.md) |
+| `RuptureDeStock` | `envoyer_notification_rupture_stock` | Envoie un email à l'équipe stock | Ce chapitre |
 
-Nous verrons aux chapitres 8 et 9 comment ce routage est défini et comment un **Message Bus** orchestre la distribution des events vers les bons handlers.
+Nous verrons au [chapitre 8](chapitre_08_commands.md) la distinction entre Commands et Events, puis au [chapitre 9](chapitre_09_message_bus.md) comment un **Message Bus** orchestre la distribution des events vers les bons handlers.
 
 ---
 

@@ -85,8 +85,7 @@ class RedisEventPublisher(AbstractEventPublisher):
         self.client.publish(channel, json.dumps(event_data))
 ```
 
-Notre handler `publier_événement_allocation` utilise cet adapter via l'injection
-de dépendances du message bus :
+Notre handler `publier_événement_allocation` évolue pour utiliser cet adapter. Dans la table de routage du [chapitre 7](chapitre_07_events.md), ce handler était mentionné comme publiant vers un broker externe -- c'est ici que cette publication prend forme concrètement, via l'injection de dépendances du message bus :
 ```python
 # service_layer/handlers.py
 

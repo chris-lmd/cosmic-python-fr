@@ -113,6 +113,9 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError
 ```
 
+!!! note "Pourquoi `get_par_réf_lot` ?"
+    Cette méthode peut sembler surprenante à ce stade. Elle sera utilisée plus tard quand un système externe nous enverra une référence de lot (par exemple pour modifier sa quantité). Plutôt que de connaître le SKU du produit, le système externe ne connaît que la référence du lot -- le repository doit donc pouvoir retrouver le produit contenant ce lot.
+
 Analysons les choix de conception :
 
 ### Méthodes publiques et méthodes abstraites protégées
@@ -123,7 +126,7 @@ Ce pattern (parfois appelé **Template Method**) garantit que le comportement de
 
 ### L'attribut `seen`
 
-L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Cet attribut est crucial pour le pattern Unit of Work (que nous verrons au [chapitre 5](chapitre_05_unit_of_work.md)) : il permet de savoir quels agrégats ont été manipulés au cours d'une transaction, et donc quels agrégats doivent être pris en compte lors du commit.
+L'ensemble `seen` trace tous les objets qui ont été ajoutés ou consultés via le repository. Son utilité n'est pas immédiatement visible à ce stade -- il prendra tout son sens au [chapitre 5](chapitre_05_unit_of_work.md) avec le pattern Unit of Work, puis au [chapitre 7](../partie2/chapitre_07_events.md) avec la collecte des Domain Events. Pour l'instant, retenez simplement qu'il permet de savoir quels agrégats ont été manipulés au cours d'une transaction.
 
 ```python
 repo.add(produit)          # produit est ajouté à seen
@@ -210,7 +213,6 @@ class Produit:
         self.sku = sku
         self.lots = lots or []
         self.numéro_version = numéro_version
-        self.événements: list[events.Event] = []  # (nous verrons le rôle de cette liste au [chapitre 7](../partie2/chapitre_07_events.md))
 
     def allouer(self, ligne: LigneDeCommande) -> str:
         # ... logique métier pure ...
@@ -477,4 +479,4 @@ Le flux est toujours le même :
 
 ---
 
-**Prochain chapitre** : [Le pattern Unit of Work](chapitre_05_unit_of_work.md), où nous verrons comment encapsuler la transaction dans un context manager pour garantir l'atomicité des opérations.
+**Prochain chapitre** : [La Service Layer](chapitre_04_service_layer.md), où nous verrons comment orchestrer les cas d'utilisation avec des handlers fins et procéduraux.

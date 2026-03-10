@@ -54,8 +54,8 @@ Les patterns présentés ici résolvent ces problèmes en :
 |----------|---------|-----------------|
 | [7. Domain Events](partie2/chapitre_07_events.md) | Domain Events | Comment réagir aux changements du domaine ? |
 | [8. Commands vs Events](partie2/chapitre_08_commands.md) | Command | Comment distinguer intentions et faits ? |
-| [9. Bootstrap et injection de dépendances](partie2/chapitre_09_bootstrap_di.md) | Bootstrap + DI | Comment assembler les composants proprement ? |
-| [10. Le Message Bus](partie2/chapitre_10_message_bus.md) | Message Bus | Comment le bus devient le cœur de l'architecture ? |
+| [9. Le Message Bus](partie2/chapitre_09_message_bus.md) | Message Bus | Comment le bus devient le cœur de l'architecture ? |
+| [10. Bootstrap et injection de dépendances](partie2/chapitre_10_bootstrap_di.md) | Bootstrap + DI | Comment assembler les composants proprement ? |
 | [11. TDD à haute et basse vitesse](partie2/chapitre_11_tdd.md) | Testing Pyramid | Comment tester efficacement ? |
 | [12. CQRS](partie2/chapitre_12_cqrs.md) | CQRS | Comment optimiser lectures et écritures séparément ? |
 | [13. Events externes](partie2/chapitre_13_events_externes.md) | Integration Events | Comment communiquer entre services ? |

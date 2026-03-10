@@ -126,7 +126,7 @@ EVENT_HANDLERS = {
 Si un event handler échoue, l'erreur est **loggée mais ne bloque pas** les autres handlers. C'est une décision délibérée : si l'envoi d'email échoue, on ne veut pas empêcher la mise à jour du read model.
 
 !!! note "Où vivent ces dictionnaires ?"
-    Ces dictionnaires de routage sont définis dans le Composition Root (`bootstrap.py`, [chapitre 9](chapitre_09_bootstrap_di.md)) et utilisés par le Message Bus ([chapitre 10](chapitre_10_message_bus.md)) pour distribuer chaque message au bon handler.
+    Ces dictionnaires de routage sont définis dans le Composition Root (`bootstrap.py`, [chapitre 10](chapitre_10_bootstrap_di.md)) et utilisés par le Message Bus ([chapitre 9](chapitre_09_message_bus.md)) pour distribuer chaque message au bon handler.
 
 ---
 
@@ -223,4 +223,4 @@ Monde extérieur                     Domaine                    Réactions
 
 ---
 
-*Chapitre suivant : [Le Message Bus](chapitre_10_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*
+*Chapitre suivant : [Le Message Bus](chapitre_09_message_bus.md) -- le cœur qui distribue Commands et Events aux bons handlers.*
